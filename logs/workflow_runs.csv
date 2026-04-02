@@ -1,1 +1,2 @@
-test_id,date,agent_used,notes
+run_id,timestamp,ga4_rows,gsc_rows,insight_count,strategy_goal,execution_count,evaluation_score
+run_20260402_003202,2026-04-02T00:32:02,0,0,3,Improve organic visibility and convert more existing traffic.,3,9

@@ -97,6 +97,27 @@ This project shows how AI can move beyond simple content generation and be used 
 
 ---
 
+## Run The MVP
+
+1. Install dependencies:
+   `pip install -r requirements.txt`
+2. Start the Streamlit app:
+   `streamlit run app.py`
+3. Upload your GA4 and GSC CSV files in the app
+4. Click **Run Workflow**
+
+You can also run the workflow from the command line with:
+
+`python main.py`
+
+If `data/ga4.csv` and `data/gsc.csv` exist, `main.py` will use them automatically.
+
+Each workflow run is saved to:
+
+`logs/workflow_runs.csv`
+
+---
+
 ## Author
 
 Elizabeth McCuan
