@@ -1,2 +1,19 @@
-run_id,timestamp,ga4_rows,gsc_rows,insight_count,strategy_goal,execution_count,evaluation_score
-run_20260402_003202,2026-04-02T00:32:02,0,0,3,Improve organic visibility and convert more existing traffic.,3,9
+run_id,timestamp,ga4_page_rows,ga4_source_rows,gsc_query_rows,insight_count,strategy_goal,execution_count,evaluation_score
+run_20260402_151246,2026-04-02T15:12:46,3,3,3,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_151727,2026-04-02T15:17:27,23,10,640,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_152221,2026-04-02T15:22:21,2,3,2,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_152241,2026-04-02T15:22:41,2,3,2,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_154245,2026-04-02T15:42:45,23,9,640,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_154709,2026-04-02T15:47:09,23,9,640,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_154942,2026-04-02T15:49:42,2,2,3,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,3
+run_20260402_155018,2026-04-02T15:50:18,2,2,3,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,3
+run_20260402_155041,2026-04-02T15:50:41,2,2,3,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,3
+run_20260402_155108,2026-04-02T15:51:08,2,2,3,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_155152,2026-04-02T15:51:52,23,9,640,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_155817,2026-04-02T15:58:17,2,2,3,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,3
+run_20260402_155837,2026-04-02T15:58:37,2,2,3,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_170259,2026-04-02T17:02:59,23,9,640,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_173835,2026-04-02T17:38:35,23,9,640,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_173956,2026-04-02T17:39:56,23,9,640,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_174115,2026-04-02T17:41:15,23,9,640,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5
+run_20260402_174312,2026-04-02T17:43:12,23,9,640,3,Increase non-branded organic visibility and convert high-intent search demand into appointments.,4,5

@@ -22,8 +22,9 @@ LOG_FILE = Path("logs/workflow_runs.csv")
 LOG_HEADERS = [
     "run_id",
     "timestamp",
-    "ga4_rows",
-    "gsc_rows",
+    "ga4_page_rows",
+    "ga4_source_rows",
+    "gsc_query_rows",
     "insight_count",
     "strategy_goal",
     "execution_count",
@@ -60,8 +61,9 @@ def log_workflow_run(results: dict[str, Any]) -> None:
     row = {
         "run_id": results["run_id"],
         "timestamp": results["timestamp"],
-        "ga4_rows": intake["ga4"]["rows"],
-        "gsc_rows": intake["gsc"]["rows"],
+        "ga4_page_rows": intake["ga4_pages"]["rows"],
+        "ga4_source_rows": intake["ga4_sources"]["rows"],
+        "gsc_query_rows": intake["gsc_queries"]["rows"],
         "insight_count": len(results["insight"]["insights"]),
         "strategy_goal": strategy["goal"],
         "execution_count": len(results["execution"]["execution_plan"]),
@@ -73,12 +75,20 @@ def log_workflow_run(results: dict[str, Any]) -> None:
         writer.writerow(row)
 
 
-def run_workflow(ga4_data: pd.DataFrame | None = None, gsc_data: pd.DataFrame | None = None) -> dict[str, Any]:
+def run_workflow(
+    ga4_pages_data: pd.DataFrame | None = None,
+    ga4_source_data: pd.DataFrame | None = None,
+    gsc_queries_data: pd.DataFrame | None = None,
+) -> dict[str, Any]:
     """Run the full agent workflow in order and return all outputs."""
     print("Starting AI Marketing Workflow...\n")
 
     # Step 1: structure the uploaded marketing data.
-    data = run_data_intake(ga4_data=ga4_data, gsc_data=gsc_data)
+    data = run_data_intake(
+        ga4_pages_data=ga4_pages_data,
+        ga4_source_data=ga4_source_data,
+        gsc_queries_data=gsc_queries_data,
+    )
     print("Data Intake Complete\n")
 
     # Step 2: generate simple findings from the structured data.
@@ -116,11 +126,23 @@ def run_workflow(ga4_data: pd.DataFrame | None = None, gsc_data: pd.DataFrame | 
 
 
 if __name__ == "__main__":
-    default_ga4 = Path("data/ga4.csv")
-    default_gsc = Path("data/gsc.csv")
+    default_ga4_pages = Path("data/ga4_pages.csv")
+    default_ga4_sources = Path("data/ga4_source_medium.csv")
+    default_gsc_queries = Path("data/gsc_queries.csv")
 
     # If local sample files exist, the CLI runner will use them automatically.
-    ga4_data = parse_csv_file(str(default_ga4), "GA4") if default_ga4.exists() else pd.DataFrame()
-    gsc_data = parse_csv_file(str(default_gsc), "GSC") if default_gsc.exists() else pd.DataFrame()
+    ga4_pages_data = (
+        parse_csv_file(str(default_ga4_pages), "GA4_PAGES") if default_ga4_pages.exists() else pd.DataFrame()
+    )
+    ga4_source_data = (
+        parse_csv_file(str(default_ga4_sources), "GA4_SOURCE") if default_ga4_sources.exists() else pd.DataFrame()
+    )
+    gsc_queries_data = (
+        parse_csv_file(str(default_gsc_queries), "GSC_QUERIES") if default_gsc_queries.exists() else pd.DataFrame()
+    )
 
-    run_workflow(ga4_data=ga4_data, gsc_data=gsc_data)
+    run_workflow(
+        ga4_pages_data=ga4_pages_data,
+        ga4_source_data=ga4_source_data,
+        gsc_queries_data=gsc_queries_data,
+    )
