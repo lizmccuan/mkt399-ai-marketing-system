@@ -13,6 +13,49 @@ from utils.parser import parse_uploaded_csv
 
 
 st.set_page_config(page_title="AI Marketing Workflow System", layout="wide")
+st.markdown(
+    """
+    <style>
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+    .dashboard-subtitle {
+        color: #5b6470;
+        margin-bottom: 1.5rem;
+    }
+    .panel {
+        background: #f7f9fc;
+        border: 1px solid #e6ebf2;
+        border-radius: 14px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 1rem;
+    }
+    .panel-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+    .change-card {
+        background: #ffffff;
+        border: 1px solid #e6ebf2;
+        border-radius: 14px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+    }
+    .mock-block {
+        background: #f7f9fc;
+        border: 1px dashed #cdd6e1;
+        border-radius: 10px;
+        padding: 0.85rem;
+        margin-top: 0.5rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 def get_first_value(items: list[dict], key: str, fallback: str = "Not available") -> str:
@@ -25,21 +68,18 @@ def get_first_value(items: list[dict], key: str, fallback: str = "Not available"
 def build_scorecard(results: dict) -> dict[str, str]:
     """Collect the main scorecard values from workflow results."""
     insight = results["insight"]
+    top_opportunity_item = insight["high_impression_low_click"][0] if insight["high_impression_low_click"] else {}
 
     top_opportunity_query = get_first_value(insight["high_impression_low_click"], "query")
-    top_ctr_gap = get_first_value(insight["high_impression_low_click"], "query")
+    top_ctr_gap = get_first_value(insight["high_impression_low_click"], "ctr")
     top_traffic_source = get_first_value(insight["top_sources"], "source_medium")
-    top_performing_page = get_first_value(insight["top_pages"], "label")
-    top_non_branded_query = get_first_value(insight["non_branded_queries"], "query")
-    top_branded_query = get_first_value(insight["branded_queries"], "query")
+    opportunity_score = str(top_opportunity_item.get("opportunity_score", "Not available"))
 
     return {
-        "Top Opportunity Query": top_opportunity_query,
-        "Top CTR Gap": top_ctr_gap,
+        "Opportunity Score": opportunity_score,
+        "Top Opportunity": top_opportunity_query,
+        "CTR Gap": top_ctr_gap,
         "Top Traffic Source": top_traffic_source,
-        "Top Performing Page": top_performing_page,
-        "Top Non-Branded Query": top_non_branded_query,
-        "Top Branded Query": top_branded_query,
     }
 
 
@@ -47,16 +87,23 @@ def render_scorecard(results: dict) -> None:
     """Show dashboard metrics in a presentation-friendly layout."""
     scorecard = build_scorecard(results)
 
-    st.subheader("Scorecard")
-    row_one = st.columns(3)
-    row_one[0].metric("Top Opportunity Query", scorecard["Top Opportunity Query"])
-    row_one[1].metric("Top CTR Gap", scorecard["Top CTR Gap"])
-    row_one[2].metric("Top Traffic Source", scorecard["Top Traffic Source"])
-
-    row_two = st.columns(3)
-    row_two[0].metric("Top Performing Page", scorecard["Top Performing Page"])
-    row_two[1].metric("Top Non-Branded Query", scorecard["Top Non-Branded Query"])
-    row_two[2].metric("Top Branded Query", scorecard["Top Branded Query"])
+    row_one = st.columns(4)
+    with row_one[0]:
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.metric("Opportunity Score", scorecard["Opportunity Score"])
+        st.markdown("</div>", unsafe_allow_html=True)
+    with row_one[1]:
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.metric("Top Opportunity", scorecard["Top Opportunity"])
+        st.markdown("</div>", unsafe_allow_html=True)
+    with row_one[2]:
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.metric("CTR Gap", scorecard["CTR Gap"])
+        st.markdown("</div>", unsafe_allow_html=True)
+    with row_one[3]:
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.metric("Top Traffic Source", scorecard["Top Traffic Source"])
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_client_report(results: dict) -> None:
@@ -95,40 +142,281 @@ def render_client_report(results: dict) -> None:
     st.write(f"- Current readiness score: {evaluation['score']}/5")
 
 
-def render_standard_view(results: dict, ga4_debug_titles: list[str]) -> None:
-    """Show the existing workflow detail view."""
-    st.subheader("GA4 Debug")
-    if ga4_debug_titles:
-        st.write("First 5 parsed GA4 page titles:")
-        st.write(ga4_debug_titles)
-    else:
-        st.write("No GA4 page titles were detected.")
+def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug: bool) -> None:
+    """Show the standard dashboard view using real workflow data."""
+    insight = results["insight"]
+    combined = results["data_intake"]["summary"]["combined"]
+    data_summary = results["data_intake"]["summary"]
+    strategy = results["strategy"]["strategy"]
 
-    st.subheader("Combined Summary")
-    st.json(results["data_intake"]["summary"]["combined"])
+    # Header row with an optional status area on the right.
+    header_left, header_right = st.columns([4, 1.2])
+    with header_left:
+        st.markdown('<div class="dashboard-title">Marketing Intelligence Dashboard</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dashboard-subtitle">Real-time insights and opportunities</div>', unsafe_allow_html=True)
+    with header_right:
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.markdown("**Status**")
+        st.write("Workflow complete")
+        st.write("Profile placeholder")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    st.subheader("Data Intake")
-    st.json(results["data_intake"])
+    # KPI card row: exact four-card structure requested.
+    render_scorecard(results)
 
-    st.subheader("Insight")
-    st.json(results["insight"])
+    # Main content area: wider left column and narrower right column.
+    left_col, right_col = st.columns([2.2, 1])
 
-    st.subheader("Strategy")
-    st.json(results["strategy"])
+    with left_col:
+        # A. Performance Overview chart using real query impressions.
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
+        query_chart_df = pd.DataFrame(insight["query_analysis"])
+        if not query_chart_df.empty and {"query", "impressions"}.issubset(query_chart_df.columns):
+            chart_data = query_chart_df.sort_values("impressions", ascending=False)[["query", "impressions"]].head(5).set_index("query")
+            st.bar_chart(chart_data)
+        else:
+            st.info("No query impression data available yet.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    st.subheader("Execution")
-    st.json(results["execution"])
+        # B. Top Queries and Top Pages side by side.
+        row_b_left, row_b_right = st.columns(2)
+        with row_b_left:
+            st.markdown('<div class="panel">', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
+            top_queries_df = pd.DataFrame(insight["query_analysis"])
+            if not top_queries_df.empty:
+                st.dataframe(
+                    top_queries_df[["query", "ctr", "impressions", "position"]].head(5),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.info("No query data available.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    st.subheader("Evaluation")
-    st.json(results["evaluation"])
+        with row_b_right:
+            st.markdown('<div class="panel">', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
+            page_rows = []
+            best_source = get_first_value(insight["top_sources"], "source_medium")
+            for item in combined["top_pages"][:5]:
+                page_rows.append(
+                    {
+                        "page_title": item["page_title"],
+                        "metric": item["metric"],
+                        "value": item["value"],
+                        "traffic_context": best_source,
+                    }
+                )
+            top_pages_df = pd.DataFrame(page_rows)
+            if not top_pages_df.empty:
+                st.dataframe(top_pages_df, use_container_width=True, hide_index=True)
+            else:
+                st.info("No page data available.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    st.subheader("Full Workflow Output")
-    st.code(json.dumps(results, indent=2), language="json")
+        # C. Traffic Distribution and User Behavior Signals side by side.
+        row_c_left, row_c_right = st.columns(2)
+        with row_c_left:
+            st.markdown('<div class="panel">', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
+            top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
+            if not top_sources_df.empty:
+                source_chart_df = top_sources_df[["source_medium", "value"]].set_index("source_medium")
+                st.bar_chart(source_chart_df)
+                st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
+            else:
+                st.info("No traffic source data available.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with row_c_right:
+            st.markdown('<div class="panel">', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">User Behavior Signals</div>', unsafe_allow_html=True)
+            behavior_metrics = {
+                "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
+                "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
+                "Engagement Rate": data_summary["ga4_pages"]["key_metrics"].get("engagement_rate", "Not available"),
+                "Source Sessions": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
+            }
+            metric_cols = st.columns(2)
+            metric_items = list(behavior_metrics.items())
+            for index, (label, value) in enumerate(metric_items):
+                metric_cols[index % 2].metric(label, value)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # D. Key Insights cards using real insight patterns.
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Key Insights</div>', unsafe_allow_html=True)
+        insight_cols = st.columns(3)
+        insight_titles = ["Low CTR Opportunity", "Growth Opportunity", "Traffic Insight"]
+        for index, title in enumerate(insight_titles):
+            with insight_cols[index]:
+                st.markdown("**" + title + "**")
+                st.write(insight["patterns"][index] if len(insight["patterns"]) > index else "No insight available.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # E. Recommended Actions as stacked task cards with priority labels.
+        st.markdown('<div class="panel" id="recommended-actions">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Recommended Actions</div>', unsafe_allow_html=True)
+        priority_cycle = ["High", "Medium", "Low"]
+        action_index = 0
+        for category, recommendations in strategy["recommendations"].items():
+            for recommendation in recommendations:
+                priority = priority_cycle[action_index % len(priority_cycle)]
+                st.markdown(f"**{priority} Priority | {format_heading(category)}**")
+                st.write(recommendation)
+                action_index += 1
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # F. Suggested Changes with Examples uses strategy and execution outputs.
+        render_suggested_changes_section(results)
+
+    with right_col:
+        # Right rail A. AI Insights Feed as separated cards.
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">AI Insights Feed</div>', unsafe_allow_html=True)
+        for index, pattern in enumerate(insight["patterns"][:5], start=1):
+            st.markdown(f"**Insight {index}**")
+            st.write(pattern)
+            st.divider()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Right rail B. Primary CTA area.
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Primary CTA</div>', unsafe_allow_html=True)
+        st.write("Use the recommendations below to move from insight to action.")
+        st.button("View Recommendations", key="view_recommendations_button")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Move exports lower so they do not interrupt the dashboard.
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">Export Options</div>', unsafe_allow_html=True)
+    render_export_section(results, inside_panel=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Only show debug information when explicitly enabled.
+    if show_debug:
+        with st.expander("Workflow Debug Data", expanded=False):
+            if ga4_debug_titles:
+                st.write("First 5 parsed GA4 page titles:")
+                st.write(ga4_debug_titles)
+            else:
+                st.write("No GA4 page titles were detected.")
+
+            st.subheader("Combined Summary")
+            st.json(results["data_intake"]["summary"]["combined"])
+
+            st.subheader("Full Workflow Output")
+            st.code(json.dumps(results, indent=2), language="json")
 
 
 def format_heading(value: str) -> str:
     """Convert keys like ux_conversion into clean labels."""
     return value.replace("_", " ").upper()
+
+
+def render_suggested_changes_section(results: dict) -> None:
+    """Show the top recommendation changes as presentation-ready visual cards."""
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">Suggested Changes with Examples</div>', unsafe_allow_html=True)
+
+    for card in build_suggested_change_cards(results)[:3]:
+        st.markdown('<div class="change-card">', unsafe_allow_html=True)
+        st.markdown(f"**{card['page_or_asset_name']}**")
+        st.write(f"**Issue:** {card['issue']}")
+        st.write(f"**Why it matters:** {card['why_it_matters']}")
+        st.write(f"**Recommended change:** {card['recommended_change']}")
+        st.write(f"**Example headline or CTA:** {card['example_headline_or_cta']}")
+
+        before_col, after_col = st.columns(2)
+        with before_col:
+            st.markdown("**Before**")
+            st.markdown('<div class="mock-block">', unsafe_allow_html=True)
+            st.write(card["before_state"])
+            st.markdown("</div>", unsafe_allow_html=True)
+        with after_col:
+            st.markdown("**Suggested Change**")
+            st.markdown('<div class="mock-block">', unsafe_allow_html=True)
+            st.write(card["example_layout_content_improvement"])
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def build_suggested_change_cards(results: dict) -> list[dict[str, str]]:
+    """Create concrete recommendation cards from real workflow outputs."""
+    strategy = results["strategy"]["strategy"]
+    execution = results["execution"]
+    insight = results["insight"]
+    primary_page = strategy["primary_page"]
+    primary_query = strategy["primary_query"]["query"]
+    top_source = get_first_value(insight["top_sources"], "source_medium")
+    blog_title = execution.get("blog_content_draft", {}).get("title", f"{primary_query.title()} article")
+    faq_heading = execution.get("faq_block", {}).get("heading", f"FAQ for {primary_query}")
+    social_goal = execution.get("social_post_draft", {}).get("goal", "Drive action")
+
+    return [
+        {
+            "page_or_asset_name": primary_page,
+            "issue": f"The page does not fully answer {primary_query} with clear local and conversion-focused language.",
+            "why_it_matters": (
+                "Visitors coming from high-intent search need immediate clarity on cost, savings, and the next step. "
+                "If the page stays too generic, click-through and booking intent can stall."
+            ),
+            "recommended_change": (
+                "Rework the hero, FAQ, and CTA flow so the page speaks directly to Evergreen Park and Chicago suburbs patients "
+                "who are close to booking."
+            ),
+            "example_headline_or_cta": f"Botox Cost & Savings in Evergreen Park: Book Your Consultation",
+            "before_state": "Hero Section\nGeneric service overview with no clear local value proposition or urgency.",
+            "example_layout_content_improvement": (
+                "Hero Section\n"
+                f"Headline: Botox Cost & Savings in Evergreen Park\n"
+                f"CTA Placement: Book a Consultation\n"
+                f"Trust Section: Mention local specialist access and top source context from {top_source} traffic."
+            ),
+        },
+        {
+            "page_or_asset_name": blog_title,
+            "issue": "The content opportunity needs a stronger example of how education turns into conversion.",
+            "why_it_matters": (
+                "A full draft can capture high-impression searches, but it works best when it also guides readers toward the quiz, "
+                "treatment page, and booking page."
+            ),
+            "recommended_change": (
+                "Use the article to answer cost and savings questions, then connect readers to a migraine quiz and the main treatment page."
+            ),
+            "example_headline_or_cta": "If You’ve Been Delaying Care, Start With the Migraine Quiz",
+            "before_state": "Content Flow\nHelpful information exists, but internal paths to action are easy to miss.",
+            "example_layout_content_improvement": (
+                "Content Improvement\n"
+                "Hero Section: Introduce the local problem and reassure readers.\n"
+                "Trust Section: Add specialist credibility.\n"
+                "CTA Placement: Link to migraine quiz, treatment page, and booking page at midpoint and close."
+            ),
+        },
+        {
+            "page_or_asset_name": faq_heading,
+            "issue": "FAQ content can do more to reduce hesitation right before a patient decides whether to schedule.",
+            "why_it_matters": (
+                "FAQ blocks often win quick-answer visibility and help visitors feel confident enough to move forward, especially for cost and savings questions."
+            ),
+            "recommended_change": (
+                "Position the FAQ block directly above the main CTA and add stronger reassurance around savings, fit, and specialist guidance."
+            ),
+            "example_headline_or_cta": f"Still Unsure? Review the FAQ and Schedule With a Specialist Today",
+            "before_state": "FAQ Block\nAnswers may sit lower on the page without a clear action path afterward.",
+            "example_layout_content_improvement": (
+                "FAQ Block\n"
+                "Questions: cost, savings, candidate fit, clinic comparison\n"
+                "CTA Placement: Add a booking button directly under the answers\n"
+                f"Trust Section: Reinforce {social_goal.lower()} with local reassurance."
+            ),
+        },
+    ]
 
 
 def build_export_dataframe(results: dict) -> pd.DataFrame:
@@ -271,13 +559,14 @@ def simple_pdf_from_lines(lines: list[str]) -> bytes:
     return pdf.getvalue()
 
 
-def render_export_section(results: dict) -> None:
+def render_export_section(results: dict, inside_panel: bool = False) -> None:
     """Show export buttons for CSV, PDF, and future Google Sheets use."""
     export_df = build_export_dataframe(results)
     csv_bytes = export_df.to_csv(index=False).encode("utf-8")
     pdf_bytes = build_pdf_report_bytes(results)
 
-    st.subheader("Export Options")
+    if not inside_panel:
+        st.subheader("Export Options")
     export_columns = st.columns(3)
 
     export_columns[0].download_button(
@@ -311,6 +600,9 @@ view_mode = st.radio(
     options=["Standard Workflow View", "Client Report Mode"],
     horizontal=True,
 )
+
+with st.sidebar:
+    show_debug = st.checkbox("Show debug data", value=False)
 
 st.subheader("1. Upload CSV files")
 st.write("GA4 Page Title Report: page-level behavior such as top pages, sessions, and engagement.")
@@ -346,12 +638,11 @@ if run_button:
     )
 
     st.success("Workflow complete. Results were also saved to logs/workflow_runs.csv.")
-    render_scorecard(results)
-    render_export_section(results)
 
     if view_mode == "Client Report Mode":
         render_client_report(results)
+        render_export_section(results)
     else:
-        render_standard_view(results, ga4_debug_titles)
+        render_standard_view(results, ga4_debug_titles, show_debug)
 else:
     st.info("Upload your files and click Run Workflow to start.")

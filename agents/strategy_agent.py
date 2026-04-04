@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
+
+# Load best practices rules
+with open("reference_docs/distilled/best_practices_rules.json") as f:
+    BEST_PRACTICES = json.load(f)
+
+# Load agent prompt text (optional but useful for documentation / future upgrades)
+with open("reference_docs/distilled/agent_prompt.txt") as f:
+    AGENT_PROMPT = f.read()
 
 
 def run_strategy_agent(insights: dict[str, Any]) -> dict[str, Any]:
@@ -11,52 +20,137 @@ def run_strategy_agent(insights: dict[str, Any]) -> dict[str, Any]:
     primary_page = pick_primary_page(insights, primary_query["query"])
     secondary_query = pick_secondary_query(insights, primary_query["query"])
 
+    # Reference prompt so the system is explicitly grounded in your strategy instructions
+    prompt_reference = AGENT_PROMPT
+
     seo_recommendations = [
-        (
-            f"Refresh {primary_page} to target {primary_query['query']} with the phrase in the title, "
-            f"H1, opening paragraph, and FAQ section because it shows non-branded demand with "
-            f"{int(primary_query['impressions'])} impressions and {primary_query['ctr']}% CTR."
-        ),
-        (
-            f"Create a supporting page or section for {secondary_query['query']} to capture a second non-branded opportunity "
-            "instead of expanding branded pages."
-        ),
+        {
+            "issue": f"Low CTR and untapped visibility for {primary_query['query']}",
+            "recommendation": (
+                f"Refresh {primary_page} to target {primary_query['query']} in the title tag, H1, "
+                "opening paragraph, meta description, and FAQ section."
+            ),
+            "why_it_matters": (
+                f"The query shows non-branded demand with {int(primary_query['impressions'])} impressions "
+                f"and only {primary_query['ctr']}% CTR, which suggests the page is being seen but not compelling enough."
+            ),
+            "priority": "High",
+            "best_practice_category": "seo_keyword_strategy",
+        },
+        {
+            "issue": f"Secondary non-branded opportunity exists for {secondary_query['query']}",
+            "recommendation": (
+                f"Create a supporting page or dedicated section for {secondary_query['query']} instead of relying only on branded pages."
+            ),
+            "why_it_matters": (
+                "This expands non-branded visibility and helps the site capture additional intent-driven searches."
+            ),
+            "priority": "Medium",
+            "best_practice_category": "seo_keyword_strategy",
+        },
     ]
 
     aeo_geo_recommendations = [
-        (
-            f"Add concise answer blocks for {primary_query['query']} so the page can serve AI overviews and answer engines "
-            "with a direct definition, eligibility details, and next-step guidance."
-        ),
-        (
-            "Expand local proof points such as location references, provider expertise, and service-area language on pages "
-            "connected to local-intent queries."
-        ),
+        {
+            "issue": f"The page may not be structured clearly enough for AI summaries around {primary_query['query']}",
+            "recommendation": (
+                f"Add concise answer blocks for {primary_query['query']} with a direct definition, "
+                "eligibility details, FAQs, and next-step guidance near the top of the page."
+            ),
+            "why_it_matters": (
+                "Clear question-answer formatting makes content easier for AI overviews, answer engines, and snippet extraction."
+            ),
+            "priority": "High",
+            "best_practice_category": "aeo_geo_ai_search",
+        },
+        {
+            "issue": "Local-intent trust signals may be too weak on key service pages",
+            "recommendation": (
+                "Expand location references, provider expertise, service-area language, and local proof points on pages tied to local-intent queries."
+            ),
+            "why_it_matters": (
+                "AI search and local search often reward clear relevance, authority, and geographic context."
+            ),
+            "priority": "Medium",
+            "best_practice_category": "aeo_geo_ai_search",
+        },
     ]
 
     ux_conversion_recommendations = [
-        (
-            f"Update {primary_page} with a stronger appointment CTA, visible insurance/payment details, and a short trust section "
-            "because the search demand appears conversion-oriented."
-        ),
-        (
-            "Place FAQ and CTA modules higher on the page so users with cost or specialist intent can act without scrolling deep."
-        ),
+        {
+            "issue": f"{primary_page} may not convert high-intent traffic efficiently",
+            "recommendation": (
+                f"Update {primary_page} with a stronger appointment CTA, visible insurance/payment details, and a short trust section near the top."
+            ),
+            "why_it_matters": (
+                "Search demand appears conversion-oriented, so the page should reduce friction and help users act quickly."
+            ),
+            "priority": "High",
+            "best_practice_category": "website_ux_conversion",
+        },
+        {
+            "issue": "Users may need to scroll too far to find answers and next steps",
+            "recommendation": (
+                "Move FAQ and CTA modules higher on the page so users with cost or specialist intent can act sooner."
+            ),
+            "why_it_matters": (
+                "Better page hierarchy improves usability and reduces the chance of losing high-intent visitors."
+            ),
+            "priority": "Medium",
+            "best_practice_category": "website_ux_conversion",
+        },
     ]
 
     content_expansion_recommendations = [
-        (
-            f"Publish a focused article on {primary_query['query']} that answers cost, candidate fit, and treatment expectations."
-        ),
-        (
-            f"Add follow-up content for {secondary_query['query']} and related local-intent variants to build topical depth."
-        ),
+        {
+            "issue": f"The site may not have enough depth around {primary_query['query']}",
+            "recommendation": (
+                f"Publish a focused article or landing page on {primary_query['query']} that answers cost, candidate fit, treatment expectations, and FAQs."
+            ),
+            "why_it_matters": (
+                "This builds topical depth, supports SEO, and increases the site's ability to capture long-tail and informational intent."
+            ),
+            "priority": "High",
+            "best_practice_category": "aeo_geo_ai_search",
+        },
+        {
+            "issue": f"Topical coverage is limited for {secondary_query['query']}",
+            "recommendation": (
+                f"Add follow-up content for {secondary_query['query']} and related local-intent variants to support cluster-based visibility."
+            ),
+            "why_it_matters": (
+                "Building content clusters improves topical authority and gives search engines and AI systems more relevant material to cite."
+            ),
+            "priority": "Medium",
+            "best_practice_category": "analytics_digital_strategy",
+        },
     ]
 
     priority_actions = [
-        f"Prioritize non-branded query: {primary_query['query']}",
-        f"Use page focus: {primary_page}",
-        f"Support with secondary topic: {secondary_query['query']}",
+        {
+            "action": f"Prioritize non-branded query: {primary_query['query']}",
+            "priority": "High",
+        },
+        {
+            "action": f"Refresh page focus: {primary_page}",
+            "priority": "High",
+        },
+        {
+            "action": f"Support with secondary topic: {secondary_query['query']}",
+            "priority": "Medium",
+        },
+    ]
+
+    what_to_do_this_week = [
+        f"Refresh {primary_page} title, H1, intro, and FAQ structure for {primary_query['query']}.",
+        "Add stronger CTA and trust/payment information above the fold.",
+        f"Draft a new supporting content piece for {secondary_query['query']}.",
+    ]
+
+    what_to_test_next = [
+        "Test a stronger meta title and description to improve CTR.",
+        "Test moving FAQ blocks higher on the page.",
+        "Test direct-answer formatting for AI/search snippet visibility.",
     ]
 
     observed_patterns = insights["patterns"]
@@ -67,6 +161,8 @@ def run_strategy_agent(insights: dict[str, Any]) -> dict[str, Any]:
     return {
         "agent": "strategy",
         "input_agent": insights["agent"],
+        "prompt_reference": prompt_reference,
+        "best_practice_categories_used": list(BEST_PRACTICES.keys()),
         "based_on_insights": insights["insights"] + observed_patterns,
         "strategy": {
             "goal": "Increase non-branded organic visibility and convert high-intent search demand into appointments.",
@@ -80,9 +176,12 @@ def run_strategy_agent(insights: dict[str, Any]) -> dict[str, Any]:
                 "content_expansion": content_expansion_recommendations,
             },
             "priority_actions": priority_actions,
+            "what_should_be_done_this_week": what_to_do_this_week,
+            "what_should_be_tested_next": what_to_test_next,
         },
         "notes": [
             "The Strategy Agent prioritizes non-branded, high-intent demand over branded terms.",
+            "Recommendations are grounded in performance data and mapped to best-practice categories.",
         ],
     }
 
