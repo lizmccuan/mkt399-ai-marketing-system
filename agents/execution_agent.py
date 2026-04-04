@@ -103,10 +103,7 @@ def run_execution_agent(strategy: dict[str, object]) -> dict[str, object]:
         social_post_draft,
     ]
 
-    print("[Execution Agent] Created 1 full blog content draft")
-    print("[Execution Agent] Created 1 landing page refresh outline")
-    print("[Execution Agent] Created 1 fully written FAQ block")
-    print("[Execution Agent] Created 1 specific social post draft")
+    print("[Execution Agent] Created full marketing asset package")
 
     return {
         "agent": "execution",
@@ -118,39 +115,43 @@ def run_execution_agent(strategy: dict[str, object]) -> dict[str, object]:
         "social_post_draft": social_post_draft,
         "internal_link_suggestions": internal_link_suggestions,
         "source_recommendations": strategy_data["recommendations"],
+        "best_practice_context": extract_best_practices(strategy_data["recommendations"]),
         "notes": [
-            "The Execution Agent creates finished marketing assets tied to observed page and query opportunities.",
+            "Execution Agent converts structured strategy into real marketing assets.",
+            "Outputs are grounded in SEO, AEO/GEO, UX, and content best practices.",
         ],
     }
 
 
+def extract_best_practices(recommendations: dict) -> list[str]:
+    """Extract unique best-practice categories from strategy recommendations."""
+    categories = set()
+
+    for section in recommendations.values():
+        for item in section:
+            category = item.get("best_practice_category")
+            if category:
+                categories.add(category)
+
+    return list(categories)
+
+
 def build_blog_draft(primary_query: str, primary_page: str, support_topic: str) -> str:
-    """Write a human-ready blog draft using the selected query and page context."""
+    """Write a human-ready blog draft."""
     return (
-        f"If you have been searching for {primary_query}, you are probably not looking for another generic article. "
-        "You want to know whether care is realistic, whether the cost makes sense, and whether there are savings options worth exploring before you commit. "
-        "That is especially true for people in Evergreen Park and the Chicago suburbs who want a local specialist and a practical next step, not vague advice.\n\n"
-        f"One reason {primary_query} matters as a search topic is that it sits at the point where education and action meet. People searching this phrase are often comparing providers, checking affordability, and deciding whether now is the right time to book. "
-        "That means the content has to do more than explain a condition. It has to lower uncertainty and help the reader feel more confident about what happens next.\n\n"
-        f"If you have also been searching for {support_topic}, the concern is usually not just price. It is whether there is a realistic path forward. Savings may come from insurance benefits when they apply, from timing treatment around plan details, or from asking about available payment flexibility. "
-        "The right message is not a hard sell. It is reassurance that cost questions are normal, that options may exist, and that a consultation can help you understand the most sensible next step for your situation.\n\n"
-        "Local intent matters here too. Someone searching in Evergreen Park or across the Chicago suburbs is usually trying to find a provider nearby who can connect symptoms, treatment fit, and appointment timing in plain language. "
-        "That is why the messaging needs to sound grounded and direct. It should acknowledge that people may have been delaying care because they were unsure about price, unsure about fit, or tired of sorting through broad online advice that never gets specific.\n\n"
-        "If you have been delaying care, this is the point where reassurance matters. You do not need to figure this out alone. A specialist visit can help clarify whether treatment is appropriate, what the process may look like, and which questions about pricing or savings you should ask before making a decision. "
-        "For many readers, that kind of clarity is more valuable than a generic number pulled from an article that does not reflect their symptoms or goals.\n\n"
-        f"To make the content more useful and more conversion-focused, it should connect naturally to {primary_page}. Readers should be able to move from this article to the main treatment page, then to a booking page without friction. "
-        "It also makes sense to include an internal link to a migraine quiz so people who are still evaluating symptoms have a lower-pressure next step before scheduling. Together, those internal links create a smoother path from search to action.\n\n"
-        f"The strongest closing message for {primary_query} combines urgency, reassurance, and a direct CTA. If cost confusion has been the reason you have waited, now is the time to get answers instead of continuing to compare generic advice online. "
-        "Take the migraine quiz, review the main treatment page, and schedule an appointment when you are ready. That is the kind of local, conversion-focused content that helps readers feel understood and makes it easier to take the next step."
+        f"If you have been searching for {primary_query}, you are probably looking for real answers, not generic advice. "
+        f"This guide helps patients in Evergreen Park understand cost, options, and next steps.\n\n"
+        f"{primary_query} is often searched by people comparing providers, evaluating affordability, and deciding whether to move forward.\n\n"
+        f"If you have also searched for {support_topic}, your concern is not just cost — it is whether there is a realistic path forward.\n\n"
+        f"This content connects directly to {primary_page}, guiding you from research to action.\n\n"
+        "Take the migraine quiz, review treatment options, and schedule your consultation to get personalized guidance."
     )
 
 
 def pick_support_topic(primary_query: str, secondary_query: str) -> str:
-    """Choose a supporting theme for FAQ and social content."""
+    """Choose supporting topic."""
     if "savings" in primary_query.lower():
         return "botox savings"
     if "cost" in primary_query.lower():
         return "botox savings"
-    if "savings" in secondary_query.lower():
-        return secondary_query
     return secondary_query
