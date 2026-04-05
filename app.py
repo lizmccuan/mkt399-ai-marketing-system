@@ -52,6 +52,66 @@ st.markdown(
         padding: 0.85rem;
         margin-top: 0.5rem;
     }
+    .recommendation-card {
+        background: #ffffff;
+        border: 1px solid #e6ebf2;
+        border-radius: 14px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 0.9rem;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+    }
+    .recommendation-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .recommendation-category {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #111827;
+        letter-spacing: 0.01em;
+    }
+    .recommendation-body {
+        color: #374151;
+        font-size: 0.95rem;
+        line-height: 1.55;
+    }
+    .priority-high-pill {
+        display: inline-block;
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        border-radius: 999px;
+        padding: 0.3rem 0.65rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .priority-medium-pill {
+        display: inline-block;
+        background: #ffedd5;
+        color: #c2410c;
+        border: 1px solid #fed7aa;
+        border-radius: 999px;
+        padding: 0.3rem 0.65rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .priority-low-pill {
+        display: inline-block;
+        background: #e5e7eb;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        border-radius: 999px;
+        padding: 0.3rem 0.65rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -63,6 +123,19 @@ def get_first_value(items: list[dict], key: str, fallback: str = "Not available"
     if items:
         return str(items[0].get(key, fallback))
     return fallback
+
+
+def parse_semrush_positions_csv(file) -> pd.DataFrame:
+    """Read an uploaded SEMrush Organic Positions CSV into a DataFrame."""
+    if file is None:
+        return pd.DataFrame()
+
+    return pd.read_csv(file)
+
+
+def format_heading(value: str) -> str:
+    """Convert keys like ux_conversion into clean labels."""
+    return value.replace("_", " ").upper()
 
 
 def build_scorecard(results: dict) -> dict[str, str]:
@@ -120,14 +193,55 @@ def render_client_report(results: dict) -> None:
     )
 
     st.subheader("Key Insights")
-    for item in results["insight"]["patterns"][:5]:
+    for item in insight["patterns"][:5]:
         st.write(f"- {item}")
 
     st.subheader("Recommended Actions")
+
     for category, recommendations in strategy["recommendations"].items():
-        st.write(f"**{format_heading(category)}**")
+        visible_recommendations = []
+
         for recommendation in recommendations:
-            st.write(f"- {recommendation}")
+            if isinstance(recommendation, dict):
+                issue = recommendation.get("issue", "").strip()
+                rec_text = recommendation.get("recommendation", "").strip()
+                why = recommendation.get("why_it_matters", "").strip()
+                priority = recommendation.get("priority", "").strip()
+
+                if issue or rec_text or why:
+                    visible_recommendations.append(
+                        {
+                            "issue": issue,
+                            "recommendation": rec_text,
+                            "why": why,
+                            "priority": priority,
+                        }
+                    )
+            elif isinstance(recommendation, str) and recommendation.strip():
+                visible_recommendations.append(
+                    {
+                        "issue": "",
+                        "recommendation": recommendation.strip(),
+                        "why": "",
+                        "priority": "",
+                    }
+                )
+
+        if not visible_recommendations:
+            continue
+
+        st.markdown(f"### {format_heading(category)}")
+
+        for item in visible_recommendations:
+            if item["priority"]:
+                st.markdown(f"**Priority:** {item['priority']}")
+            if item["issue"]:
+                st.markdown(f"**Issue:** {item['issue']}")
+            if item["recommendation"]:
+                st.markdown(f"**Recommendation:** {item['recommendation']}")
+            if item["why"]:
+                st.markdown(f"**Why it matters:** {item['why']}")
+            st.markdown("---")
 
     st.subheader("Priority Opportunities")
     st.write(f"- Primary query focus: {strategy['primary_query']['query']}")
@@ -148,8 +262,8 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
     combined = results["data_intake"]["summary"]["combined"]
     data_summary = results["data_intake"]["summary"]
     strategy = results["strategy"]["strategy"]
+    semrush_positions_data = results.get("semrush_positions_data")
 
-    # Header row with an optional status area on the right.
     header_left, header_right = st.columns([4, 1.2])
     with header_left:
         st.markdown('<div class="dashboard-title">Marketing Intelligence Dashboard</div>', unsafe_allow_html=True)
@@ -161,26 +275,27 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
         st.write("Profile placeholder")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # KPI card row: exact four-card structure requested.
     render_scorecard(results)
 
-    # Main content area: wider left column and narrower right column.
     left_col, right_col = st.columns([2.2, 1])
 
     with left_col:
-        # A. Performance Overview chart using real query impressions.
         st.markdown('<div class="panel">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
         query_chart_df = pd.DataFrame(insight["query_analysis"])
         if not query_chart_df.empty and {"query", "impressions"}.issubset(query_chart_df.columns):
-            chart_data = query_chart_df.sort_values("impressions", ascending=False)[["query", "impressions"]].head(5).set_index("query")
+            chart_data = (
+                query_chart_df.sort_values("impressions", ascending=False)[["query", "impressions"]]
+                .head(5)
+                .set_index("query")
+            )
             st.bar_chart(chart_data)
         else:
             st.info("No query impression data available yet.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # B. Top Queries and Top Pages side by side.
         row_b_left, row_b_right = st.columns(2)
+
         with row_b_left:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
             st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
@@ -216,8 +331,29 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
                 st.info("No page data available.")
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # C. Traffic Distribution and User Behavior Signals side by side.
+        # Optional SEMrush preview panel shown only when SEMrush data is available.
+        if semrush_positions_data is not None and not semrush_positions_data.empty:
+            st.markdown('<div class="panel">', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">SEMrush Keyword Opportunities</div>', unsafe_allow_html=True)
+            preferred_columns = ["keyword", "position", "volume", "url"]
+            available_columns = [column for column in preferred_columns if column in semrush_positions_data.columns]
+
+            if available_columns:
+                st.dataframe(
+                    semrush_positions_data[available_columns].head(10),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.dataframe(
+                    semrush_positions_data.head(10),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
+
         row_c_left, row_c_right = st.columns(2)
+
         with row_c_left:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
             st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
@@ -233,19 +369,19 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
         with row_c_right:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
             st.markdown('<div class="panel-title">User Behavior Signals</div>', unsafe_allow_html=True)
+
             behavior_metrics = {
                 "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
                 "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
                 "Engagement Rate": data_summary["ga4_pages"]["key_metrics"].get("engagement_rate", "Not available"),
                 "Source Sessions": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
             }
-            metric_cols = st.columns(2)
-            metric_items = list(behavior_metrics.items())
-            for index, (label, value) in enumerate(metric_items):
-                metric_cols[index % 2].metric(label, value)
+
+            for label, value in behavior_metrics.items():
+                st.metric(label, value)
+
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # D. Key Insights cards using real insight patterns.
         st.markdown('<div class="panel">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">Key Insights</div>', unsafe_allow_html=True)
         insight_cols = st.columns(3)
@@ -256,24 +392,66 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
                 st.write(insight["patterns"][index] if len(insight["patterns"]) > index else "No insight available.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # E. Recommended Actions as stacked task cards with priority labels.
         st.markdown('<div class="panel" id="recommended-actions">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">Recommended Actions</div>', unsafe_allow_html=True)
+
         priority_cycle = ["High", "Medium", "Low"]
+        priority_class_map = {
+            "High": "priority-high-pill",
+            "Medium": "priority-medium-pill",
+            "Low": "priority-low-pill",
+        }
         action_index = 0
+
         for category, recommendations in strategy["recommendations"].items():
             for recommendation in recommendations:
                 priority = priority_cycle[action_index % len(priority_cycle)]
-                st.markdown(f"**{priority} Priority | {format_heading(category)}**")
-                st.write(recommendation)
+                pill_class = priority_class_map[priority]
+
+                if isinstance(recommendation, dict):
+                    issue = recommendation.get("issue", "").strip()
+                    rec_text = recommendation.get("recommendation", "").strip()
+                    why = recommendation.get("why_it_matters", "").strip()
+                    rec_priority = recommendation.get("priority", "").strip()
+                    bp_category = recommendation.get("best_practice_category", "").strip()
+                    body_parts = []
+                    if issue:
+                        body_parts.append(f"<strong>Issue:</strong> {issue}")
+                    if rec_text:
+                        body_parts.append(f"<strong>Recommendation:</strong> {rec_text}")
+                    if why:
+                        body_parts.append(f"<strong>Why it matters:</strong> {why}")
+                    if bp_category:
+                        body_parts.append(f"<strong>Best Practice Category:</strong> {bp_category}")
+                    body_html = "<br><br>".join(body_parts) if body_parts else "No recommendation details available."
+                    display_priority = rec_priority or priority
+                else:
+                    body_html = str(recommendation)
+                    display_priority = priority
+
+                pill_class = priority_class_map.get(display_priority, pill_class)
+
+                st.markdown(
+                    f"""
+                    <div class="recommendation-card">
+                        <div class="recommendation-card-top">
+                            <div class="recommendation-category">{format_heading(category)}</div>
+                            <div class="{pill_class}">{display_priority} Priority</div>
+                        </div>
+                        <div class="recommendation-body">
+                            {body_html}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
                 action_index += 1
+
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # F. Suggested Changes with Examples uses strategy and execution outputs.
         render_suggested_changes_section(results)
 
     with right_col:
-        # Right rail A. AI Insights Feed as separated cards.
         st.markdown('<div class="panel">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">AI Insights Feed</div>', unsafe_allow_html=True)
         for index, pattern in enumerate(insight["patterns"][:5], start=1):
@@ -282,20 +460,17 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
             st.divider()
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # Right rail B. Primary CTA area.
         st.markdown('<div class="panel">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">Primary CTA</div>', unsafe_allow_html=True)
         st.write("Use the recommendations below to move from insight to action.")
         st.button("View Recommendations", key="view_recommendations_button")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Move exports lower so they do not interrupt the dashboard.
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.markdown('<div class="panel-title">Export Options</div>', unsafe_allow_html=True)
     render_export_section(results, inside_panel=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Only show debug information when explicitly enabled.
     if show_debug:
         with st.expander("Workflow Debug Data", expanded=False):
             if ga4_debug_titles:
@@ -309,11 +484,6 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
 
             st.subheader("Full Workflow Output")
             st.code(json.dumps(results, indent=2), language="json")
-
-
-def format_heading(value: str) -> str:
-    """Convert keys like ux_conversion into clean labels."""
-    return value.replace("_", " ").upper()
 
 
 def render_suggested_changes_section(results: dict) -> None:
@@ -462,7 +632,7 @@ def build_export_dataframe(results: dict) -> pd.DataFrame:
                     "section": "key_recommendations",
                     "label": format_heading(category),
                     "metric": "recommendation",
-                    "value": recommendation,
+                    "value": str(recommendation),
                 }
             )
 
@@ -614,6 +784,9 @@ ga4_source_file = st.file_uploader("Upload GA4 Session Source / Medium CSV", typ
 st.write("GSC Queries: Google Search Console query data showing search demand and clicks.")
 gsc_queries_file = st.file_uploader("Upload GSC Queries CSV", type="csv")
 
+st.write("SEMrush Organic Positions: optional organic keyword and ranking export for future use.")
+semrush_positions_file = st.file_uploader("Upload SEMrush Organic Positions CSV", type="csv")
+
 st.subheader("2. Run the workflow")
 run_button = st.button("Run Workflow")
 
@@ -622,10 +795,10 @@ if run_button:
         st.error("Please upload all three required CSV files before running the workflow.")
         st.stop()
 
-    # Each uploaded file is parsed separately so the workflow can keep page, source, and query data distinct.
     ga4_pages_data = parse_uploaded_csv(ga4_pages_file, "GA4_PAGES")
     ga4_source_data = parse_uploaded_csv(ga4_source_file, "GA4_SOURCE")
     gsc_queries_data = parse_uploaded_csv(gsc_queries_file, "GSC_QUERIES")
+    semrush_positions_data = parse_semrush_positions_csv(semrush_positions_file) if semrush_positions_file else None
 
     ga4_debug_titles = []
     if "page_title" in ga4_pages_data.columns:
@@ -635,6 +808,7 @@ if run_button:
         ga4_pages_data=ga4_pages_data,
         ga4_source_data=ga4_source_data,
         gsc_queries_data=gsc_queries_data,
+        semrush_positions_data=semrush_positions_data,
     )
 
     st.success("Workflow complete. Results were also saved to logs/workflow_runs.csv.")
