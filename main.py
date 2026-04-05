@@ -97,7 +97,7 @@ def run_workflow(
     print("Insight Agent Complete\n")
 
     # Step 3: turn the findings into a starter strategy.
-    strategy = run_strategy_agent(insights)
+    strategy = run_strategy_agent(insights, semrush_positions_data=semrush_positions_data)
     print("Strategy Agent Complete\n")
 
     # Step 4: turn the strategy into sample marketing deliverables.
