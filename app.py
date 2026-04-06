@@ -133,6 +133,22 @@ def parse_semrush_positions_csv(file) -> pd.DataFrame:
     return pd.read_csv(file)
 
 
+def parse_semrush_pages_csv(file) -> pd.DataFrame:
+    """Read an uploaded SEMrush Pages Report CSV into a DataFrame."""
+    if file is None:
+        return pd.DataFrame()
+
+    return pd.read_csv(file)
+
+
+def parse_semrush_topics_csv(file) -> pd.DataFrame:
+    """Read an uploaded SEMrush Topic Opportunities CSV into a DataFrame."""
+    if file is None:
+        return pd.DataFrame()
+
+    return pd.read_csv(file)
+
+
 def format_heading(value: str) -> str:
     """Convert keys like ux_conversion into clean labels."""
     return value.replace("_", " ").upper()
@@ -263,6 +279,8 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
     data_summary = results["data_intake"]["summary"]
     strategy = results["strategy"]["strategy"]
     semrush_positions_data = results.get("semrush_positions_data")
+    semrush_pages_data = results.get("semrush_pages_data")
+    semrush_topics_data = results.get("semrush_topics_data")
 
     header_left, header_right = st.columns([4, 1.2])
     with header_left:
@@ -334,22 +352,61 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
         # Optional SEMrush preview panel shown only when SEMrush data is available.
         if semrush_positions_data is not None and not semrush_positions_data.empty:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">SEMrush Keyword Opportunities</div>', unsafe_allow_html=True)
-            preferred_columns = ["keyword", "position", "volume", "url"]
-            available_columns = [column for column in preferred_columns if column in semrush_positions_data.columns]
+            st.markdown('<div class="panel-title">Keyword Opportunities</div>', unsafe_allow_html=True)
 
-            if available_columns:
-                st.dataframe(
-                    semrush_positions_data[available_columns].head(10),
-                    use_container_width=True,
-                    hide_index=True,
-                )
+            opportunity_cards = build_semrush_opportunity_cards(semrush_positions_data)
+
+            if opportunity_cards:
+                for card in opportunity_cards:
+                    st.markdown("**" + card["keyword"] + "**")
+                    st.write(f"Position: {card['position']}")
+                    if card["volume"] != "Not available":
+                        st.write(f"Volume: {card['volume']}")
+                    if card["url"] != "Not available":
+                        st.write(f"URL: {card['url']}")
+                    st.write(f"Why it matters: {card['why_it_matters']}")
+                    st.write(f"Recommended action: {card['recommended_action']}")
+                    st.write(f"Priority: {card['priority']}")
+                    st.divider()
             else:
-                st.dataframe(
-                    semrush_positions_data.head(10),
-                    use_container_width=True,
-                    hide_index=True,
-                )
+                st.info("No SEMrush keyword opportunities available yet.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        if semrush_pages_data is not None and not semrush_pages_data.empty:
+            st.markdown('<div class="panel">', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Page Opportunities</div>', unsafe_allow_html=True)
+
+            page_cards = build_semrush_page_cards(semrush_pages_data)
+
+            if page_cards:
+                for card in page_cards:
+                    st.markdown("**" + card["page_url"] + "**")
+                    st.write(card["metric_line"])
+                    st.write(f"Why it matters: {card['why_it_matters']}")
+                    st.write(f"Recommended action: {card['recommended_action']}")
+                    st.write(f"Priority: {card['priority']}")
+                    st.divider()
+            else:
+                st.info("No SEMrush page opportunities available yet.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        if semrush_topics_data is not None and not semrush_topics_data.empty:
+            st.markdown('<div class="panel">', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">AI Topic Opportunities</div>', unsafe_allow_html=True)
+
+            topic_cards = build_semrush_topic_cards(semrush_topics_data)
+
+            if topic_cards:
+                for card in topic_cards:
+                    st.markdown("**" + card["topic"] + "**")
+                    if card["volume"] != "Not available":
+                        st.write(f"Volume: {card['volume']}")
+                    st.write(f"Why it matters: {card['why_it_matters']}")
+                    st.write(f"Recommended action: {card['recommended_action']}")
+                    st.write(f"Priority: {card['priority']}")
+                    st.divider()
+            else:
+                st.info("No SEMrush topic opportunities available yet.")
             st.markdown("</div>", unsafe_allow_html=True)
 
         row_c_left, row_c_right = st.columns(2)
@@ -589,6 +646,166 @@ def build_suggested_change_cards(results: dict) -> list[dict[str, str]]:
     ]
 
 
+def build_semrush_opportunity_cards(semrush_positions_data: pd.DataFrame) -> list[dict[str, str]]:
+    """Turn SEMrush position data into clean keyword opportunity cards."""
+    dataframe = semrush_positions_data.copy()
+    dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
+
+    if "keyword" not in dataframe.columns or "position" not in dataframe.columns:
+        return []
+
+    dataframe["position"] = pd.to_numeric(dataframe["position"], errors="coerce")
+
+    if "volume" in dataframe.columns:
+        dataframe["volume"] = pd.to_numeric(dataframe["volume"], errors="coerce")
+        opportunity_df = dataframe[(dataframe["position"] > 10) & (dataframe["volume"].fillna(0) > 0)]
+        opportunity_df = opportunity_df.sort_values(["position", "volume"], ascending=[True, False])
+    else:
+        opportunity_df = dataframe[dataframe["position"] > 10].sort_values("position", ascending=True)
+
+    cards = []
+    for _, row in opportunity_df.head(10).iterrows():
+        position_value = int(row["position"]) if pd.notna(row["position"]) else "Not available"
+        volume_value = (
+            int(row["volume"]) if "volume" in opportunity_df.columns and pd.notna(row.get("volume")) else "Not available"
+        )
+        url_value = str(row["url"]) if "url" in opportunity_df.columns and pd.notna(row.get("url")) else "Not available"
+        priority = "High" if pd.notna(row["position"]) and row["position"] > 20 else "Medium"
+
+        cards.append(
+            {
+                "keyword": str(row["keyword"]),
+                "position": str(position_value),
+                "volume": str(volume_value),
+                "url": url_value,
+                "why_it_matters": (
+                    "This keyword is already ranking but still has room to move higher and capture more visibility."
+                    if priority == "Medium"
+                    else "This keyword has meaningful upside because it is outside the strongest ranking range and may need a bigger content or page update."
+                ),
+                "recommended_action": (
+                    "Tighten on-page targeting, improve internal links, and refresh supporting copy."
+                    if priority == "Medium"
+                    else "Create or expand a dedicated page or content section to improve relevance and ranking potential."
+                ),
+                "priority": priority,
+            }
+        )
+
+    return cards
+
+
+def build_semrush_page_cards(semrush_pages_data: pd.DataFrame) -> list[dict[str, str]]:
+    """Turn SEMrush Pages Report data into page opportunity cards."""
+    dataframe = semrush_pages_data.copy()
+    dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
+
+    url_column = first_matching_column(dataframe, ["page", "url", "page url", "page_url"])
+    traffic_column = first_matching_column(dataframe, ["traffic", "organic traffic"])
+    keywords_column = first_matching_column(dataframe, ["keywords", "organic keywords"])
+
+    if url_column is None:
+        return []
+
+    if traffic_column:
+        dataframe[traffic_column] = pd.to_numeric(dataframe[traffic_column], errors="coerce").fillna(0)
+    if keywords_column:
+        dataframe[keywords_column] = pd.to_numeric(dataframe[keywords_column], errors="coerce").fillna(0)
+
+    sort_column = traffic_column or keywords_column
+    if sort_column:
+        dataframe = dataframe.sort_values(sort_column, ascending=False)
+
+    cards = []
+    for _, row in dataframe.head(10).iterrows():
+        traffic_value = int(row[traffic_column]) if traffic_column and pd.notna(row[traffic_column]) else None
+        keywords_value = int(row[keywords_column]) if keywords_column and pd.notna(row[keywords_column]) else None
+        priority = "High" if (traffic_value or 0) >= 100 or (keywords_value or 0) >= 20 else "Medium"
+
+        metric_parts = []
+        if traffic_value is not None:
+            metric_parts.append(f"Traffic: {traffic_value}")
+        if keywords_value is not None:
+            metric_parts.append(f"Keywords: {keywords_value}")
+
+        cards.append(
+            {
+                "page_url": str(row[url_column]),
+                "metric_line": " | ".join(metric_parts) if metric_parts else "Metrics not available",
+                "why_it_matters": (
+                    "This page already has visibility and may represent a strong optimization opportunity if engagement or conversion is not matching demand."
+                    if traffic_value and traffic_value > 0
+                    else "This page ranks for multiple keywords and could move higher with stronger page targeting and support content."
+                ),
+                "recommended_action": (
+                    "Improve layout, tighten CTA placement, and refresh page messaging to turn current traffic into stronger outcomes."
+                    if traffic_value and traffic_value > 0
+                    else "Expand topical depth, improve internal links, and strengthen keyword-to-page alignment."
+                ),
+                "priority": priority,
+            }
+        )
+
+    return cards
+
+
+def build_semrush_topic_cards(semrush_topics_data: pd.DataFrame) -> list[dict[str, str]]:
+    """Turn SEMrush Topic Opportunities data into AI topic cards."""
+    dataframe = semrush_topics_data.copy()
+    dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
+
+    topic_column = first_matching_column(dataframe, ["topic", "keyword", "title"])
+    volume_column = first_matching_column(dataframe, ["volume", "search volume"])
+    competitor_column = first_matching_column(dataframe, ["competitors", "competitor presence", "competition"])
+
+    if topic_column is None:
+        return []
+
+    if volume_column:
+        dataframe[volume_column] = pd.to_numeric(dataframe[volume_column], errors="coerce").fillna(0)
+    if competitor_column:
+        dataframe[competitor_column] = pd.to_numeric(dataframe[competitor_column], errors="coerce").fillna(0)
+
+    sort_column = volume_column or competitor_column
+    if sort_column:
+        dataframe = dataframe.sort_values(sort_column, ascending=False)
+
+    cards = []
+    for _, row in dataframe.head(10).iterrows():
+        volume_value = int(row[volume_column]) if volume_column and pd.notna(row[volume_column]) else None
+        competitor_value = int(row[competitor_column]) if competitor_column and pd.notna(row[competitor_column]) else 0
+
+        priority = "High" if (volume_value or 0) >= 500 or competitor_value >= 5 else "Medium"
+        cards.append(
+            {
+                "topic": str(row[topic_column]),
+                "volume": str(volume_value) if volume_value is not None else "Not available",
+                "why_it_matters": (
+                    "This topic can help the site build AI visibility and close a meaningful content gap."
+                    if priority == "High"
+                    else "This topic supports future authority building and can strengthen cluster-level coverage."
+                ),
+                "recommended_action": (
+                    "Create a dedicated page or in-depth guide supported by related cluster content."
+                    if priority == "High"
+                    else "Add the topic into an existing cluster or build a focused supporting article."
+                ),
+                "priority": priority,
+            }
+        )
+
+    return cards
+
+
+def first_matching_column(dataframe: pd.DataFrame, candidates: list[str]) -> str | None:
+    """Return the first matching column from a list of possible names."""
+    normalized_columns = {str(column).strip().lower(): column for column in dataframe.columns}
+    for candidate in candidates:
+        if candidate in normalized_columns:
+            return normalized_columns[candidate]
+    return None
+
+
 def build_export_dataframe(results: dict) -> pd.DataFrame:
     """Build a flat export table for CSV and spreadsheet use."""
     rows: list[dict[str, str]] = []
@@ -787,6 +1004,12 @@ gsc_queries_file = st.file_uploader("Upload GSC Queries CSV", type="csv")
 st.write("SEMrush Organic Positions: optional organic keyword and ranking export for future use.")
 semrush_positions_file = st.file_uploader("Upload SEMrush Organic Positions CSV", type="csv")
 
+st.write("SEMrush Pages Report: optional page-level organic performance export for future use.")
+semrush_pages_file = st.file_uploader("Upload SEMrush Pages Report CSV", type="csv")
+
+st.write("SEMrush Topic Opportunities: optional topic-level opportunity export for future use.")
+semrush_topics_file = st.file_uploader("Upload SEMrush Topic Opportunities CSV", type="csv")
+
 st.subheader("2. Run the workflow")
 run_button = st.button("Run Workflow")
 
@@ -799,6 +1022,8 @@ if run_button:
     ga4_source_data = parse_uploaded_csv(ga4_source_file, "GA4_SOURCE")
     gsc_queries_data = parse_uploaded_csv(gsc_queries_file, "GSC_QUERIES")
     semrush_positions_data = parse_semrush_positions_csv(semrush_positions_file) if semrush_positions_file else None
+    semrush_pages_data = parse_semrush_pages_csv(semrush_pages_file) if semrush_pages_file else None
+    semrush_topics_data = parse_semrush_topics_csv(semrush_topics_file) if semrush_topics_file else None
 
     ga4_debug_titles = []
     if "page_title" in ga4_pages_data.columns:
@@ -809,6 +1034,8 @@ if run_button:
         ga4_source_data=ga4_source_data,
         gsc_queries_data=gsc_queries_data,
         semrush_positions_data=semrush_positions_data,
+        semrush_pages_data=semrush_pages_data,
+        semrush_topics_data=semrush_topics_data,
     )
 
     st.success("Workflow complete. Results were also saved to logs/workflow_runs.csv.")

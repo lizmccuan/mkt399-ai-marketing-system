@@ -80,6 +80,8 @@ def run_workflow(
     ga4_source_data: pd.DataFrame | None = None,
     gsc_queries_data: pd.DataFrame | None = None,
     semrush_positions_data: pd.DataFrame | None = None,
+    semrush_pages_data: pd.DataFrame | None = None,
+    semrush_topics_data: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     """Run the full agent workflow in order and return all outputs."""
     print("Starting AI Marketing Workflow...\n")
@@ -117,6 +119,8 @@ def run_workflow(
         "execution": execution,
         "evaluation": evaluation,
         "semrush_positions_data": semrush_positions_data if semrush_positions_data is not None else pd.DataFrame(),
+        "semrush_pages_data": semrush_pages_data if semrush_pages_data is not None else pd.DataFrame(),
+        "semrush_topics_data": semrush_topics_data if semrush_topics_data is not None else pd.DataFrame(),
     }
 
     log_workflow_run(results)
