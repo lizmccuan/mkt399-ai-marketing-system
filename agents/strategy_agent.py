@@ -17,13 +17,20 @@ with open("reference_docs/distilled/agent_prompt.txt") as f:
 
 
 def run_strategy_agent(
-    insights: dict[str, Any], semrush_positions_data: Any | None = None
+    insights: dict[str, Any],
+    semrush_positions_data: Any | None = None,
+    semrush_pages_data: Any | None = None,
+    semrush_topics_data: Any | None = None,
 ) -> dict[str, Any]:
     """Turn insight patterns into more specific marketing strategy."""
     primary_query = pick_primary_query(insights)
     primary_page = pick_primary_page(insights, primary_query["query"])
     secondary_query = pick_secondary_query(insights, primary_query["query"])
-    semrush_intelligence = build_semrush_strategy_intelligence(semrush_positions_data)
+    semrush_intelligence = build_semrush_strategy_intelligence(
+        semrush_positions_data=semrush_positions_data,
+        semrush_pages_data=semrush_pages_data,
+        semrush_topics_data=semrush_topics_data,
+    )
 
     # Reference prompt so the system is explicitly grounded in your strategy instructions
     prompt_reference = AGENT_PROMPT
@@ -152,6 +159,15 @@ def run_strategy_agent(
         f"Draft a new supporting content piece for {secondary_query['query']}.",
     ]
 
+    if semrush_intelligence["priority_page"]:
+        what_to_do_this_week.append(
+            f"Review the SEMrush page opportunity for {semrush_intelligence['priority_page']['page']} and tighten conversion paths."
+        )
+    if semrush_intelligence["priority_topic"]:
+        what_to_do_this_week.append(
+            f"Brief a new content asset around {semrush_intelligence['priority_topic']['topic']}."
+        )
+
     what_to_test_next = [
         "Test a stronger meta title and description to improve CTR.",
         "Test moving FAQ blocks higher on the page.",
@@ -181,8 +197,12 @@ def run_strategy_agent(
             "primary_page": primary_page,
             "executive_summary": executive_summary,
             "keyword_opportunities": semrush_intelligence["keyword_opportunities"],
+            "page_opportunities": semrush_intelligence["page_opportunities"],
+            "topic_opportunities": semrush_intelligence["topic_opportunities"],
             "intent_clusters": semrush_intelligence["intent_clusters"],
             "aeo_geo_opportunities": semrush_intelligence["aeo_geo_opportunities"],
+            "priority_page_opportunity": semrush_intelligence["priority_page"],
+            "next_best_content_topic": semrush_intelligence["priority_topic"],
             "recommended_actions_summary": recommended_actions_summary,
             "recommendations": {
                 "seo": seo_recommendations,
@@ -227,6 +247,14 @@ def build_executive_summary(
             summary.append(
                 f"A higher-effort opportunity exists for {high_opportunity['keyword']} due to strong search volume and lower current visibility."
             )
+        if semrush_intelligence["priority_page"]:
+            summary.append(
+                f"SEMrush page data also points to {semrush_intelligence['priority_page']['page']} as a strong optimization candidate."
+            )
+        if semrush_intelligence["priority_topic"]:
+            summary.append(
+                f"Topic intelligence suggests expanding coverage around {semrush_intelligence['priority_topic']['topic']} next."
+            )
 
     return summary
 
@@ -248,6 +276,14 @@ def build_recommended_actions_summary(
             actions.append(
                 f"Prioritize quick-win keyword updates for {semrush_intelligence['quick_wins'][0]['keyword']}."
             )
+        if semrush_intelligence["priority_page"]:
+            actions.append(
+                f"Optimize {semrush_intelligence['priority_page']['page']} as a page-level SEMrush opportunity."
+            )
+        if semrush_intelligence["priority_topic"]:
+            actions.append(
+                f"Create a content brief for {semrush_intelligence['priority_topic']['topic']}."
+            )
         if semrush_intelligence["aeo_geo_opportunities"]:
             actions.append(
                 f"Add answer-focused or comparison-style content for {semrush_intelligence['aeo_geo_opportunities'][0]['keyword']}."
@@ -256,108 +292,232 @@ def build_recommended_actions_summary(
     return actions
 
 
-def build_semrush_strategy_intelligence(semrush_positions_data: Any | None) -> dict[str, Any]:
-    """Summarize SEMrush keyword intelligence without returning raw tables."""
+def build_semrush_strategy_intelligence(
+    semrush_positions_data: Any | None,
+    semrush_pages_data: Any | None = None,
+    semrush_topics_data: Any | None = None,
+) -> dict[str, Any]:
+    """Summarize SEMrush keyword, page, and topic intelligence without returning raw tables."""
     empty_payload = {
         "available": False,
         "quick_wins": [],
         "high_opportunity_keywords": [],
         "keyword_opportunities": [],
+        "page_opportunities": [],
+        "topic_opportunities": [],
         "intent_clusters": [],
         "aeo_geo_opportunities": [],
+        "priority_page": None,
+        "priority_topic": None,
     }
 
-    if semrush_positions_data is None or getattr(semrush_positions_data, "empty", True):
+    has_positions = semrush_positions_data is not None and not getattr(semrush_positions_data, "empty", True)
+    has_pages = semrush_pages_data is not None and not getattr(semrush_pages_data, "empty", True)
+    has_topics = semrush_topics_data is not None and not getattr(semrush_topics_data, "empty", True)
+
+    if not any([has_positions, has_pages, has_topics]):
         return empty_payload
 
-    dataframe = semrush_positions_data.copy()
+    payload = dict(empty_payload)
+
+    if has_positions:
+        dataframe = semrush_positions_data.copy()
+        dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
+
+        if "keyword" in dataframe.columns:
+            dataframe["position"] = to_numeric_series(dataframe, "position")
+            dataframe["volume"] = to_numeric_series(dataframe, "volume")
+            dataframe["url"] = dataframe["url"].astype(str) if "url" in dataframe.columns else ""
+
+            keyword_records = []
+            for _, row in dataframe.iterrows():
+                keyword = str(row.get("keyword", "")).strip()
+                if not keyword:
+                    continue
+
+                position = float(row.get("position", 0) or 0)
+                volume = float(row.get("volume", 0) or 0)
+                keyword_lower = keyword.lower()
+                intent = infer_keyword_intent(keyword_lower)
+
+                keyword_records.append(
+                    {
+                        "keyword": keyword,
+                        "position": position,
+                        "volume": volume,
+                        "url": str(row.get("url", "")),
+                        "intent": intent,
+                        "is_quick_win": 4 <= position <= 20,
+                        "is_high_opportunity": position > 20 and volume >= 100,
+                        "is_aeo_geo": any(token in keyword_lower for token in ["how", "what", "best", "vs", "near me", "?"]),
+                    }
+                )
+
+            quick_wins = sorted(
+                [item for item in keyword_records if item["is_quick_win"]],
+                key=lambda item: (item["position"], -item["volume"]),
+            )[:5]
+            high_opportunity_keywords = sorted(
+                [item for item in keyword_records if item["is_high_opportunity"]],
+                key=lambda item: (-item["volume"], item["position"]),
+            )[:5]
+            aeo_geo_opportunities = sorted(
+                [item for item in keyword_records if item["is_aeo_geo"]],
+                key=lambda item: (-item["volume"], item["position"]),
+            )[:5]
+
+            keyword_opportunities = []
+            for item in quick_wins[:3]:
+                keyword_opportunities.append(
+                    {
+                        "keyword": item["keyword"],
+                        "opportunity_type": "Quick Win",
+                        "insight": (
+                            f"{item['keyword']} is already ranking at position {int(item['position'])}, so on-page updates could improve visibility faster."
+                        ),
+                    }
+                )
+            for item in high_opportunity_keywords[:2]:
+                keyword_opportunities.append(
+                    {
+                        "keyword": item["keyword"],
+                        "opportunity_type": "High Opportunity",
+                        "insight": (
+                            f"{item['keyword']} has meaningful volume but sits beyond page-one visibility, making it a candidate for deeper content or landing-page support."
+                        ),
+                    }
+                )
+
+            payload.update(
+                {
+                    "quick_wins": quick_wins,
+                    "high_opportunity_keywords": high_opportunity_keywords,
+                    "keyword_opportunities": keyword_opportunities,
+                    "intent_clusters": build_intent_clusters(keyword_records),
+                    "aeo_geo_opportunities": [
+                        {
+                            "keyword": item["keyword"],
+                            "insight": (
+                                f"{item['keyword']} is suited to answer-style, comparison, or local discovery content that can support AI overviews and decision-stage search."
+                            ),
+                        }
+                        for item in aeo_geo_opportunities[:3]
+                    ],
+                }
+            )
+
+    if has_pages:
+        payload["page_opportunities"] = build_page_opportunities(semrush_pages_data)
+        if payload["page_opportunities"]:
+            payload["priority_page"] = payload["page_opportunities"][0]
+
+    if has_topics:
+        payload["topic_opportunities"] = build_topic_opportunities(semrush_topics_data)
+        if payload["topic_opportunities"]:
+            payload["priority_topic"] = payload["topic_opportunities"][0]
+
+    payload["available"] = any(
+        [
+            payload["quick_wins"],
+            payload["high_opportunity_keywords"],
+            payload["page_opportunities"],
+            payload["topic_opportunities"],
+        ]
+    )
+
+    return payload
+
+
+def build_page_opportunities(semrush_pages_data: Any) -> list[dict[str, Any]]:
+    """Create concise page-level SEMrush opportunities for strategy use."""
+    dataframe = semrush_pages_data.copy()
     dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
 
-    if "keyword" not in dataframe.columns:
-        return empty_payload
+    url_column = first_matching_column(dataframe, ["page", "url", "page url", "page_url"])
+    traffic_column = first_matching_column(dataframe, ["traffic", "organic traffic"])
+    keywords_column = first_matching_column(dataframe, ["keywords", "organic keywords"])
 
-    dataframe["position"] = to_numeric_series(dataframe, "position")
-    dataframe["volume"] = to_numeric_series(dataframe, "volume")
-    dataframe["url"] = dataframe["url"].astype(str) if "url" in dataframe.columns else ""
+    if url_column is None:
+        return []
 
-    keyword_records = []
-    for _, row in dataframe.iterrows():
-        keyword = str(row.get("keyword", "")).strip()
-        if not keyword:
+    if traffic_column:
+        dataframe[traffic_column] = to_numeric_series(dataframe, traffic_column)
+    if keywords_column:
+        dataframe[keywords_column] = to_numeric_series(dataframe, keywords_column)
+
+    sort_column = traffic_column or keywords_column
+    if sort_column:
+        dataframe = dataframe.sort_values(sort_column, ascending=False)
+
+    opportunities = []
+    for _, row in dataframe.head(5).iterrows():
+        page = str(row.get(url_column, "")).strip()
+        if not page:
             continue
 
-        position = float(row.get("position", 0) or 0)
-        volume = float(row.get("volume", 0) or 0)
-        keyword_lower = keyword.lower()
-        intent = infer_keyword_intent(keyword_lower)
+        traffic = int(row.get(traffic_column, 0) or 0) if traffic_column else 0
+        keywords = int(row.get(keywords_column, 0) or 0) if keywords_column else 0
+        priority = "High" if traffic >= 100 or keywords >= 20 else "Medium"
 
-        keyword_records.append(
+        opportunities.append(
             {
-                "keyword": keyword,
-                "position": position,
+                "page": page,
+                "traffic": traffic,
+                "keywords": keywords,
+                "priority": priority,
+                "insight": (
+                    f"{page} already attracts measurable organic visibility and is a good candidate for message, UX, and CTA improvements."
+                ),
+            }
+        )
+
+    return opportunities
+
+
+def build_topic_opportunities(semrush_topics_data: Any) -> list[dict[str, Any]]:
+    """Create concise topic-level SEMrush opportunities for strategy use."""
+    dataframe = semrush_topics_data.copy()
+    dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
+
+    topic_column = first_matching_column(dataframe, ["topic", "keyword", "title"])
+    volume_column = first_matching_column(dataframe, ["volume", "search volume"])
+    competitor_column = first_matching_column(dataframe, ["competitors", "competitor presence", "competition"])
+
+    if topic_column is None:
+        return []
+
+    if volume_column:
+        dataframe[volume_column] = to_numeric_series(dataframe, volume_column)
+    if competitor_column:
+        dataframe[competitor_column] = to_numeric_series(dataframe, competitor_column)
+
+    sort_column = volume_column or competitor_column
+    if sort_column:
+        dataframe = dataframe.sort_values(sort_column, ascending=False)
+
+    opportunities = []
+    for _, row in dataframe.head(5).iterrows():
+        topic = str(row.get(topic_column, "")).strip()
+        if not topic:
+            continue
+
+        volume = int(row.get(volume_column, 0) or 0) if volume_column else 0
+        competitors = int(row.get(competitor_column, 0) or 0) if competitor_column else 0
+        priority = "High" if volume >= 500 or competitors >= 5 else "Medium"
+
+        opportunities.append(
+            {
+                "topic": topic,
                 "volume": volume,
-                "url": str(row.get("url", "")),
-                "intent": intent,
-                "is_quick_win": 4 <= position <= 20,
-                "is_high_opportunity": position > 20 and volume >= 100,
-                "is_aeo_geo": any(token in keyword_lower for token in ["how", "what", "best", "vs", "near me", "?"]),
-            }
-        )
-
-    quick_wins = sorted(
-        [item for item in keyword_records if item["is_quick_win"]],
-        key=lambda item: (item["position"], -item["volume"]),
-    )[:5]
-    high_opportunity_keywords = sorted(
-        [item for item in keyword_records if item["is_high_opportunity"]],
-        key=lambda item: (-item["volume"], item["position"]),
-    )[:5]
-    aeo_geo_opportunities = sorted(
-        [item for item in keyword_records if item["is_aeo_geo"]],
-        key=lambda item: (-item["volume"], item["position"]),
-    )[:5]
-
-    keyword_opportunities = []
-    for item in quick_wins[:3]:
-        keyword_opportunities.append(
-            {
-                "keyword": item["keyword"],
-                "opportunity_type": "Quick Win",
+                "competitors": competitors,
+                "priority": priority,
                 "insight": (
-                    f"{item['keyword']} is already ranking at position {int(item['position'])}, so on-page updates could improve visibility faster."
-                ),
-            }
-        )
-    for item in high_opportunity_keywords[:2]:
-        keyword_opportunities.append(
-            {
-                "keyword": item["keyword"],
-                "opportunity_type": "High Opportunity",
-                "insight": (
-                    f"{item['keyword']} has meaningful volume but sits beyond page-one visibility, making it a candidate for deeper content or landing-page support."
+                    f"{topic} stands out as a content expansion opportunity that could strengthen topical authority and AI-search visibility."
                 ),
             }
         )
 
-    intent_clusters = build_intent_clusters(keyword_records)
-    aeo_geo_summaries = [
-        {
-            "keyword": item["keyword"],
-            "insight": (
-                f"{item['keyword']} is suited to answer-style, comparison, or local discovery content that can support AI overviews and decision-stage search."
-            ),
-        }
-        for item in aeo_geo_opportunities[:3]
-    ]
-
-    return {
-        "available": True,
-        "quick_wins": quick_wins,
-        "high_opportunity_keywords": high_opportunity_keywords,
-        "keyword_opportunities": keyword_opportunities,
-        "intent_clusters": intent_clusters,
-        "aeo_geo_opportunities": aeo_geo_summaries,
-    }
+    return opportunities
 
 
 def build_intent_clusters(keyword_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -398,6 +558,15 @@ def to_numeric_series(dataframe: Any, column: str):
         dataframe[column].astype(str).str.replace(",", "", regex=False),
         errors="coerce",
     ).fillna(0)
+
+
+def first_matching_column(dataframe: Any, candidates: list[str]) -> str | None:
+    """Return the first matching normalized column name."""
+    normalized_columns = {str(column).strip().lower(): column for column in dataframe.columns}
+    for candidate in candidates:
+        if candidate in normalized_columns:
+            return normalized_columns[candidate]
+    return None
 
 
 def pick_primary_query(insights: dict[str, Any]) -> dict[str, Any]:

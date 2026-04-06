@@ -9,7 +9,8 @@ def run_execution_agent(strategy: dict[str, object]) -> dict[str, object]:
     primary_query = strategy_data["primary_query"]["query"]
     secondary_query = strategy_data["secondary_query"]["query"]
     primary_page = strategy_data["primary_page"]
-    support_topic = pick_support_topic(primary_query, secondary_query)
+    semrush_topic = strategy_data.get("next_best_content_topic")
+    support_topic = pick_support_topic(primary_query, secondary_query, semrush_topic)
 
     internal_link_suggestions = [
         "Migraine quiz",
@@ -148,8 +149,14 @@ def build_blog_draft(primary_query: str, primary_page: str, support_topic: str) 
     )
 
 
-def pick_support_topic(primary_query: str, secondary_query: str) -> str:
+def pick_support_topic(
+    primary_query: str,
+    secondary_query: str,
+    semrush_topic: dict[str, object] | None = None,
+) -> str:
     """Choose supporting topic."""
+    if semrush_topic and semrush_topic.get("topic"):
+        return str(semrush_topic["topic"])
     if "savings" in primary_query.lower():
         return "botox savings"
     if "cost" in primary_query.lower():
