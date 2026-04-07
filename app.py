@@ -112,6 +112,25 @@ st.markdown(
         font-weight: 700;
         white-space: nowrap;
     }
+
+    .what-next-card {
+        background: #ffffff;
+        border: 1px solid #e6ebf2;
+        border-radius: 14px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 0.9rem;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+    }
+    .what-next-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 0.5rem;
+    }
+    .what-next-label {
+        font-weight: 600;
+        color: #111827;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -503,6 +522,39 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
                     unsafe_allow_html=True,
                 )
                 action_index += 1
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">🚀 What To Do Next</div>', unsafe_allow_html=True)
+
+        priority_actions = strategy.get("priority_actions", [])
+        if priority_actions:
+            for action in priority_actions:
+                action_priority = str(action.get("priority", "Medium")).strip().title()
+                action_pill_class = priority_class_map.get(action_priority, "priority-medium-pill")
+
+                st.markdown(
+                    f"""
+                    <div class="what-next-card">
+                        <div class="recommendation-card-top">
+                            <div class="what-next-title">{action.get("title", "Opportunity")}</div>
+                            <div class="{action_pill_class}">{action_priority} Priority</div>
+                        </div>
+                        <div class="recommendation-body">
+                            <span class="what-next-label">What to do:</span><br>
+                            {action.get("action", "")}
+                            <br><br>
+                            <span class="what-next-label">Why it matters:</span><br>
+                            {action.get("reason", "")}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("No prioritized actions available yet. Connect strategy agent output.")
 
         st.markdown("</div>", unsafe_allow_html=True)
 

@@ -138,20 +138,12 @@ def run_strategy_agent(
         },
     ]
 
-    priority_actions = [
-        {
-            "action": f"Prioritize non-branded query: {primary_query['query']}",
-            "priority": "High",
-        },
-        {
-            "action": f"Refresh page focus: {primary_page}",
-            "priority": "High",
-        },
-        {
-            "action": f"Support with secondary topic: {secondary_query['query']}",
-            "priority": "Medium",
-        },
-    ]
+    priority_actions = build_priority_actions(
+        primary_query=primary_query,
+        primary_page=primary_page,
+        secondary_query=secondary_query,
+        semrush_intelligence=semrush_intelligence,
+    )
 
     what_to_do_this_week = [
         f"Refresh {primary_page} title, H1, intro, and FAQ structure for {primary_query['query']}.",
@@ -290,6 +282,173 @@ def build_recommended_actions_summary(
             )
 
     return actions
+
+
+def build_priority_actions(
+    primary_query: dict[str, Any],
+    primary_page: str,
+    secondary_query: dict[str, Any],
+    semrush_intelligence: dict[str, Any],
+) -> list[dict[str, str]]:
+    """Create prioritized actions, using SEMrush quick wins when available."""
+    quick_wins = semrush_intelligence.get("quick_wins", [])
+
+    if quick_wins:
+        grouped_keywords = group_keywords_into_priority_actions(quick_wins)
+        if grouped_keywords:
+            return grouped_keywords
+
+    return [
+        {
+            "title": "Refresh primary query page",
+            "action": (
+                f"Optimize {primary_page} for {primary_query['query']} by tightening the title tag, H1, intro copy, and FAQ coverage."
+            ),
+            "reason": (
+                "The strongest non-branded opportunity is already visible in search data, so improving page relevance should support stronger CTR and conversions."
+            ),
+            "priority": "High",
+        },
+        {
+            "title": "Build supporting query coverage",
+            "action": (
+                f"Create or expand supporting content for {secondary_query['query']} so it reinforces the primary page and captures adjacent intent."
+            ),
+            "reason": (
+                "A second non-branded topic can expand topical authority and give the strategy a cleaner content cluster."
+            ),
+            "priority": "Medium",
+        },
+        {
+            "title": "Improve conversion path on core page",
+            "action": (
+                f"Strengthen CTA placement, trust signals, and answer-first sections on {primary_page} so high-intent visitors can act faster."
+            ),
+            "reason": (
+                "Better page structure helps convert existing demand instead of relying only on traffic growth."
+            ),
+            "priority": "Medium",
+        },
+    ]
+
+
+def group_keywords_into_priority_actions(quick_wins: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Group related SEMrush quick-win keywords into action-oriented strategy items."""
+    grouped_actions: dict[str, dict[str, Any]] = {}
+
+    for item in quick_wins:
+        keyword = str(item.get("keyword", "")).strip()
+        if not keyword:
+            continue
+
+        group_key, title_label, recommended_page = classify_keyword_group(keyword, str(item.get("url", "")).strip())
+        priority_score = score_priority_action(item, group_key)
+
+        group = grouped_actions.setdefault(
+            group_key,
+            {
+                "title_label": title_label,
+                "recommended_page": recommended_page or "the relevant service page",
+                "keywords": [],
+                "best_position": 999.0,
+                "total_volume": 0.0,
+                "best_score": -1.0,
+            },
+        )
+
+        group["keywords"].append(keyword)
+        group["best_position"] = min(group["best_position"], float(item.get("position", 0) or 0))
+        group["total_volume"] += float(item.get("volume", 0) or 0)
+        group["best_score"] = max(group["best_score"], priority_score)
+
+        if recommended_page:
+            group["recommended_page"] = recommended_page
+
+    sorted_groups = sorted(grouped_actions.values(), key=lambda group: group["best_score"], reverse=True)
+
+    actions = []
+    for group in sorted_groups[:5]:
+        page_reference = group["recommended_page"]
+        top_keywords = ", ".join(group["keywords"][:3])
+        position_text = int(group["best_position"]) if group["best_position"] != 999.0 else "top-20"
+
+        actions.append(
+            {
+                "title": f"Improve ranking for {group['title_label']} keywords",
+                "action": (
+                    f"Optimize {page_reference} by updating the title tag, H1, supporting copy, and FAQ/schema coverage for keywords such as {top_keywords}."
+                ),
+                "reason": (
+                    f"These keywords are already ranking between positions 4 and 20, with the strongest opportunity around position {position_text}. "
+                    "That existing visibility suggests a realistic chance to move into stronger top-of-page positions with focused on-page improvements."
+                ),
+                "priority": priority_from_score(group["best_score"]),
+            }
+        )
+
+    return actions
+
+
+def classify_keyword_group(keyword: str, url: str) -> tuple[str, str, str]:
+    """Map related SEMrush keywords into a reusable business-relevant group."""
+    keyword_lower = keyword.lower()
+
+    if any(token in keyword_lower for token in ["saving", "savings", "afford", "coupon", "discount"]):
+        return "botox_savings", "Botox Savings", url or "the Botox Savings page"
+    if any(token in keyword_lower for token in ["cost", "price", "pricing"]):
+        return "botox_cost", "Botox Cost", url or "the Botox cost page"
+    if "botox" in keyword_lower and any(token in keyword_lower for token in ["migraine", "migraines"]):
+        return "botox_migraine", "Botox for Migraine", url or "the Botox for Migraine page"
+    if any(token in keyword_lower for token in ["migraine", "migraines"]):
+        return "migraine_treatment", "Migraine Treatment", url or "the migraine treatment page"
+    if any(token in keyword_lower for token in ["treatment", "treatments", "therapy", "specialist", "doctor"]):
+        return "treatment_services", "Treatment Services", url or "the treatment page"
+    return "general_service", keyword.title(), url or "the relevant service page"
+
+
+def score_priority_action(item: dict[str, Any], group_key: str) -> float:
+    """Score grouped quick-win actions using relevance, ranking range, and volume."""
+    relevance_score_map = {
+        "botox_savings": 5,
+        "botox_cost": 5,
+        "botox_migraine": 5,
+        "migraine_treatment": 4,
+        "treatment_services": 4,
+        "general_service": 2,
+    }
+    position = float(item.get("position", 0) or 0)
+    volume = float(item.get("volume", 0) or 0)
+
+    relevance_score = relevance_score_map.get(group_key, 2)
+
+    if 4 <= position <= 10:
+        ranking_score = 5
+    elif 11 <= position <= 15:
+        ranking_score = 4
+    elif 16 <= position <= 20:
+        ranking_score = 3
+    else:
+        ranking_score = 1
+
+    if volume >= 1000:
+        volume_score = 3
+    elif volume >= 250:
+        volume_score = 2
+    elif volume > 0:
+        volume_score = 1
+    else:
+        volume_score = 0
+
+    return float(relevance_score + ranking_score + volume_score)
+
+
+def priority_from_score(score: float) -> str:
+    """Convert numeric action score into High/Medium/Low priority."""
+    if score >= 11:
+        return "High"
+    if score >= 7:
+        return "Medium"
+    return "Low"
 
 
 def build_semrush_strategy_intelligence(
