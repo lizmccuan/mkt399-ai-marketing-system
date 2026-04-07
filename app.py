@@ -173,6 +173,11 @@ def format_heading(value: str) -> str:
     return value.replace("_", " ").upper()
 
 
+def has_uploaded_data(files: list[object | None]) -> bool:
+    """Return True when at least one upload is present."""
+    return any(file is not None for file in files)
+
+
 def build_scorecard(results: dict) -> dict[str, str]:
     """Collect the main scorecard values from workflow results."""
     insight = results["insight"]
@@ -300,6 +305,13 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
     semrush_positions_data = results.get("semrush_positions_data")
     semrush_pages_data = results.get("semrush_pages_data")
     semrush_topics_data = results.get("semrush_topics_data")
+    has_query_data = bool(insight["query_analysis"])
+    has_page_data = bool(combined["top_pages"])
+    has_source_data = bool(combined["top_traffic_sources"])
+    has_behavior_data = (
+        data_summary["ga4_pages"]["rows"] > 0 or data_summary["ga4_sources"]["rows"] > 0
+    )
+    has_insight_patterns = bool(insight["patterns"])
 
     header_left, header_right = st.columns([4, 1.2])
     with header_left:
@@ -317,56 +329,51 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
     left_col, right_col = st.columns([2.2, 1])
 
     with left_col:
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
-        query_chart_df = pd.DataFrame(insight["query_analysis"])
-        if not query_chart_df.empty and {"query", "impressions"}.issubset(query_chart_df.columns):
-            chart_data = (
-                query_chart_df.sort_values("impressions", ascending=False)[["query", "impressions"]]
-                .head(5)
-                .set_index("query")
-            )
-            st.bar_chart(chart_data)
-        else:
-            st.info("No query impression data available yet.")
-        st.markdown("</div>", unsafe_allow_html=True)
+        if has_query_data:
+            st.markdown('<div class="panel">', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
+            query_chart_df = pd.DataFrame(insight["query_analysis"])
+            if {"query", "impressions"}.issubset(query_chart_df.columns):
+                chart_data = (
+                    query_chart_df.sort_values("impressions", ascending=False)[["query", "impressions"]]
+                    .head(5)
+                    .set_index("query")
+                )
+                st.bar_chart(chart_data)
+            st.markdown("</div>", unsafe_allow_html=True)
 
         row_b_left, row_b_right = st.columns(2)
 
         with row_b_left:
-            st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
-            top_queries_df = pd.DataFrame(insight["query_analysis"])
-            if not top_queries_df.empty:
+            if has_query_data:
+                st.markdown('<div class="panel">', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
+                top_queries_df = pd.DataFrame(insight["query_analysis"])
                 st.dataframe(
                     top_queries_df[["query", "ctr", "impressions", "position"]].head(5),
                     use_container_width=True,
                     hide_index=True,
                 )
-            else:
-                st.info("No query data available.")
-            st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
 
         with row_b_right:
-            st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
-            page_rows = []
-            best_source = get_first_value(insight["top_sources"], "source_medium")
-            for item in combined["top_pages"][:5]:
-                page_rows.append(
-                    {
-                        "page_title": item["page_title"],
-                        "metric": item["metric"],
-                        "value": item["value"],
-                        "traffic_context": best_source,
-                    }
-                )
-            top_pages_df = pd.DataFrame(page_rows)
-            if not top_pages_df.empty:
+            if has_page_data:
+                st.markdown('<div class="panel">', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
+                page_rows = []
+                best_source = get_first_value(insight["top_sources"], "source_medium")
+                for item in combined["top_pages"][:5]:
+                    page_rows.append(
+                        {
+                            "page_title": item["page_title"],
+                            "metric": item["metric"],
+                            "value": item["value"],
+                            "traffic_context": best_source,
+                        }
+                    )
+                top_pages_df = pd.DataFrame(page_rows)
                 st.dataframe(top_pages_df, use_container_width=True, hide_index=True)
-            else:
-                st.info("No page data available.")
-            st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
 
         # Optional SEMrush preview panel shown only when SEMrush data is available.
         if semrush_positions_data is not None and not semrush_positions_data.empty:
@@ -431,42 +438,42 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
         row_c_left, row_c_right = st.columns(2)
 
         with row_c_left:
-            st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
-            top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
-            if not top_sources_df.empty:
+            if has_source_data:
+                st.markdown('<div class="panel">', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
+                top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
                 source_chart_df = top_sources_df[["source_medium", "value"]].set_index("source_medium")
                 st.bar_chart(source_chart_df)
                 st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
-            else:
-                st.info("No traffic source data available.")
-            st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
 
         with row_c_right:
+            if has_behavior_data:
+                st.markdown('<div class="panel">', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">User Behavior Signals</div>', unsafe_allow_html=True)
+
+                behavior_metrics = {
+                    "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
+                    "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
+                    "Engagement Rate": data_summary["ga4_pages"]["key_metrics"].get("engagement_rate", "Not available"),
+                    "Source Sessions": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
+                }
+
+                for label, value in behavior_metrics.items():
+                    st.metric(label, value)
+
+                st.markdown("</div>", unsafe_allow_html=True)
+
+        if has_insight_patterns:
             st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">User Behavior Signals</div>', unsafe_allow_html=True)
-
-            behavior_metrics = {
-                "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
-                "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
-                "Engagement Rate": data_summary["ga4_pages"]["key_metrics"].get("engagement_rate", "Not available"),
-                "Source Sessions": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
-            }
-
-            for label, value in behavior_metrics.items():
-                st.metric(label, value)
-
+            st.markdown('<div class="panel-title">Key Insights</div>', unsafe_allow_html=True)
+            insight_cols = st.columns(3)
+            insight_titles = ["Low CTR Opportunity", "Growth Opportunity", "Traffic Insight"]
+            for index, title in enumerate(insight_titles):
+                with insight_cols[index]:
+                    st.markdown("**" + title + "**")
+                    st.write(insight["patterns"][index] if len(insight["patterns"]) > index else "No insight available.")
             st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Key Insights</div>', unsafe_allow_html=True)
-        insight_cols = st.columns(3)
-        insight_titles = ["Low CTR Opportunity", "Growth Opportunity", "Traffic Insight"]
-        for index, title in enumerate(insight_titles):
-            with insight_cols[index]:
-                st.markdown("**" + title + "**")
-                st.write(insight["patterns"][index] if len(insight["patterns"]) > index else "No insight available.")
-        st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown('<div class="panel" id="recommended-actions">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">Recommended Actions</div>', unsafe_allow_html=True)
@@ -525,6 +532,8 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
 
         st.markdown("</div>", unsafe_allow_html=True)
 
+        render_priority_action_queue(results, priority_class_map)
+
 
         st.markdown('<div class="panel">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">🚀 What To Do Next</div>', unsafe_allow_html=True)
@@ -561,13 +570,14 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
         render_suggested_changes_section(results)
 
     with right_col:
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">AI Insights Feed</div>', unsafe_allow_html=True)
-        for index, pattern in enumerate(insight["patterns"][:5], start=1):
-            st.markdown(f"**Insight {index}**")
-            st.write(pattern)
-            st.divider()
-        st.markdown("</div>", unsafe_allow_html=True)
+        if has_insight_patterns:
+            st.markdown('<div class="panel">', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">AI Insights Feed</div>', unsafe_allow_html=True)
+            for index, pattern in enumerate(insight["patterns"][:5], start=1):
+                st.markdown(f"**Insight {index}**")
+                st.write(pattern)
+                st.divider()
+            st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown('<div class="panel">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">Primary CTA</div>', unsafe_allow_html=True)
@@ -849,6 +859,281 @@ def build_semrush_topic_cards(semrush_topics_data: pd.DataFrame) -> list[dict[st
     return cards
 
 
+def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
+    """Combine all available inputs into one prioritized action list."""
+    insight = results["insight"]
+    combined = results["data_intake"]["summary"]["combined"]
+    semrush_positions_data = results.get("semrush_positions_data")
+    semrush_pages_data = results.get("semrush_pages_data")
+    semrush_topics_data = results.get("semrush_topics_data")
+
+    queue: list[dict[str, Any]] = []
+
+    for item in insight["high_impression_low_click"][:5]:
+        impressions = item.get("impressions", 0)
+        ctr = item.get("ctr", 0)
+        position = item.get("position", 0)
+        impact_score = float(impressions or 0) + max(0.0, 20.0 - float(position or 0)) * 25
+
+        queue.append(
+            {
+                "title": f"Improve CTR for {item['query']}",
+                "data_source": "GSC",
+                "supporting_data": f"Impressions: {int(impressions)} | CTR: {ctr}% | Position: {position}",
+                "why_it_matters": (
+                    "This query already has visibility but is underperforming on clicks, which signals a strong high-intent gap."
+                ),
+                "recommended_action": (
+                    "Refresh the title tag, meta description, and on-page answer structure to better match search intent."
+                ),
+                "priority": "High",
+                "impact_score": impact_score,
+            }
+        )
+
+    for item in insight["conversion_intent_queries"][:3]:
+        if any(existing["title"].endswith(item["query"]) for existing in queue):
+            continue
+
+        impressions = item.get("impressions", 0)
+        ctr = item.get("ctr", 0)
+        position = item.get("position", 0)
+        priority = "Medium" if 20 <= float(position or 0) <= 50 else "Low"
+        impact_score = float(impressions or 0) + max(0.0, 50.0 - float(position or 0)) * 10
+
+        queue.append(
+            {
+                "title": f"Expand visibility for {item['query']}",
+                "data_source": "GSC",
+                "supporting_data": f"Impressions: {int(impressions)} | CTR: {ctr}% | Position: {position}",
+                "why_it_matters": (
+                    "This conversion-oriented query suggests commercial demand that could turn into appointments with stronger coverage."
+                ),
+                "recommended_action": (
+                    "Add targeted copy, FAQs, and internal links so the page better supports decision-stage search intent."
+                ),
+                "priority": priority,
+                "impact_score": impact_score,
+            }
+        )
+
+    if combined["top_pages"]:
+        top_page = combined["top_pages"][0]
+        page_value = float(top_page.get("value", 0) or 0)
+        priority = "High" if page_value >= 100 else "Medium" if page_value >= 25 else "Low"
+        queue.append(
+            {
+                "title": f"Optimize high-traffic GA4 page: {top_page['page_title']}",
+                "data_source": "GA4",
+                "supporting_data": f"{top_page['metric']}: {int(page_value)}",
+                "why_it_matters": (
+                    "A page already attracting meaningful traffic is one of the fastest places to improve conversions and content performance."
+                ),
+                "recommended_action": (
+                    "Review message clarity, CTA placement, and content depth so existing traffic is more likely to convert."
+                ),
+                "priority": priority,
+                "impact_score": page_value,
+            }
+        )
+
+    if combined["top_traffic_sources"]:
+        top_source = combined["top_traffic_sources"][0]
+        source_value = float(top_source.get("value", 0) or 0)
+        priority = "Medium" if source_value >= 50 else "Low"
+        queue.append(
+            {
+                "title": f"Strengthen pages fed by {top_source['source_medium']}",
+                "data_source": "GA4",
+                "supporting_data": f"{top_source['metric']}: {int(source_value)}",
+                "why_it_matters": (
+                    "This source is already driving visits, so improving the destination experience can lift outcomes without needing a new acquisition channel."
+                ),
+                "recommended_action": (
+                    "Audit the landing pages receiving this traffic and align headlines, trust signals, and CTAs with acquisition intent."
+                ),
+                "priority": priority,
+                "impact_score": source_value,
+            }
+        )
+
+    if semrush_positions_data is not None and not semrush_positions_data.empty:
+        dataframe = semrush_positions_data.copy()
+        dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
+
+        if "keyword" in dataframe.columns and "position" in dataframe.columns:
+            dataframe["position"] = pd.to_numeric(dataframe["position"], errors="coerce")
+            dataframe["volume"] = pd.to_numeric(dataframe["volume"], errors="coerce") if "volume" in dataframe.columns else 0
+            dataframe = dataframe.dropna(subset=["position"])
+            dataframe = dataframe[(dataframe["position"] >= 4) & (dataframe["position"] <= 50)]
+            dataframe = dataframe.sort_values(["position", "volume"], ascending=[True, False])
+
+            for _, row in dataframe.head(5).iterrows():
+                position = float(row["position"])
+                volume = float(row["volume"]) if "volume" in dataframe.columns else 0.0
+                priority = "High" if 4 <= position <= 20 else "Medium"
+                impact_score = (1000 - (position * 20)) + volume
+                url_value = str(row["url"]) if "url" in dataframe.columns and pd.notna(row.get("url")) else "Not available"
+
+                queue.append(
+                    {
+                        "title": f"Improve ranking for {row['keyword']}",
+                        "data_source": "Keyword",
+                        "supporting_data": (
+                            f"Position: {int(position)} | Volume: {int(volume) if volume else 'Not available'} | URL: {url_value}"
+                        ),
+                        "why_it_matters": (
+                            "This keyword is already ranking within reach, which makes it a realistic SEO opportunity with measurable upside."
+                            if priority == "High"
+                            else "The keyword has moderate ranking visibility and could become stronger with more focused optimization."
+                        ),
+                        "recommended_action": (
+                            "Tighten keyword targeting in the title tag, H1, supporting copy, and FAQ content."
+                        ),
+                        "priority": priority,
+                        "impact_score": impact_score,
+                    }
+                )
+
+    if semrush_pages_data is not None and not semrush_pages_data.empty:
+        dataframe = semrush_pages_data.copy()
+        dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
+        url_column = first_matching_column(dataframe, ["page", "url", "page url", "page_url"])
+        traffic_column = first_matching_column(dataframe, ["traffic", "organic traffic"])
+        keywords_column = first_matching_column(dataframe, ["keywords", "organic keywords"])
+
+        if url_column:
+            if traffic_column:
+                dataframe[traffic_column] = pd.to_numeric(dataframe[traffic_column], errors="coerce").fillna(0)
+            if keywords_column:
+                dataframe[keywords_column] = pd.to_numeric(dataframe[keywords_column], errors="coerce").fillna(0)
+
+            sort_column = traffic_column or keywords_column
+            if sort_column:
+                dataframe = dataframe.sort_values(sort_column, ascending=False)
+
+            for _, row in dataframe.head(3).iterrows():
+                traffic = float(row[traffic_column]) if traffic_column else 0.0
+                keywords = float(row[keywords_column]) if keywords_column else 0.0
+                priority = "High" if traffic >= 100 or keywords >= 20 else "Medium" if traffic >= 25 or keywords >= 5 else "Low"
+                impact_score = traffic + (keywords * 10)
+
+                queue.append(
+                    {
+                        "title": f"Improve performance of {row[url_column]}",
+                        "data_source": "Page",
+                        "supporting_data": (
+                            f"Traffic: {int(traffic) if traffic_column else 'Not available'} | "
+                            f"Keywords: {int(keywords) if keywords_column else 'Not available'}"
+                        ),
+                        "why_it_matters": (
+                            "This page already has search visibility, so improving UX, messaging, or conversion paths can create faster business impact."
+                        ),
+                        "recommended_action": (
+                            "Review content depth, internal linking, and CTA hierarchy to make the page more competitive and conversion-focused."
+                        ),
+                        "priority": priority,
+                        "impact_score": impact_score,
+                    }
+                )
+
+    if semrush_topics_data is not None and not semrush_topics_data.empty:
+        dataframe = semrush_topics_data.copy()
+        dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
+        topic_column = first_matching_column(dataframe, ["topic", "keyword", "title"])
+        volume_column = first_matching_column(dataframe, ["volume", "search volume"])
+        competitor_column = first_matching_column(dataframe, ["competitors", "competitor presence", "competition"])
+
+        if topic_column:
+            if volume_column:
+                dataframe[volume_column] = pd.to_numeric(dataframe[volume_column], errors="coerce").fillna(0)
+            if competitor_column:
+                dataframe[competitor_column] = pd.to_numeric(dataframe[competitor_column], errors="coerce").fillna(0)
+
+            sort_column = volume_column or competitor_column
+            if sort_column:
+                dataframe = dataframe.sort_values(sort_column, ascending=False)
+
+            for _, row in dataframe.head(3).iterrows():
+                volume = float(row[volume_column]) if volume_column else 0.0
+                competitors = float(row[competitor_column]) if competitor_column else 0.0
+                priority = "Medium" if volume >= 250 or competitors >= 3 else "Low"
+                impact_score = volume + (competitors * 25)
+
+                queue.append(
+                    {
+                        "title": f"Build content around {row[topic_column]}",
+                        "data_source": "Topic",
+                        "supporting_data": (
+                            f"Volume: {int(volume) if volume_column else 'Not available'} | "
+                            f"Competition: {int(competitors) if competitor_column else 'Not available'}"
+                        ),
+                        "why_it_matters": (
+                            "This topic represents a broader content gap that can strengthen authority, internal linking, and AI-search relevance."
+                        ),
+                        "recommended_action": (
+                            "Create a focused page or guide, then support it with cluster content and internal links."
+                        ),
+                        "priority": priority,
+                        "impact_score": impact_score,
+                    }
+                )
+
+    priority_rank = {"High": 3, "Medium": 2, "Low": 1}
+    sorted_queue = sorted(
+        queue,
+        key=lambda item: (priority_rank.get(item["priority"], 0), float(item.get("impact_score", 0))),
+        reverse=True,
+    )
+
+    return [
+        {
+            "title": item["title"],
+            "data_source": item["data_source"],
+            "supporting_data": item["supporting_data"],
+            "why_it_matters": item["why_it_matters"],
+            "recommended_action": item["recommended_action"],
+            "priority": item["priority"],
+        }
+        for item in sorted_queue[:12]
+    ]
+
+
+def render_priority_action_queue(results: dict, priority_class_map: dict[str, str]) -> None:
+    """Render the unified queue using the existing dashboard card style."""
+    queue = build_priority_action_queue(results)
+
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">Priority Action Queue</div>', unsafe_allow_html=True)
+
+    if queue:
+        for item in queue:
+            action_priority = str(item.get("priority", "Medium")).strip().title()
+            action_pill_class = priority_class_map.get(action_priority, "priority-medium-pill")
+
+            st.markdown(
+                f"""
+                <div class="recommendation-card">
+                    <div class="recommendation-card-top">
+                        <div class="recommendation-category">{item.get("title", "Action")}</div>
+                        <div class="{action_pill_class}">{action_priority} Priority</div>
+                    </div>
+                    <div class="recommendation-body">
+                        <strong>Data Source:</strong> {item.get("data_source", "Not available")}<br><br>
+                        <strong>Supporting Data:</strong> {item.get("supporting_data", "Not available")}<br><br>
+                        <strong>Why it matters:</strong> {item.get("why_it_matters", "")}<br><br>
+                        <strong>Recommended action:</strong> {item.get("recommended_action", "")}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info("No priority actions available yet.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def first_matching_column(dataframe: pd.DataFrame, candidates: list[str]) -> str | None:
     """Return the first matching column from a list of possible names."""
     normalized_columns = {str(column).strip().lower(): column for column in dataframe.columns}
@@ -1032,7 +1317,7 @@ def render_export_section(results: dict, inside_panel: bool = False) -> None:
 
 
 st.title("AI Marketing Workflow System")
-st.write("Upload the three source files below, then run the full marketing workflow.")
+st.write("Upload one or more source files below, then run the workflow.")
 
 view_mode = st.radio(
     "View Mode",
@@ -1066,19 +1351,28 @@ st.subheader("2. Run the workflow")
 run_button = st.button("Run Workflow")
 
 if run_button:
-    if not all([ga4_pages_file, ga4_source_file, gsc_queries_file]):
-        st.error("Please upload all three required CSV files before running the workflow.")
+    uploaded_files = [
+        ga4_pages_file,
+        ga4_source_file,
+        gsc_queries_file,
+        semrush_positions_file,
+        semrush_pages_file,
+        semrush_topics_file,
+    ]
+
+    if not has_uploaded_data(uploaded_files):
+        st.error("Please upload at least one CSV file before running the workflow.")
         st.stop()
 
-    ga4_pages_data = parse_uploaded_csv(ga4_pages_file, "GA4_PAGES")
-    ga4_source_data = parse_uploaded_csv(ga4_source_file, "GA4_SOURCE")
-    gsc_queries_data = parse_uploaded_csv(gsc_queries_file, "GSC_QUERIES")
+    ga4_pages_data = parse_uploaded_csv(ga4_pages_file, "GA4_PAGES") if ga4_pages_file else None
+    ga4_source_data = parse_uploaded_csv(ga4_source_file, "GA4_SOURCE") if ga4_source_file else None
+    gsc_queries_data = parse_uploaded_csv(gsc_queries_file, "GSC_QUERIES") if gsc_queries_file else None
     semrush_positions_data = parse_semrush_positions_csv(semrush_positions_file) if semrush_positions_file else None
     semrush_pages_data = parse_semrush_pages_csv(semrush_pages_file) if semrush_pages_file else None
     semrush_topics_data = parse_semrush_topics_csv(semrush_topics_file) if semrush_topics_file else None
 
     ga4_debug_titles = []
-    if "page_title" in ga4_pages_data.columns:
+    if ga4_pages_data is not None and "page_title" in ga4_pages_data.columns:
         ga4_debug_titles = ga4_pages_data["page_title"].head(5).fillna("").astype(str).tolist()
 
     results = run_workflow(
