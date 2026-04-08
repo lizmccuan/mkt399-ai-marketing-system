@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from io import BytesIO
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
 from main import run_workflow
-from utils.parser import parse_uploaded_csv
+from utils.parser import parse_csv_file, parse_uploaded_csv
+
+
+RUNS_DIR = Path("saved_runs")
+RUNS_DIR.mkdir(exist_ok=True)
 
 
 st.set_page_config(page_title="AI Marketing Workflow System", layout="wide")
@@ -112,7 +118,23 @@ st.markdown(
         font-weight: 700;
         white-space: nowrap;
     }
-
+    .topic-tag-row {
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+        margin: 0.45rem 0 0.75rem;
+    }
+    .topic-tag {
+        display: inline-block;
+        background: #eef2f7;
+        color: #334155;
+        border: 1px solid #d7dee8;
+        border-radius: 999px;
+        padding: 0.22rem 0.55rem;
+        font-size: 0.74rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
     .what-next-card {
         background: #ffffff;
         border: 1px solid #e6ebf2;
@@ -166,6 +188,340 @@ def parse_semrush_topics_csv(file) -> pd.DataFrame:
         return pd.DataFrame()
 
     return pd.read_csv(file)
+
+
+def parse_meta_posts_csv(file) -> pd.DataFrame:
+    """Read a Meta content export CSV into a cleaned DataFrame."""
+    if file is None:
+        return pd.DataFrame()
+
+    dataframe = pd.read_csv(file)
+    normalized_columns = {str(column).strip().lower(): column for column in dataframe.columns}
+
+    for column_name in ["Views", "Reach", "Likes", "Shares", "Follows", "Comments", "Saves"]:
+        source_column = normalized_columns.get(column_name.lower())
+        if source_column is not None:
+            dataframe[column_name] = pd.to_numeric(dataframe[source_column], errors="coerce").fillna(0)
+        else:
+            dataframe[column_name] = 0
+
+    description_column = normalized_columns.get("description")
+    if description_column is not None:
+        dataframe["Description"] = dataframe[description_column].fillna("").astype(str)
+    else:
+        dataframe["Description"] = ""
+
+    post_type_column = normalized_columns.get("post type")
+    if post_type_column is None:
+        post_type_column = normalized_columns.get("post_type")
+    if post_type_column is not None:
+        dataframe["Post type"] = dataframe[post_type_column].fillna("").replace("", "Unknown")
+    else:
+        dataframe["Post type"] = "Unknown"
+
+    publish_time_column = normalized_columns.get("publish time")
+    if publish_time_column is None:
+        publish_time_column = normalized_columns.get("publish_time")
+    if publish_time_column is not None:
+        dataframe["Publish time"] = pd.to_datetime(dataframe[publish_time_column], errors="coerce")
+
+    dataframe["Hook"] = dataframe["Description"].apply(extract_hook_from_caption)
+    dataframe["Topic"] = dataframe["Description"].apply(infer_social_topic)
+    dataframe["Engagement"] = (
+        dataframe["Likes"].fillna(0)
+        + dataframe["Comments"].fillna(0)
+        + dataframe["Shares"].fillna(0)
+        + dataframe["Saves"].fillna(0)
+    )
+    dataframe["Engagement Rate"] = (
+        (dataframe["Engagement"] / dataframe["Reach"].replace(0, pd.NA)) * 100
+    ).fillna(0).round(2)
+
+    return dataframe
+
+
+def extract_hook_from_caption(caption) -> str:
+    """Return the first non-empty caption line."""
+    if caption is None or (isinstance(caption, float) and pd.isna(caption)):
+        return ""
+
+    for line in str(caption).splitlines():
+        stripped_line = line.strip()
+        if stripped_line:
+            return stripped_line
+    return ""
+
+
+def infer_social_topic(caption) -> str:
+    """Infer a simple social content topic from caption text."""
+    if caption is None or (isinstance(caption, float) and pd.isna(caption)):
+        return "other"
+
+    caption_text = str(caption).lower()
+
+    if any(keyword in caption_text for keyword in ["quiz", "book", "schedule", "consultation", "evaluation", "call us"]):
+        return "conversion"
+    if any(keyword in caption_text for keyword in ["botox", "treatment", "fda-approved", "options", "relief is possible"]):
+        return "treatment education"
+    if any(keyword in caption_text for keyword in ["meet one of the providers", "provider", "pa-c", "specialists"]):
+        return "authority"
+    if any(keyword in caption_text for keyword in ["patient", "story", "proof", "testimonial", "results"]):
+        return "social proof"
+    if any(keyword in caption_text for keyword in ["why", "what causes", "migraines are", "headaches aren’t", "symptoms"]):
+        return "educational"
+    if any(keyword in caption_text for keyword in ["expo", "community", "event", "opening", "westmont"]):
+        return "promotional/community"
+    return "other"
+
+
+def classify_social_post(row) -> str:
+    """Classify social post performance using simple threshold rules."""
+    reach = float(row.get("Reach", 0) or 0)
+    engagement_rate = float(row.get("Engagement Rate", 0) or 0)
+    saves = float(row.get("Saves", 0) or 0)
+    follows = float(row.get("Follows", 0) or 0)
+
+    is_high_performing = (reach >= 150 and engagement_rate >= 5) or saves >= 3
+    is_conversion_content = follows >= 1
+
+    if is_high_performing and is_conversion_content:
+        return "Both"
+    if is_high_performing:
+        return "High Performing Content"
+    if is_conversion_content:
+        return "Conversion Content"
+    return "Underperforming"
+
+
+def build_social_insights(meta_posts_data) -> dict[str, object]:
+    """Build a simple social insight summary from Meta post performance."""
+    empty_payload = {
+        "top_performing_content": [],
+        "conversion_content": [],
+        "best_post_type": "Not available",
+        "worst_post_type": "Not available",
+        "top_topics": [],
+        "weak_topics": [],
+        "what_drives_saves": "Not enough Meta content data yet.",
+        "what_drives_follows": "Not enough Meta content data yet.",
+        "balance_problems": [],
+    }
+
+    if meta_posts_data is None or getattr(meta_posts_data, "empty", True):
+        return empty_payload
+
+    dataframe = meta_posts_data.copy()
+    dataframe["Performance Class"] = dataframe.apply(classify_social_post, axis=1)
+
+    def summarize_group(column_name: str) -> pd.DataFrame:
+        grouped = dataframe.groupby(column_name, dropna=False).agg(
+            avg_reach=("Reach", "mean"),
+            avg_engagement_rate=("Engagement Rate", "mean"),
+            total_follows=("Follows", "sum"),
+            total_saves=("Saves", "sum"),
+        )
+        grouped["score"] = (
+            grouped["avg_reach"].fillna(0)
+            + (grouped["avg_engagement_rate"].fillna(0) * 10)
+            + (grouped["total_follows"].fillna(0) * 25)
+            + (grouped["total_saves"].fillna(0) * 10)
+        )
+        return grouped.sort_values("score", ascending=False)
+
+    top_performing_content = dataframe[
+        dataframe["Performance Class"].isin(["High Performing Content", "Both"])
+    ]
+    conversion_content = dataframe[
+        dataframe["Performance Class"].isin(["Conversion Content", "Both"])
+    ]
+
+    post_type_summary = summarize_group("Post type")
+    topic_summary = summarize_group("Topic")
+
+    balance_problems = []
+    if ((dataframe["Reach"] >= 150) & (dataframe["Engagement Rate"] < 3)).any():
+        balance_problems.append("High reach with low engagement suggests weak hook or creative payoff.")
+    if ((dataframe["Engagement Rate"] >= 5) & (dataframe["Follows"] == 0)).any():
+        balance_problems.append("High engagement but low conversion suggests strong content without a clear follow or next-step path.")
+    if ((dataframe["Reach"] < 100) & (dataframe["Follows"] >= 1)).any():
+        balance_problems.append("Low reach but strong conversion signal suggests promising content that needs more distribution.")
+    if ((dataframe["Reach"] >= 150) & (dataframe["Engagement Rate"] >= 5) & (dataframe["Follows"] >= 1)).any():
+        balance_problems.append("Best-performing pattern combines strong reach, strong engagement, and at least one follow.")
+
+    top_save_post_type = (
+        dataframe.groupby("Post type")["Saves"].sum().sort_values(ascending=False).index[0]
+        if not dataframe.empty
+        else "Not available"
+    )
+    top_save_topic = (
+        dataframe.groupby("Topic")["Saves"].sum().sort_values(ascending=False).index[0]
+        if not dataframe.empty
+        else "Not available"
+    )
+    top_follow_post_type = (
+        dataframe.groupby("Post type")["Follows"].sum().sort_values(ascending=False).index[0]
+        if not dataframe.empty
+        else "Not available"
+    )
+    top_follow_topic = (
+        dataframe.groupby("Topic")["Follows"].sum().sort_values(ascending=False).index[0]
+        if not dataframe.empty
+        else "Not available"
+    )
+
+    return {
+        "top_performing_content": (
+            top_performing_content[
+                ["Hook", "Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"]
+            ]
+            .head(5)
+            .fillna("")
+            .to_dict(orient="records")
+        ),
+        "conversion_content": (
+            conversion_content[
+                ["Hook", "Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"]
+            ]
+            .head(5)
+            .fillna("")
+            .to_dict(orient="records")
+        ),
+        "best_post_type": post_type_summary.index[0] if not post_type_summary.empty else "Not available",
+        "worst_post_type": post_type_summary.index[-1] if not post_type_summary.empty else "Not available",
+        "top_topics": topic_summary.head(3).index.tolist() if not topic_summary.empty else [],
+        "weak_topics": topic_summary.tail(3).index.tolist() if not topic_summary.empty else [],
+        "what_drives_saves": (
+            f"{top_save_post_type} posts about {top_save_topic} are currently driving the most saves."
+            if top_save_post_type != "Not available"
+            else "Not enough Meta content data yet."
+        ),
+        "what_drives_follows": (
+            f"{top_follow_post_type} posts about {top_follow_topic} are currently driving the most follows."
+            if top_follow_post_type != "Not available"
+            else "Not enough Meta content data yet."
+        ),
+        "balance_problems": balance_problems,
+    }
+
+
+def save_uploaded_file(file, destination: Path) -> None:
+    """Save an uploaded file to disk when it exists."""
+    if file is None:
+        return
+
+    with destination.open("wb") as output_file:
+        output_file.write(file.getbuffer())
+
+
+def save_run_files(
+    ga4_pages_file,
+    ga4_source_file,
+    gsc_queries_file,
+    semrush_positions_file,
+    semrush_pages_file,
+    semrush_topics_file,
+    meta_posts_file,
+) -> str:
+    """Save uploaded run files into a timestamped folder and return the run id."""
+    run_id = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    run_dir = RUNS_DIR / run_id
+    run_dir.mkdir(exist_ok=True)
+
+    file_map = {
+        "ga4_pages.csv": ga4_pages_file,
+        "ga4_source.csv": ga4_source_file,
+        "gsc_queries.csv": gsc_queries_file,
+        "semrush_positions.csv": semrush_positions_file,
+        "semrush_pages.csv": semrush_pages_file,
+        "semrush_topics.csv": semrush_topics_file,
+        "meta_posts.csv": meta_posts_file,
+    }
+
+    included_files = []
+    for filename, uploaded_file in file_map.items():
+        if uploaded_file is not None:
+            save_uploaded_file(uploaded_file, run_dir / filename)
+            included_files.append(filename)
+
+    metadata = {
+        "run_id": run_id,
+        "display_label": run_id,
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+        "included_files": included_files,
+    }
+
+    with (run_dir / "metadata.json").open("w", encoding="utf-8") as metadata_file:
+        json.dump(metadata, metadata_file, indent=2)
+
+    return run_id
+
+
+def list_saved_runs() -> list[dict]:
+    """Return saved run metadata sorted newest first."""
+    saved_runs = []
+
+    if not RUNS_DIR.exists():
+        return saved_runs
+
+    for run_dir in RUNS_DIR.iterdir():
+        if not run_dir.is_dir():
+            continue
+
+        metadata_path = run_dir / "metadata.json"
+        if not metadata_path.exists():
+            continue
+
+        try:
+            with metadata_path.open("r", encoding="utf-8") as metadata_file:
+                saved_runs.append(json.load(metadata_file))
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    return sorted(saved_runs, key=lambda item: item.get("run_id", ""), reverse=True)
+
+
+def load_saved_run(run_id: str) -> dict | None:
+    """Load a saved run from disk, rerun the workflow, and return restored results."""
+    run_dir = RUNS_DIR / run_id
+    if not run_dir.exists():
+        return None
+
+    ga4_pages_path = run_dir / "ga4_pages.csv"
+    ga4_source_path = run_dir / "ga4_source.csv"
+    gsc_queries_path = run_dir / "gsc_queries.csv"
+    semrush_positions_path = run_dir / "semrush_positions.csv"
+    semrush_pages_path = run_dir / "semrush_pages.csv"
+    semrush_topics_path = run_dir / "semrush_topics.csv"
+    meta_posts_path = run_dir / "meta_posts.csv"
+
+    ga4_pages_data = parse_csv_file(str(ga4_pages_path), "GA4_PAGES") if ga4_pages_path.exists() else None
+    ga4_source_data = parse_csv_file(str(ga4_source_path), "GA4_SOURCE") if ga4_source_path.exists() else None
+    gsc_queries_data = parse_csv_file(str(gsc_queries_path), "GSC_QUERIES") if gsc_queries_path.exists() else None
+    semrush_positions_data = parse_semrush_positions_csv(semrush_positions_path) if semrush_positions_path.exists() else None
+    semrush_pages_data = parse_semrush_pages_csv(semrush_pages_path) if semrush_pages_path.exists() else None
+    semrush_topics_data = parse_semrush_topics_csv(semrush_topics_path) if semrush_topics_path.exists() else None
+    meta_posts_data = parse_meta_posts_csv(meta_posts_path) if meta_posts_path.exists() else None
+
+    results = run_workflow(
+        ga4_pages_data=ga4_pages_data,
+        ga4_source_data=ga4_source_data,
+        gsc_queries_data=gsc_queries_data,
+        semrush_positions_data=semrush_positions_data,
+        semrush_pages_data=semrush_pages_data,
+        semrush_topics_data=semrush_topics_data,
+    )
+    results["meta_posts_data"] = meta_posts_data
+    results["social_insights"] = build_social_insights(meta_posts_data)
+
+    ga4_debug_titles = []
+    if ga4_pages_data is not None and "page_title" in ga4_pages_data.columns:
+        ga4_debug_titles = ga4_pages_data["page_title"].head(5).fillna("").astype(str).tolist()
+
+    return {
+        "results": results,
+        "ga4_debug_titles": ga4_debug_titles,
+        "run_id": run_id,
+    }
 
 
 def format_heading(value: str) -> str:
@@ -375,66 +731,6 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
                 st.dataframe(top_pages_df, use_container_width=True, hide_index=True)
                 st.markdown("</div>", unsafe_allow_html=True)
 
-        # Optional SEMrush preview panel shown only when SEMrush data is available.
-        if semrush_positions_data is not None and not semrush_positions_data.empty:
-            st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Keyword Opportunities</div>', unsafe_allow_html=True)
-
-            opportunity_cards = build_semrush_opportunity_cards(semrush_positions_data)
-
-            if opportunity_cards:
-                for card in opportunity_cards:
-                    st.markdown("**" + card["keyword"] + "**")
-                    st.write(f"Position: {card['position']}")
-                    if card["volume"] != "Not available":
-                        st.write(f"Volume: {card['volume']}")
-                    if card["url"] != "Not available":
-                        st.write(f"URL: {card['url']}")
-                    st.write(f"Why it matters: {card['why_it_matters']}")
-                    st.write(f"Recommended action: {card['recommended_action']}")
-                    st.write(f"Priority: {card['priority']}")
-                    st.divider()
-            else:
-                st.info("No SEMrush keyword opportunities available yet.")
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        if semrush_pages_data is not None and not semrush_pages_data.empty:
-            st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Page Opportunities</div>', unsafe_allow_html=True)
-
-            page_cards = build_semrush_page_cards(semrush_pages_data)
-
-            if page_cards:
-                for card in page_cards:
-                    st.markdown("**" + card["page_url"] + "**")
-                    st.write(card["metric_line"])
-                    st.write(f"Why it matters: {card['why_it_matters']}")
-                    st.write(f"Recommended action: {card['recommended_action']}")
-                    st.write(f"Priority: {card['priority']}")
-                    st.divider()
-            else:
-                st.info("No SEMrush page opportunities available yet.")
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        if semrush_topics_data is not None and not semrush_topics_data.empty:
-            st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">AI Topic Opportunities</div>', unsafe_allow_html=True)
-
-            topic_cards = build_semrush_topic_cards(semrush_topics_data)
-
-            if topic_cards:
-                for card in topic_cards:
-                    st.markdown("**" + card["topic"] + "**")
-                    if card["volume"] != "Not available":
-                        st.write(f"Volume: {card['volume']}")
-                    st.write(f"Why it matters: {card['why_it_matters']}")
-                    st.write(f"Recommended action: {card['recommended_action']}")
-                    st.write(f"Priority: {card['priority']}")
-                    st.divider()
-            else:
-                st.info("No SEMrush topic opportunities available yet.")
-            st.markdown("</div>", unsafe_allow_html=True)
-
         row_c_left, row_c_right = st.columns(2)
 
         with row_c_left:
@@ -534,7 +830,6 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
 
         render_priority_action_queue(results, priority_class_map)
 
-
         st.markdown('<div class="panel">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">🚀 What To Do Next</div>', unsafe_allow_html=True)
 
@@ -603,6 +898,181 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
 
             st.subheader("Full Workflow Output")
             st.code(json.dumps(results, indent=2), language="json")
+
+
+
+def render_analysis_page(results: dict) -> None:
+    """Render the Analysis page (Traffic, Behavior, Queries, Pages)."""
+    st.title("Analysis")
+    st.caption("Performance data from GA4 + GSC")
+
+    if not results:
+        st.info("Run the workflow to view analysis.")
+        return
+
+    insight = results["insight"]
+    combined = results["data_intake"]["summary"]["combined"]
+    data_summary = results["data_intake"]["summary"]
+
+    has_query_data = bool(insight["query_analysis"])
+    has_page_data = bool(combined["top_pages"])
+    has_source_data = bool(combined["top_traffic_sources"])
+    has_behavior_data = (
+        data_summary["ga4_pages"]["rows"] > 0 or data_summary["ga4_sources"]["rows"] > 0
+    )
+
+    if has_source_data:
+        st.subheader("Traffic Distribution")
+        top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
+        source_chart_df = top_sources_df[["source_medium", "value"]].set_index("source_medium")
+        st.bar_chart(source_chart_df)
+        st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
+        st.divider()
+
+    if has_behavior_data:
+        st.subheader("User Behavior")
+        col1, col2, col3 = st.columns(3)
+
+        behavior_metrics = {
+            "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "—"),
+            "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "—"),
+            "Engagement Rate": data_summary["ga4_pages"]["key_metrics"].get("engagement_rate", "—"),
+        }
+
+        with col1:
+            st.metric("Sessions", behavior_metrics["Sessions"])
+        with col2:
+            st.metric("Users", behavior_metrics["Active Users"])
+        with col3:
+            st.metric("Engagement Rate", behavior_metrics["Engagement Rate"])
+
+        st.divider()
+
+    if has_query_data:
+        st.subheader("Top Queries")
+        top_queries_df = pd.DataFrame(insight["query_analysis"])
+        st.dataframe(
+            top_queries_df[["query", "ctr", "impressions", "position"]].head(10),
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.divider()
+
+    if has_page_data:
+        st.subheader("Top Pages")
+        page_rows = []
+        best_source = get_first_value(insight["top_sources"], "source_medium")
+
+        for item in combined["top_pages"][:10]:
+            page_rows.append(
+                {
+                    "page_title": item["page_title"],
+                    "metric": item["metric"],
+                    "value": item["value"],
+                    "traffic_context": best_source,
+                }
+            )
+
+        top_pages_df = pd.DataFrame(page_rows)
+        st.dataframe(top_pages_df, use_container_width=True, hide_index=True)
+
+
+def render_social_analysis_page(results: dict) -> None:
+    """Render the Social Analysis page using Meta social insights."""
+    st.title("Social Analysis")
+    st.caption("Instagram + Facebook performance insights")
+
+    if not results:
+        st.info("Upload a Meta content export and run the workflow first on the Data Sources page.")
+        return
+
+    social_insights = results.get("social_insights") or {}
+    meta_posts_data = results.get("meta_posts_data")
+
+    if not social_insights or meta_posts_data is None or getattr(meta_posts_data, "empty", True):
+        st.info("Upload a Meta content export and run the workflow first on the Data Sources page.")
+        return
+
+    top_topics = social_insights.get("top_topics", [])
+    weak_topics = social_insights.get("weak_topics", [])
+    best_post_type = social_insights.get("best_post_type", "Not available")
+    worst_post_type = social_insights.get("worst_post_type", "Not available")
+    top_topic = top_topics[0] if top_topics else "Not available"
+    weak_topic = weak_topics[0] if weak_topics else "Not available"
+
+    metric_cols = st.columns(4)
+    with metric_cols[0]:
+        st.metric("Best Post Type", best_post_type)
+    with metric_cols[1]:
+        st.metric("Worst Post Type", worst_post_type)
+    with metric_cols[2]:
+        st.metric("Top Topic", top_topic)
+    with metric_cols[3]:
+        st.metric("Weak Topic", weak_topic)
+
+    st.subheader("Top Performing Content")
+    top_performing_content = social_insights.get("top_performing_content", [])
+    if top_performing_content:
+        top_performing_df = pd.DataFrame(top_performing_content)
+        visible_columns = [
+            column
+            for column in ["Hook", "Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"]
+            if column in top_performing_df.columns
+        ]
+        st.dataframe(top_performing_df[visible_columns], use_container_width=True, hide_index=True)
+    else:
+        st.info("No top performing social content available yet.")
+
+    st.subheader("Conversion Content")
+    conversion_content = social_insights.get("conversion_content", [])
+    if conversion_content:
+        conversion_df = pd.DataFrame(conversion_content)
+        visible_columns = [
+            column
+            for column in ["Hook", "Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"]
+            if column in conversion_df.columns
+        ]
+        st.dataframe(conversion_df[visible_columns], use_container_width=True, hide_index=True)
+    else:
+        st.info("No conversion-oriented social content available yet.")
+
+    st.subheader("Topic Insights")
+    topic_left_col, topic_right_col = st.columns(2)
+
+    with topic_left_col:
+        st.markdown("**Top Topics**")
+        if top_topics:
+            for topic in top_topics:
+                st.write(f"- {topic}")
+        else:
+            st.write("No top topics available yet.")
+
+    with topic_right_col:
+        st.markdown("**Weak Topics**")
+        if weak_topics:
+            for topic in weak_topics:
+                st.write(f"- {topic}")
+        else:
+            st.write("No weak topics available yet.")
+
+    st.subheader("What Drives Performance")
+    st.write(f"**What Drives Saves:** {social_insights.get('what_drives_saves', 'Not available')}")
+    st.write(f"**What Drives Follows:** {social_insights.get('what_drives_follows', 'Not available')}")
+
+    st.subheader("Balance Problems")
+    balance_problems = social_insights.get("balance_problems", [])
+    if balance_problems:
+        for issue in balance_problems:
+            st.markdown(
+                f"""
+                <div class="panel">
+                    <strong>Issue:</strong> {issue}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info("No balance problems detected yet.")
 
 
 def render_suggested_changes_section(results: dict) -> None:
@@ -756,7 +1226,6 @@ def build_semrush_opportunity_cards(semrush_positions_data: pd.DataFrame) -> lis
 
     return cards
 
-
 def build_semrush_page_cards(semrush_pages_data: pd.DataFrame) -> list[dict[str, str]]:
     """Turn SEMrush Pages Report data into page opportunity cards."""
     dataframe = semrush_pages_data.copy()
@@ -811,10 +1280,14 @@ def build_semrush_page_cards(semrush_pages_data: pd.DataFrame) -> list[dict[str,
     return cards
 
 
-def build_semrush_topic_cards(semrush_topics_data: pd.DataFrame) -> list[dict[str, str]]:
+def build_semrush_topic_cards(
+    semrush_topics_data: pd.DataFrame,
+    strategy_topic_opportunities: list[dict[str, str]] | None = None,
+) -> list[dict[str, str]]:
     """Turn SEMrush Topic Opportunities data into AI topic cards."""
     dataframe = semrush_topics_data.copy()
     dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
+    strategy_topic_opportunities = strategy_topic_opportunities or []
 
     topic_column = first_matching_column(dataframe, ["topic", "keyword", "title"])
     volume_column = first_matching_column(dataframe, ["volume", "search volume"])
@@ -834,25 +1307,50 @@ def build_semrush_topic_cards(semrush_topics_data: pd.DataFrame) -> list[dict[st
 
     cards = []
     for _, row in dataframe.head(10).iterrows():
+        topic_value = str(row[topic_column])
         volume_value = int(row[volume_column]) if volume_column and pd.notna(row[volume_column]) else None
         competitor_value = int(row[competitor_column]) if competitor_column and pd.notna(row[competitor_column]) else 0
+        strategy_match = next(
+            (
+                item
+                for item in strategy_topic_opportunities
+                if str(item.get("topic", "")).strip().lower() == topic_value.strip().lower()
+            ),
+            {},
+        )
 
         priority = "High" if (volume_value or 0) >= 500 or competitor_value >= 5 else "Medium"
         cards.append(
             {
-                "topic": str(row[topic_column]),
+                "topic": topic_value,
                 "volume": str(volume_value) if volume_value is not None else "Not available",
+                "intent_type": format_heading(str(strategy_match.get("intent_type", ""))).title()
+                if strategy_match.get("intent_type")
+                else "",
+                "opportunity_type": format_heading(str(strategy_match.get("opportunity_type", ""))).title()
+                if strategy_match.get("opportunity_type")
+                else "",
+                "gap_type": format_heading(str(strategy_match.get("gap_type", ""))).title()
+                if strategy_match.get("gap_type")
+                else "",
                 "why_it_matters": (
-                    "This topic can help the site build AI visibility and close a meaningful content gap."
-                    if priority == "High"
-                    else "This topic supports future authority building and can strengthen cluster-level coverage."
+                    str(strategy_match.get("why_it_matters", "")).strip()
+                    or (
+                        "This topic can help the site build AI visibility and close a meaningful content gap."
+                        if priority == "High"
+                        else "This topic supports future authority building and can strengthen cluster-level coverage."
+                    )
                 ),
                 "recommended_action": (
-                    "Create a dedicated page or in-depth guide supported by related cluster content."
-                    if priority == "High"
-                    else "Add the topic into an existing cluster or build a focused supporting article."
+                    str(strategy_match.get("recommended_action", "")).strip()
+                    or str(strategy_match.get("action", "")).strip()
+                    or (
+                        "Create a dedicated page or in-depth guide supported by related cluster content."
+                        if priority == "High"
+                        else "Add the topic into an existing cluster or build a focused supporting article."
+                    )
                 ),
-                "priority": priority,
+                "priority": str(strategy_match.get("priority", priority)),
             }
         )
 
@@ -867,7 +1365,7 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
     semrush_pages_data = results.get("semrush_pages_data")
     semrush_topics_data = results.get("semrush_topics_data")
 
-    queue: list[dict[str, Any]] = []
+    queue: list[dict[str, object]] = []
 
     for item in insight["high_impression_low_click"][:5]:
         impressions = item.get("impressions", 0)
@@ -880,19 +1378,15 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
                 "title": f"Improve CTR for {item['query']}",
                 "data_source": "GSC",
                 "supporting_data": f"Impressions: {int(impressions)} | CTR: {ctr}% | Position: {position}",
-                "why_it_matters": (
-                    "This query already has visibility but is underperforming on clicks, which signals a strong high-intent gap."
-                ),
-                "recommended_action": (
-                    "Refresh the title tag, meta description, and on-page answer structure to better match search intent."
-                ),
+                "why_it_matters": "This query already has visibility but is underperforming on clicks, which signals a strong high-intent gap.",
+                "recommended_action": "Refresh the title tag, meta description, and on-page answer structure to better match search intent.",
                 "priority": "High",
                 "impact_score": impact_score,
             }
         )
 
     for item in insight["conversion_intent_queries"][:3]:
-        if any(existing["title"].endswith(item["query"]) for existing in queue):
+        if any(str(existing["title"]).endswith(item["query"]) for existing in queue):
             continue
 
         impressions = item.get("impressions", 0)
@@ -906,12 +1400,8 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
                 "title": f"Expand visibility for {item['query']}",
                 "data_source": "GSC",
                 "supporting_data": f"Impressions: {int(impressions)} | CTR: {ctr}% | Position: {position}",
-                "why_it_matters": (
-                    "This conversion-oriented query suggests commercial demand that could turn into appointments with stronger coverage."
-                ),
-                "recommended_action": (
-                    "Add targeted copy, FAQs, and internal links so the page better supports decision-stage search intent."
-                ),
+                "why_it_matters": "This conversion-oriented query suggests commercial demand that could turn into appointments with stronger coverage.",
+                "recommended_action": "Add targeted copy, FAQs, and internal links so the page better supports decision-stage search intent.",
                 "priority": priority,
                 "impact_score": impact_score,
             }
@@ -926,12 +1416,8 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
                 "title": f"Optimize high-traffic GA4 page: {top_page['page_title']}",
                 "data_source": "GA4",
                 "supporting_data": f"{top_page['metric']}: {int(page_value)}",
-                "why_it_matters": (
-                    "A page already attracting meaningful traffic is one of the fastest places to improve conversions and content performance."
-                ),
-                "recommended_action": (
-                    "Review message clarity, CTA placement, and content depth so existing traffic is more likely to convert."
-                ),
+                "why_it_matters": "A page already attracting meaningful traffic is one of the fastest places to improve conversions and content performance.",
+                "recommended_action": "Review message clarity, CTA placement, and content depth so existing traffic is more likely to convert.",
                 "priority": priority,
                 "impact_score": page_value,
             }
@@ -946,12 +1432,8 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
                 "title": f"Strengthen pages fed by {top_source['source_medium']}",
                 "data_source": "GA4",
                 "supporting_data": f"{top_source['metric']}: {int(source_value)}",
-                "why_it_matters": (
-                    "This source is already driving visits, so improving the destination experience can lift outcomes without needing a new acquisition channel."
-                ),
-                "recommended_action": (
-                    "Audit the landing pages receiving this traffic and align headlines, trust signals, and CTAs with acquisition intent."
-                ),
+                "why_it_matters": "This source is already driving visits, so improving the destination experience can lift outcomes without needing a new acquisition channel.",
+                "recommended_action": "Audit the landing pages receiving this traffic and align headlines, trust signals, and CTAs with acquisition intent.",
                 "priority": priority,
                 "impact_score": source_value,
             }
@@ -979,17 +1461,13 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
                     {
                         "title": f"Improve ranking for {row['keyword']}",
                         "data_source": "Keyword",
-                        "supporting_data": (
-                            f"Position: {int(position)} | Volume: {int(volume) if volume else 'Not available'} | URL: {url_value}"
-                        ),
+                        "supporting_data": f"Position: {int(position)} | Volume: {int(volume) if volume else 'Not available'} | URL: {url_value}",
                         "why_it_matters": (
                             "This keyword is already ranking within reach, which makes it a realistic SEO opportunity with measurable upside."
                             if priority == "High"
                             else "The keyword has moderate ranking visibility and could become stronger with more focused optimization."
                         ),
-                        "recommended_action": (
-                            "Tighten keyword targeting in the title tag, H1, supporting copy, and FAQ content."
-                        ),
+                        "recommended_action": "Tighten keyword targeting in the title tag, H1, supporting copy, and FAQ content.",
                         "priority": priority,
                         "impact_score": impact_score,
                     }
@@ -1026,12 +1504,8 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
                             f"Traffic: {int(traffic) if traffic_column else 'Not available'} | "
                             f"Keywords: {int(keywords) if keywords_column else 'Not available'}"
                         ),
-                        "why_it_matters": (
-                            "This page already has search visibility, so improving UX, messaging, or conversion paths can create faster business impact."
-                        ),
-                        "recommended_action": (
-                            "Review content depth, internal linking, and CTA hierarchy to make the page more competitive and conversion-focused."
-                        ),
+                        "why_it_matters": "This page already has search visibility, so improving UX, messaging, or conversion paths can create faster business impact.",
+                        "recommended_action": "Review content depth, internal linking, and CTA hierarchy to make the page more competitive and conversion-focused.",
                         "priority": priority,
                         "impact_score": impact_score,
                     }
@@ -1068,12 +1542,8 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
                             f"Volume: {int(volume) if volume_column else 'Not available'} | "
                             f"Competition: {int(competitors) if competitor_column else 'Not available'}"
                         ),
-                        "why_it_matters": (
-                            "This topic represents a broader content gap that can strengthen authority, internal linking, and AI-search relevance."
-                        ),
-                        "recommended_action": (
-                            "Create a focused page or guide, then support it with cluster content and internal links."
-                        ),
+                        "why_it_matters": "This topic represents a broader content gap that can strengthen authority, internal linking, and AI-search relevance.",
+                        "recommended_action": "Create a focused page or guide, then support it with cluster content and internal links.",
                         "priority": priority,
                         "impact_score": impact_score,
                     }
@@ -1082,18 +1552,18 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
     priority_rank = {"High": 3, "Medium": 2, "Low": 1}
     sorted_queue = sorted(
         queue,
-        key=lambda item: (priority_rank.get(item["priority"], 0), float(item.get("impact_score", 0))),
+        key=lambda item: (priority_rank.get(str(item["priority"]), 0), float(item.get("impact_score", 0))),
         reverse=True,
     )
 
     return [
         {
-            "title": item["title"],
-            "data_source": item["data_source"],
-            "supporting_data": item["supporting_data"],
-            "why_it_matters": item["why_it_matters"],
-            "recommended_action": item["recommended_action"],
-            "priority": item["priority"],
+            "title": str(item["title"]),
+            "data_source": str(item["data_source"]),
+            "supporting_data": str(item["supporting_data"]),
+            "why_it_matters": str(item["why_it_matters"]),
+            "recommended_action": str(item["recommended_action"]),
+            "priority": str(item["priority"]),
         }
         for item in sorted_queue[:12]
     ]
@@ -1316,80 +1786,777 @@ def render_export_section(results: dict, inside_panel: bool = False) -> None:
     )
 
 
-st.title("AI Marketing Workflow System")
-st.write("Upload one or more source files below, then run the workflow.")
+def render_data_sources() -> dict[str, object]:
+    """Render uploaders and workflow trigger on the Data Sources page."""
+    st.title("Data Sources")
+    st.write("Upload and manage your marketing data inputs")
+    saved_runs = list_saved_runs()
 
-view_mode = st.radio(
-    "View Mode",
-    options=["Standard Workflow View", "Client Report Mode"],
-    horizontal=True,
-)
+    if st.session_state.get("loaded_run_id"):
+        st.caption(f"Current loaded run: {st.session_state['loaded_run_id']}")
 
-with st.sidebar:
-    show_debug = st.checkbox("Show debug data", value=False)
+    if saved_runs:
+        run_labels = {run["run_id"]: run.get("display_label", run["run_id"]) for run in saved_runs}
+        selected_saved_run_id = st.selectbox(
+            "Load Previous Run",
+            options=[run["run_id"] for run in saved_runs],
+            format_func=lambda run_id: run_labels.get(run_id, run_id),
+        )
+        load_saved_run_button = st.button("Load Selected Run")
+    else:
+        st.info("No saved runs yet.")
+        selected_saved_run_id = None
+        load_saved_run_button = False
 
-st.subheader("1. Upload CSV files")
-st.write("GA4 Page Title Report: page-level behavior such as top pages, sessions, and engagement.")
-ga4_pages_file = st.file_uploader("Upload GA4 Page Title Report CSV", type="csv")
+    st.subheader("Upload CSV files")
+    st.write("GA4 Page Title Report: page-level behavior such as top pages, sessions, and engagement.")
+    ga4_pages_file = st.file_uploader("Upload GA4 Page Title Report CSV", type="csv")
 
-st.write("GA4 Session Source / Medium: acquisition data showing where traffic came from.")
-ga4_source_file = st.file_uploader("Upload GA4 Session Source / Medium CSV", type="csv")
+    st.write("GA4 Session Source / Medium: acquisition data showing where traffic came from.")
+    ga4_source_file = st.file_uploader("Upload GA4 Session Source / Medium CSV", type="csv")
 
-st.write("GSC Queries: Google Search Console query data showing search demand and clicks.")
-gsc_queries_file = st.file_uploader("Upload GSC Queries CSV", type="csv")
+    st.write("GSC Queries: Google Search Console query data showing search demand and clicks.")
+    gsc_queries_file = st.file_uploader("Upload GSC Queries CSV", type="csv")
 
-st.write("SEMrush Organic Positions: optional organic keyword and ranking export for future use.")
-semrush_positions_file = st.file_uploader("Upload SEMrush Organic Positions CSV", type="csv")
+    st.write("SEMrush Organic Positions: optional organic keyword and ranking export for future use.")
+    semrush_positions_file = st.file_uploader("Upload SEMrush Organic Positions CSV", type="csv")
 
-st.write("SEMrush Pages Report: optional page-level organic performance export for future use.")
-semrush_pages_file = st.file_uploader("Upload SEMrush Pages Report CSV", type="csv")
+    st.write("SEMrush Pages Report: optional page-level organic performance export for future use.")
+    semrush_pages_file = st.file_uploader("Upload SEMrush Pages Report CSV", type="csv")
 
-st.write("SEMrush Topic Opportunities: optional topic-level opportunity export for future use.")
-semrush_topics_file = st.file_uploader("Upload SEMrush Topic Opportunities CSV", type="csv")
+    st.write("SEMrush Topic Opportunities: optional topic-level opportunity export for future use.")
+    semrush_topics_file = st.file_uploader("Upload SEMrush Topic Opportunities CSV", type="csv")
 
-st.subheader("2. Run the workflow")
-run_button = st.button("Run Workflow")
+    st.write("Meta Content Export: Instagram / Facebook post-level performance export from Meta Business Suite.")
+    meta_posts_file = st.file_uploader("Upload Meta Content Export CSV", type="csv")
 
-if run_button:
-    uploaded_files = [
-        ga4_pages_file,
-        ga4_source_file,
-        gsc_queries_file,
-        semrush_positions_file,
-        semrush_pages_file,
-        semrush_topics_file,
-    ]
+    st.subheader("Run the workflow")
+    run_button = st.button("Run Workflow")
 
-    if not has_uploaded_data(uploaded_files):
-        st.error("Please upload at least one CSV file before running the workflow.")
-        st.stop()
+    return {
+        "ga4_pages_file": ga4_pages_file,
+        "ga4_source_file": ga4_source_file,
+        "gsc_queries_file": gsc_queries_file,
+        "semrush_positions_file": semrush_positions_file,
+        "semrush_pages_file": semrush_pages_file,
+        "semrush_topics_file": semrush_topics_file,
+        "meta_posts_file": meta_posts_file,
+        "selected_saved_run_id": selected_saved_run_id,
+        "load_saved_run_button": load_saved_run_button,
+        "run_button": run_button,
+    }
 
-    ga4_pages_data = parse_uploaded_csv(ga4_pages_file, "GA4_PAGES") if ga4_pages_file else None
-    ga4_source_data = parse_uploaded_csv(ga4_source_file, "GA4_SOURCE") if ga4_source_file else None
-    gsc_queries_data = parse_uploaded_csv(gsc_queries_file, "GSC_QUERIES") if gsc_queries_file else None
-    semrush_positions_data = parse_semrush_positions_csv(semrush_positions_file) if semrush_positions_file else None
-    semrush_pages_data = parse_semrush_pages_csv(semrush_pages_file) if semrush_pages_file else None
-    semrush_topics_data = parse_semrush_topics_csv(semrush_topics_file) if semrush_topics_file else None
 
-    ga4_debug_titles = []
-    if ga4_pages_data is not None and "page_title" in ga4_pages_data.columns:
-        ga4_debug_titles = ga4_pages_data["page_title"].head(5).fillna("").astype(str).tolist()
+def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
+    """Build social opportunity cards from Meta social insight summaries."""
+    social_insights = results.get("social_insights", {})
+    top_topics = social_insights.get("top_topics", [])
+    weak_topics = social_insights.get("weak_topics", [])
+    best_post_type = social_insights.get("best_post_type", "Not available")
+    worst_post_type = social_insights.get("worst_post_type", "Not available")
+    balance_problems = social_insights.get("balance_problems", [])
+    what_drives_saves = social_insights.get("what_drives_saves", "Not available")
+    what_drives_follows = social_insights.get("what_drives_follows", "Not available")
 
-    results = run_workflow(
-        ga4_pages_data=ga4_pages_data,
-        ga4_source_data=ga4_source_data,
-        gsc_queries_data=gsc_queries_data,
-        semrush_positions_data=semrush_positions_data,
-        semrush_pages_data=semrush_pages_data,
-        semrush_topics_data=semrush_topics_data,
+    cards = []
+
+    if best_post_type and best_post_type != "Not available":
+        cards.append(
+            {
+                "title": f"Double down on {best_post_type}",
+                "area": "Format Opportunity",
+                "supporting_data": f"Best Post Type: {best_post_type}",
+                "why_it_matters": (
+                    "This format is currently producing the strongest results and is the best candidate to scale with repeatable hooks and topics."
+                ),
+                "recommended_action": (
+                    "Create more content in this format using the same topic patterns, strong openings, and high-performing post structure."
+                ),
+                "priority": "High",
+            }
+        )
+
+    if worst_post_type and worst_post_type != "Not available":
+        cards.append(
+            {
+                "title": f"Improve or reduce {worst_post_type}",
+                "area": "Format Opportunity",
+                "supporting_data": f"Worst Post Type: {worst_post_type}",
+                "why_it_matters": (
+                    "This format is currently the weakest, which suggests it may need stronger hooks, clearer structure, or less overall emphasis."
+                ),
+                "recommended_action": (
+                    "Test stronger hooks and CTAs for this format, or shift effort toward better-performing content types."
+                ),
+                "priority": "Medium",
+            }
+        )
+
+    if top_topics:
+        cards.append(
+            {
+                "title": f"Scale content around {top_topics[0]}",
+                "area": "Topic Opportunity",
+                "supporting_data": f"Top Topic: {top_topics[0]}",
+                "why_it_matters": (
+                    "This topic is currently resonating most and should be turned into a repeatable content theme across multiple posts."
+                ),
+                "recommended_action": (
+                    "Build a small content series with multiple hook variations, post formats, and follow-up angles around this topic."
+                ),
+                "priority": "High",
+            }
+        )
+
+    if weak_topics:
+        cards.append(
+            {
+                "title": f"Fix or replace weak topic: {weak_topics[0]}",
+                "area": "Topic Opportunity",
+                "supporting_data": f"Weak Topic: {weak_topics[0]}",
+                "why_it_matters": (
+                    "This topic appears to be underperforming and may not be connecting with the audience in its current angle or format."
+                ),
+                "recommended_action": (
+                    "Test a new hook, a different format, or a stronger CTA for this topic, and reduce emphasis if performance stays weak."
+                ),
+                "priority": "Medium",
+            }
+        )
+
+    if what_drives_saves and what_drives_saves != "Not available":
+        cards.append(
+            {
+                "title": "Turn save-worthy content into conversion content",
+                "area": "Content Gap",
+                "supporting_data": what_drives_saves,
+                "why_it_matters": (
+                    "Content that earns saves already shows strong audience value, but it needs a clearer next-step path to drive business outcomes."
+                ),
+                "recommended_action": (
+                    "Add stronger CTAs, trust signals, booking prompts, or quiz links so high-value content also pushes users toward action."
+                ),
+                "priority": "High",
+            }
+        )
+
+    if what_drives_follows and what_drives_follows != "Not available":
+        cards.append(
+            {
+                "title": "Replicate follow-driving content",
+                "area": "Growth Opportunity",
+                "supporting_data": what_drives_follows,
+                "why_it_matters": (
+                    "This content pattern is strongest for audience growth and can be scaled into a repeatable acquisition engine."
+                ),
+                "recommended_action": (
+                    "Create multiple new posts using similar hooks, topics, and structure to expand reach and follower growth."
+                ),
+                "priority": "High",
+            }
+        )
+
+    for issue in balance_problems[:4]:
+        issue_text = str(issue)
+        issue_lower = issue_text.lower()
+
+        if "low conversion" in issue_lower:
+            recommended_action = "Add stronger CTAs, clearer next-step guidance, and more direct conversion prompts."
+            priority = "High"
+        elif "best-performing pattern" in issue_lower:
+            recommended_action = "Replicate this pattern and turn it into a reusable post template for future content."
+            priority = "High"
+        elif "low reach but strong conversion" in issue_lower:
+            recommended_action = "Repurpose this content, boost distribution, or turn it into a Reel to increase visibility."
+            priority = "Medium"
+        else:
+            recommended_action = "Improve the hook, opening, and creative payoff so the content better holds attention."
+            priority = "Medium"
+
+        cards.append(
+            {
+                "title": "Balance Problem Detected",
+                "area": "Performance Gap",
+                "supporting_data": issue_text,
+                "why_it_matters": (
+                    "This imbalance suggests the content is not yet performing strongly across the full funnel from reach to engagement to conversion."
+                ),
+                "recommended_action": recommended_action,
+                "priority": priority,
+            }
+        )
+
+    return cards
+
+
+def build_social_recommendation_cards(results: dict) -> list[dict[str, str]]:
+    """Build social recommendation cards from Meta social insight summaries."""
+    social_insights = results.get("social_insights", {})
+    top_topics = social_insights.get("top_topics", [])
+    weak_topics = social_insights.get("weak_topics", [])
+    best_post_type = social_insights.get("best_post_type", "Not available")
+    worst_post_type = social_insights.get("worst_post_type", "Not available")
+    balance_problems = social_insights.get("balance_problems", [])
+    what_drives_saves = social_insights.get("what_drives_saves", "Not available")
+    what_drives_follows = social_insights.get("what_drives_follows", "Not available")
+
+    cards = []
+
+    if best_post_type and best_post_type != "Not available":
+        cards.append(
+            {
+                "category": "social_format",
+                "issue": f"{best_post_type} is the strongest current social format.",
+                "recommendation": "Scale this format by creating more posts with similar hooks, structure, and topics.",
+                "why_it_matters": "Doubling down on the best-performing format is the fastest way to increase reach, saves, and growth.",
+                "priority": "High",
+            }
+        )
+
+    if worst_post_type and worst_post_type != "Not available":
+        cards.append(
+            {
+                "category": "social_format",
+                "issue": f"{worst_post_type} is underperforming compared to other formats.",
+                "recommendation": "Test stronger hooks, a clearer CTA, or shift effort toward stronger formats if performance stays low.",
+                "why_it_matters": "Improving or reducing weak formats prevents wasted effort and improves content efficiency.",
+                "priority": "Medium",
+            }
+        )
+
+    if top_topics:
+        cards.append(
+            {
+                "category": "social_topic",
+                "issue": f"{top_topics[0]} is currently the strongest content topic.",
+                "recommendation": "Create a repeatable content series around this topic using multiple formats.",
+                "why_it_matters": "Top-performing topics are the easiest opportunities to scale because they already resonate with the audience.",
+                "priority": "High",
+            }
+        )
+
+    if weak_topics:
+        cards.append(
+            {
+                "category": "social_topic",
+                "issue": f"{weak_topics[0]} is underperforming.",
+                "recommendation": "Test a different hook, stronger patient-focused angle, or reduce emphasis on this topic.",
+                "why_it_matters": "Weak topics may be misaligned with audience interest, patient intent, or format fit.",
+                "priority": "Medium",
+            }
+        )
+
+    if what_drives_saves and what_drives_saves != "Not available":
+        cards.append(
+            {
+                "category": "social_conversion",
+                "issue": "Some content is generating saves without a strong next step.",
+                "recommendation": "Add stronger CTAs, trust signals, quiz prompts, or booking guidance to save-worthy content.",
+                "why_it_matters": "Saves signal interest, but without conversion guidance, the content may not move patients toward action.",
+                "priority": "High",
+            }
+        )
+
+    if what_drives_follows and what_drives_follows != "Not available":
+        cards.append(
+            {
+                "category": "social_growth",
+                "issue": "Some content is clearly stronger for follower growth.",
+                "recommendation": "Replicate the hook/topic structure of follow-driving posts in new variations.",
+                "why_it_matters": "Follower-driving content is a strong signal of audience expansion potential.",
+                "priority": "High",
+            }
+        )
+
+    for issue_text in balance_problems[:4]:
+        issue_lower = str(issue_text).lower()
+
+        if "low engagement" in issue_lower:
+            cards.append(
+                {
+                    "category": "social_hook",
+                    "issue": str(issue_text),
+                    "recommendation": "Improve the hook, first frame, and creative payoff so the content earns more interaction.",
+                    "why_it_matters": "High reach with low engagement usually means the post is visible but not compelling enough to hold attention.",
+                    "priority": "Medium",
+                }
+            )
+        elif "low conversion" in issue_lower:
+            cards.append(
+                {
+                    "category": "social_conversion",
+                    "issue": str(issue_text),
+                    "recommendation": "Add a stronger CTA and a clearer next step such as booking, quiz, or consultation prompt.",
+                    "why_it_matters": "High engagement without conversion means the audience is interested but not being guided forward.",
+                    "priority": "High",
+                }
+            )
+        elif "low reach but strong conversion" in issue_lower:
+            cards.append(
+                {
+                    "category": "social_scale",
+                    "issue": str(issue_text),
+                    "recommendation": "Repurpose the content into a Reel, test a stronger opening, or boost it to increase visibility.",
+                    "why_it_matters": "If a post converts well at low reach, the content itself is strong and needs more distribution.",
+                    "priority": "High",
+                }
+            )
+        elif "best-performing pattern" in issue_lower:
+            cards.append(
+                {
+                    "category": "social_scale",
+                    "issue": str(issue_text),
+                    "recommendation": "Treat this as a winning template and build multiple new posts from the same structure.",
+                    "why_it_matters": "Best-performing patterns are the clearest signal of what to replicate.",
+                    "priority": "High",
+                }
+            )
+
+    return cards
+
+
+def build_combined_what_next_cards(results: dict) -> list[dict[str, str]]:
+    """Build a concise combined website + social next-step list."""
+    strategy = results.get("strategy", {}).get("strategy", {})
+    website_cards = []
+    social_cards = []
+
+    for item in strategy.get("priority_actions", []):
+        website_cards.append(
+            {
+                "title": str(item.get("title", "Website Priority Action")),
+                "action": str(item.get("action", "")),
+                "reason": str(item.get("reason", "")),
+                "priority": str(item.get("priority", "Medium")),
+            }
+        )
+
+    social_priority_title_map = {
+        "social_conversion": "Improve social conversion path",
+        "social_format": "Scale winning social format",
+        "social_topic": "Fix underperforming topic",
+        "social_scale": "Replicate best-performing content",
+        "social_growth": "Replicate best-performing content",
+        "social_hook": "Improve social hook performance",
+    }
+
+    for item in build_social_recommendation_cards(results):
+        if str(item.get("priority", "")).strip().title() != "High":
+            continue
+        social_cards.append(
+            {
+                "title": social_priority_title_map.get(str(item.get("category", "")), "Social Priority Action"),
+                "action": str(item.get("recommendation", "")),
+                "reason": str(item.get("why_it_matters", "")),
+                "priority": str(item.get("priority", "High")),
+            }
+        )
+
+    combined_cards = website_cards + social_cards[:3]
+    priority_rank = {"High": 3, "Medium": 2, "Low": 1}
+    combined_cards = sorted(
+        combined_cards,
+        key=lambda item: priority_rank.get(str(item.get("priority", "Low")).title(), 0),
+        reverse=True,
     )
 
-    st.success("Workflow complete. Results were also saved to logs/workflow_runs.csv.")
+    return combined_cards[:6]
 
-    if view_mode == "Client Report Mode":
-        render_client_report(results)
-        render_export_section(results)
+
+def render_opportunities_page(results: dict) -> None:
+    """Render the Opportunities page."""
+    st.title("Opportunities")
+    st.caption("Combined website + social growth opportunities")
+
+    if not results:
+        st.info("Run the workflow first on the Data Sources page.")
+        return
+
+    semrush_positions_data = results.get("semrush_positions_data")
+    semrush_pages_data = results.get("semrush_pages_data")
+    semrush_topics_data = results.get("semrush_topics_data")
+    strategy = results["strategy"]["strategy"]
+    social_cards = build_social_opportunity_cards(results)
+
+    st.subheader("Website Opportunities")
+
+    if semrush_positions_data is not None and not semrush_positions_data.empty:
+        st.markdown("**Keyword Opportunities**")
+        opportunity_cards = build_semrush_opportunity_cards(semrush_positions_data)
+        if opportunity_cards:
+            for card in opportunity_cards:
+                st.markdown(f"**{card['keyword']}**")
+                st.write(f"Position: {card['position']}")
+                if card["volume"] != "Not available":
+                    st.write(f"Volume: {card['volume']}")
+                if card["url"] != "Not available":
+                    st.write(f"URL: {card['url']}")
+                st.write(f"Why it matters: {card['why_it_matters']}")
+                st.write(f"Recommended action: {card['recommended_action']}")
+                st.write(f"Priority: {card['priority']}")
+                st.divider()
+        else:
+            st.info("No SEMrush keyword opportunities available yet.")
     else:
+        st.info("No SEMrush Organic Positions data uploaded yet.")
+
+    if semrush_pages_data is not None and not semrush_pages_data.empty:
+        st.markdown("**Page Opportunities**")
+        page_cards = build_semrush_page_cards(semrush_pages_data)
+        if page_cards:
+            for card in page_cards:
+                st.markdown(f"**{card['page_url']}**")
+                st.write(card["metric_line"])
+                st.write(f"Why it matters: {card['why_it_matters']}")
+                st.write(f"Recommended action: {card['recommended_action']}")
+                st.write(f"Priority: {card['priority']}")
+                st.divider()
+        else:
+            st.info("No SEMrush page opportunities available yet.")
+    else:
+        st.info("No SEMrush Pages Report data uploaded yet.")
+
+    if semrush_topics_data is not None and not semrush_topics_data.empty:
+        st.markdown("**AI Topic Opportunities**")
+        topic_cards = build_semrush_topic_cards(
+            semrush_topics_data,
+            strategy.get("topic_opportunities", []),
+        )
+        if topic_cards:
+            for card in topic_cards:
+                st.markdown(f"**{card['topic']}**")
+                topic_tags = []
+                if card.get("intent_type"):
+                    topic_tags.append(f'<span class="topic-tag">Intent: {card["intent_type"]}</span>')
+                if card.get("opportunity_type"):
+                    topic_tags.append(f'<span class="topic-tag">Opportunity: {card["opportunity_type"]}</span>')
+                if card.get("gap_type"):
+                    topic_tags.append(f'<span class="topic-tag">Gap: {card["gap_type"]}</span>')
+                if topic_tags:
+                    st.markdown(
+                        f'<div class="topic-tag-row">{"".join(topic_tags)}</div>',
+                        unsafe_allow_html=True,
+                    )
+                if card["volume"] != "Not available":
+                    st.write(f"Volume: {card['volume']}")
+                st.write(f"Why it matters: {card['why_it_matters']}")
+                st.write(f"Recommended action: {card['recommended_action']}")
+                st.write(f"Priority: {card['priority']}")
+                st.divider()
+        else:
+            st.info("No SEMrush topic opportunities available yet.")
+    else:
+        st.info("No SEMrush Topic Opportunities data uploaded yet.")
+
+    st.subheader("Social Opportunities")
+    if social_cards:
+        priority_class_map = {
+            "High": "priority-high-pill",
+            "Medium": "priority-medium-pill",
+            "Low": "priority-low-pill",
+        }
+
+        for card in social_cards:
+            card_priority = str(card.get("priority", "Medium")).strip().title()
+            pill_class = priority_class_map.get(card_priority, "priority-medium-pill")
+
+            st.markdown(
+                f"""
+                <div class="recommendation-card">
+                    <div class="recommendation-card-top">
+                        <div class="recommendation-category">{card.get("title", "Social Opportunity")}</div>
+                        <div class="{pill_class}">{card_priority} Priority</div>
+                    </div>
+                    <div class="recommendation-body">
+                        <strong>Area:</strong> {card.get("area", "Not available")}<br><br>
+                        <strong>Supporting Data:</strong> {card.get("supporting_data", "Not available")}<br><br>
+                        <strong>Why it matters:</strong> {card.get("why_it_matters", "")}<br><br>
+                        <strong>Recommended action:</strong> {card.get("recommended_action", "")}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info("No social opportunities available yet. Upload a Meta content export and run the workflow.")
+
+
+def render_recommendations_page(results: dict) -> None:
+    """Render the Recommendations page."""
+    st.title("Recommendations")
+    st.caption("Combined website + social action plan")
+
+    if not results:
+        st.info("Run the workflow first on the Data Sources page.")
+        return
+
+    strategy = results["strategy"]["strategy"]
+    social_cards = build_social_recommendation_cards(results)
+    what_next_cards = build_combined_what_next_cards(results)
+    priority_class_map = {
+        "High": "priority-high-pill",
+        "Medium": "priority-medium-pill",
+        "Low": "priority-low-pill",
+    }
+    priority_cycle = ["High", "Medium", "Low"]
+    action_index = 0
+
+    st.subheader("Website Recommendations")
+    for category, recommendations in strategy["recommendations"].items():
+        for recommendation in recommendations:
+            priority = priority_cycle[action_index % len(priority_cycle)]
+            pill_class = priority_class_map[priority]
+
+            if isinstance(recommendation, dict):
+                issue = recommendation.get("issue", "").strip()
+                rec_text = recommendation.get("recommendation", "").strip()
+                why = recommendation.get("why_it_matters", "").strip()
+                rec_priority = recommendation.get("priority", "").strip()
+                bp_category = recommendation.get("best_practice_category", "").strip()
+                body_parts = []
+                if issue:
+                    body_parts.append(f"<strong>Issue:</strong> {issue}")
+                if rec_text:
+                    body_parts.append(f"<strong>Recommendation:</strong> {rec_text}")
+                if why:
+                    body_parts.append(f"<strong>Why it matters:</strong> {why}")
+                if bp_category:
+                    body_parts.append(f"<strong>Best Practice Category:</strong> {bp_category}")
+                body_html = "<br><br>".join(body_parts) if body_parts else "No recommendation details available."
+                display_priority = rec_priority or priority
+            else:
+                body_html = str(recommendation)
+                display_priority = priority
+
+            pill_class = priority_class_map.get(display_priority, pill_class)
+
+            st.markdown(
+                f"""
+                <div class="recommendation-card">
+                    <div class="recommendation-card-top">
+                        <div class="recommendation-category">{format_heading(category)}</div>
+                        <div class="{pill_class}">{display_priority} Priority</div>
+                    </div>
+                    <div class="recommendation-body">
+                        {body_html}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            action_index += 1
+
+    st.subheader("Social Recommendations")
+    if social_cards:
+        for card in social_cards:
+            display_priority = str(card.get("priority", "Medium")).strip().title()
+            pill_class = priority_class_map.get(display_priority, "priority-medium-pill")
+            body_parts = []
+            if card.get("issue"):
+                body_parts.append(f"<strong>Issue:</strong> {card['issue']}")
+            if card.get("recommendation"):
+                body_parts.append(f"<strong>Recommendation:</strong> {card['recommendation']}")
+            if card.get("why_it_matters"):
+                body_parts.append(f"<strong>Why it matters:</strong> {card['why_it_matters']}")
+            body_html = "<br><br>".join(body_parts) if body_parts else "No recommendation details available."
+
+            st.markdown(
+                f"""
+                <div class="recommendation-card">
+                    <div class="recommendation-card-top">
+                        <div class="recommendation-category">{format_heading(str(card.get("category", "social")))}</div>
+                        <div class="{pill_class}">{display_priority} Priority</div>
+                    </div>
+                    <div class="recommendation-body">
+                        {body_html}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info("No social recommendations available yet. Upload a Meta content export and run the workflow.")
+
+    st.subheader("Priority Action Queue")
+    render_priority_action_queue(results, priority_class_map)
+
+    st.markdown("### 🚀 What To Do Next")
+    if what_next_cards:
+        for action in what_next_cards:
+            action_priority = str(action.get("priority", "Medium")).strip().title()
+            action_pill_class = priority_class_map.get(action_priority, "priority-medium-pill")
+
+            st.markdown(
+                f"""
+                <div class="what-next-card">
+                    <div class="recommendation-card-top">
+                        <div class="what-next-title">{action.get("title", "Opportunity")}</div>
+                        <div class="{action_pill_class}">{action_priority} Priority</div>
+                    </div>
+                    <div class="recommendation-body">
+                        <span class="what-next-label">What to do:</span><br>
+                        {action.get("action", "")}
+                        <br><br>
+                        <span class="what-next-label">Why it matters:</span><br>
+                        {action.get("reason", "")}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info("No next-step recommendations available yet.")
+
+    render_suggested_changes_section(results)
+
+
+def render_reports_page(results: dict) -> None:
+    """Render the Reports page."""
+    st.title("Reports")
+    st.caption("Export and client-ready report views")
+
+    if not results:
+        st.info("Run the workflow first on the Data Sources page.")
+        return
+
+    render_client_report(results)
+    st.markdown("---")
+    render_export_section(results)
+
+
+# Sidebar Navigation
+with st.sidebar:
+    st.markdown("## AI Marketing")
+    st.caption("Workflow System")
+
+    page = st.radio(
+        "Navigation",
+        [
+            "Data Sources",
+            "Dashboard",
+            "Analysis",
+            "Social Analysis",
+            "Opportunities",
+            "Recommendations",
+            "Reports",
+        ],
+    )
+
+    show_debug = st.checkbox("Show debug data", value=False)
+
+
+results = None
+ga4_debug_titles: list[str] = []
+
+if page == "Data Sources":
+    uploaded = render_data_sources()
+
+    if uploaded["load_saved_run_button"] and uploaded["selected_saved_run_id"]:
+        loaded_run = load_saved_run(uploaded["selected_saved_run_id"])
+        if loaded_run is not None:
+            st.session_state["results"] = loaded_run["results"]
+            st.session_state["ga4_debug_titles"] = loaded_run["ga4_debug_titles"]
+            st.session_state["loaded_run_id"] = loaded_run["run_id"]
+            st.success(f"Loaded saved run: {loaded_run['run_id']}")
+        else:
+            st.error("Could not load the selected saved run.")
+
+    if uploaded["run_button"]:
+        uploaded_files = [
+            uploaded["ga4_pages_file"],
+            uploaded["ga4_source_file"],
+            uploaded["gsc_queries_file"],
+            uploaded["semrush_positions_file"],
+            uploaded["semrush_pages_file"],
+            uploaded["semrush_topics_file"],
+            uploaded["meta_posts_file"],
+        ]
+
+        if not has_uploaded_data(uploaded_files):
+            st.error("Please upload at least one file before running the workflow.")
+            st.stop()
+
+        ga4_pages_data = parse_uploaded_csv(uploaded["ga4_pages_file"], "GA4_PAGES") if uploaded["ga4_pages_file"] else None
+        ga4_source_data = parse_uploaded_csv(uploaded["ga4_source_file"], "GA4_SOURCE") if uploaded["ga4_source_file"] else None
+        gsc_queries_data = parse_uploaded_csv(uploaded["gsc_queries_file"], "GSC_QUERIES") if uploaded["gsc_queries_file"] else None
+        semrush_positions_data = parse_semrush_positions_csv(uploaded["semrush_positions_file"]) if uploaded["semrush_positions_file"] else None
+        semrush_pages_data = parse_semrush_pages_csv(uploaded["semrush_pages_file"]) if uploaded["semrush_pages_file"] else None
+        semrush_topics_data = parse_semrush_topics_csv(uploaded["semrush_topics_file"]) if uploaded["semrush_topics_file"] else None
+        meta_posts_data = parse_meta_posts_csv(uploaded["meta_posts_file"]) if uploaded["meta_posts_file"] else None
+
+        if ga4_pages_data is not None and "page_title" in ga4_pages_data.columns:
+            ga4_debug_titles = ga4_pages_data["page_title"].head(5).fillna("").astype(str).tolist()
+
+        results = run_workflow(
+            ga4_pages_data=ga4_pages_data,
+            ga4_source_data=ga4_source_data,
+            gsc_queries_data=gsc_queries_data,
+            semrush_positions_data=semrush_positions_data,
+            semrush_pages_data=semrush_pages_data,
+            semrush_topics_data=semrush_topics_data,
+        )
+
+        results["meta_posts_data"] = meta_posts_data
+        results["social_insights"] = build_social_insights(meta_posts_data)
+        run_id = save_run_files(
+            uploaded["ga4_pages_file"],
+            uploaded["ga4_source_file"],
+            uploaded["gsc_queries_file"],
+            uploaded["semrush_positions_file"],
+            uploaded["semrush_pages_file"],
+            uploaded["semrush_topics_file"],
+            uploaded["meta_posts_file"],
+        )
+
+        st.session_state["results"] = results
+        st.session_state["ga4_debug_titles"] = ga4_debug_titles
+        st.session_state["loaded_run_id"] = run_id
+
+        st.success("Workflow complete. Results were saved and can now be loaded from Saved Runs.")
+
+elif page == "Dashboard":
+    st.title("Marketing Intelligence Dashboard")
+    st.caption("Overview of your marketing performance and opportunities")
+
+    results = st.session_state.get("results")
+    ga4_debug_titles = st.session_state.get("ga4_debug_titles", [])
+
+    if results:
         render_standard_view(results, ga4_debug_titles, show_debug)
-else:
-    st.info("Upload your files and click Run Workflow to start.")
+    else:
+        st.info("Run the workflow first on the Data Sources page.")
+
+elif page == "Analysis":
+    results = st.session_state.get("results")
+    if results:
+        render_analysis_page(results)
+    else:
+        st.info("Run the workflow first on the Data Sources page.")
+
+elif page == "Social Analysis":
+    results = st.session_state.get("results")
+    if results:
+        render_social_analysis_page(results)
+    else:
+        st.info("Run the workflow first on the Data Sources page.")
+
+elif page == "Opportunities":
+    results = st.session_state.get("results")
+    if results:
+        render_opportunities_page(results)
+    else:
+        st.info("Run the workflow first on the Data Sources page.")
+
+elif page == "Recommendations":
+    results = st.session_state.get("results")
+    if results:
+        render_recommendations_page(results)
+    else:
+        st.info("Run the workflow first on the Data Sources page.")
+
+elif page == "Reports":
+    results = st.session_state.get("results")
+    if results:
+        render_reports_page(results)
+    else:
+        st.info("Run the workflow first on the Data Sources page.")

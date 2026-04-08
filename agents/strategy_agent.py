@@ -634,7 +634,7 @@ def build_page_opportunities(semrush_pages_data: Any) -> list[dict[str, Any]]:
 
 
 def build_topic_opportunities(semrush_topics_data: Any) -> list[dict[str, Any]]:
-    """Create concise topic-level SEMrush opportunities for strategy use."""
+    """Create framework-based topic opportunities for strategy use."""
     dataframe = semrush_topics_data.copy()
     dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
 
@@ -662,21 +662,178 @@ def build_topic_opportunities(semrush_topics_data: Any) -> list[dict[str, Any]]:
 
         volume = int(row.get(volume_column, 0) or 0) if volume_column else 0
         competitors = int(row.get(competitor_column, 0) or 0) if competitor_column else 0
-        priority = "High" if volume >= 500 or competitors >= 5 else "Medium"
+        intent_type = infer_topic_intent_type(topic)
+        opportunity_type = infer_topic_opportunity_type(topic, intent_type)
+        gap_type = infer_topic_gap_type(topic, opportunity_type, competitors, volume)
+        framework_recommendation = build_topic_framework_recommendation(
+            topic=topic,
+            intent_type=intent_type,
+            opportunity_type=opportunity_type,
+            gap_type=gap_type,
+            volume=volume,
+            competitors=competitors,
+        )
 
         opportunities.append(
             {
                 "topic": topic,
                 "volume": volume,
                 "competitors": competitors,
-                "priority": priority,
-                "insight": (
-                    f"{topic} stands out as a content expansion opportunity that could strengthen topical authority and AI-search visibility."
-                ),
+                "intent_type": intent_type,
+                "opportunity_type": opportunity_type,
+                "gap_type": gap_type,
+                "issue": framework_recommendation["issue"],
+                "action": framework_recommendation["action"],
+                "why_it_matters": framework_recommendation["why_it_matters"],
+                "priority": framework_recommendation["priority"],
+                "recommended_action": framework_recommendation["action"],
+                "insight": framework_recommendation["issue"],
             }
         )
 
     return opportunities
+
+
+def infer_topic_intent_type(topic: str) -> str:
+    """Classify topic intent using simple framework-friendly rules."""
+    topic_lower = topic.lower()
+
+    if any(token in topic_lower for token in ["near me", "chicago", "evergreen park", "oak lawn", "orland park", "local"]):
+        return "local"
+    if any(token in topic_lower for token in ["vs", "versus", "compare", "best", "review", "reviews", "top"]):
+        return "comparison"
+    if any(token in topic_lower for token in ["cost", "price", "book", "appointment", "clinic", "doctor", "specialist", "treatment"]):
+        return "transactional"
+    return "informational"
+
+
+def infer_topic_opportunity_type(topic: str, intent_type: str) -> str:
+    """Map topic themes to AI Strategy Framework opportunity types."""
+    topic_lower = topic.lower()
+
+    if any(token in topic_lower for token in ["reddit", "forum", "quora", "community", "discussion"]):
+        return "community"
+    if intent_type == "local":
+        return "local"
+    if intent_type == "comparison" or any(token in topic_lower for token in ["best", "vs", "compare", "reviews"]):
+        return "mention"
+    return "citation"
+
+
+def infer_topic_gap_type(topic: str, opportunity_type: str, competitors: int, volume: int) -> str:
+    """Infer the most likely content gap for the topic."""
+    topic_lower = topic.lower()
+
+    if competitors >= 5 or any(token in topic_lower for token in ["best", "reviews", "top", "specialist"]):
+        return "lack of authority"
+    if opportunity_type == "community":
+        return "missing content"
+    if opportunity_type == "mention":
+        return "weak content"
+    if opportunity_type == "local":
+        return "poor structure" if volume >= 250 else "weak content"
+    if any(token in topic_lower for token in ["how", "what", "why", "cost", "faq"]):
+        return "poor structure"
+    return "missing content"
+
+
+def build_topic_framework_recommendation(
+    topic: str,
+    intent_type: str,
+    opportunity_type: str,
+    gap_type: str,
+    volume: int,
+    competitors: int,
+) -> dict[str, str]:
+    """Build topic recommendations using AI Strategy Framework rules."""
+    priority = score_topic_framework_priority(intent_type, opportunity_type, volume, competitors)
+
+    if opportunity_type == "citation":
+        issue = (
+            f"{topic} is more likely to win citations with structured factual content, but the current gap suggests {gap_type}."
+        )
+        action = (
+            f"Create or rework a page for {topic} with direct definitions, fact-led subheads, FAQ schema, comparison tables where relevant, and clearly sourced answers."
+        )
+        why_it_matters = (
+            "Citation-style opportunities are stronger when the content is easy for search engines and AI systems to extract, summarize, and trust."
+        )
+    elif opportunity_type == "mention":
+        issue = (
+            f"{topic} is a mention-driven comparison opportunity, but weak brand inclusion and {gap_type} are limiting visibility."
+        )
+        action = (
+            f"Build comparison-ready content for {topic} that positions the brand in shortlist-style evaluations, adds differentiators, and reinforces entity signals across supporting pages."
+        )
+        why_it_matters = (
+            "Comparison and best-of queries often reward brands that are clearly included, differentiated, and supported by strong entity and review signals."
+        )
+    elif opportunity_type == "community":
+        issue = (
+            f"{topic} is surfacing as a community-led discovery topic, but the current gap indicates {gap_type} in forum and discussion coverage."
+        )
+        action = (
+            f"Develop a Reddit/forums strategy for {topic} by identifying recurring questions, publishing answer-led supporting content, and creating assets that can be cited naturally in community discussions."
+        )
+        why_it_matters = (
+            "Community-led search journeys often shape discovery before brand visits, so owning the supporting answers improves visibility earlier in the decision process."
+        )
+    else:
+        issue = (
+            f"{topic} has local discovery potential, but {gap_type} is weakening local relevance and authority."
+        )
+        action = (
+            f"Strengthen local pages for {topic} with location-specific headings, provider proof, review snippets, service-area language, and clearer entity/trust signals."
+        )
+        why_it_matters = (
+            "Local AI and search results rely on strong geographic relevance plus authority markers such as reviews, expertise, and entity consistency."
+        )
+
+    if gap_type == "lack of authority":
+        action += " Support the page with trust signals, expert bios, review proof, authoritative mentions, and backlinkable assets."
+        why_it_matters += " Stronger authority signals help the brand compete when other sites already dominate the topic."
+
+    return {
+        "issue": issue,
+        "action": action,
+        "why_it_matters": why_it_matters,
+        "priority": priority,
+    }
+
+
+def score_topic_framework_priority(intent_type: str, opportunity_type: str, volume: int, competitors: int) -> str:
+    """Assign priority to topic opportunities using framework-friendly weights."""
+    score = 0
+
+    if volume >= 500:
+        score += 3
+    elif volume >= 250:
+        score += 2
+    elif volume > 0:
+        score += 1
+
+    if competitors >= 5:
+        score += 3
+    elif competitors >= 3:
+        score += 2
+    elif competitors > 0:
+        score += 1
+
+    if intent_type in {"transactional", "local"}:
+        score += 2
+    elif intent_type == "comparison":
+        score += 1
+
+    if opportunity_type in {"mention", "local"}:
+        score += 2
+    elif opportunity_type in {"citation", "community"}:
+        score += 1
+
+    if score >= 8:
+        return "High"
+    if score >= 5:
+        return "Medium"
+    return "Low"
 
 
 def build_intent_clusters(keyword_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
