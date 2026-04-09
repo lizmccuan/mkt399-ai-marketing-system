@@ -119,9 +119,9 @@ st.markdown(
         transition: all 0.18s ease;
     }
     .stButton > button[kind="primary"] {
-        background: var(--accent-purple);
+        background: #8C52FF;
         color: #ffffff;
-        border: 1px solid var(--accent-purple);
+        border: 1px solid #8C52FF;
         box-shadow: 0 8px 18px rgba(124, 58, 237, 0.18);
     }
     .stButton > button:hover {
@@ -130,8 +130,8 @@ st.markdown(
         color: var(--text-main);
     }
     .stButton > button[kind="primary"]:hover {
-        background: #6D28D9;
-        border-color: #6D28D9;
+        background: #D9C5FF;
+        border-color: #D9C5FF;
         color: #ffffff;
     }
     .stTextInput input,
@@ -365,6 +365,70 @@ st.markdown(
         line-height: 1.5;
         white-space: pre-wrap;
         box-shadow: 0 2px 10px rgba(16, 24, 40, 0.03);
+    }
+    .take-action-panel {
+        background: #FFFFFF;
+        border: 1px solid #E6E8F0;
+        border-radius: 18px;
+        box-shadow: 0 4px 16px rgba(16, 24, 40, 0.04);
+        padding: 1.25rem 1.35rem;
+        margin-top: 0.85rem;
+        margin-bottom: 1rem;
+    }
+    .take-action-header {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-bottom: 1rem;
+    }
+    .take-action-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        background: #F3EDFF;
+        color: #7C3AED;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .take-action-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #162033;
+        line-height: 1.3;
+    }
+    .take-action-section {
+        margin-top: 1rem;
+    }
+    .take-action-section-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #162033;
+        margin-bottom: 0.45rem;
+    }
+    .take-action-list {
+        color: #475467;
+        line-height: 1.7;
+        margin: 0;
+        padding-left: 1.15rem;
+    }
+    .take-action-list li {
+        margin-bottom: 0.38rem;
+        color: #475467 !important;
+        line-height: 1.7;
+    }
+    .take-action-code {
+        background: #F8FAFC;
+        border: 1px solid #E6E8F0;
+        border-radius: 14px;
+        padding: 1rem 1rem;
+        color: #162033;
+        line-height: 1.75;
+        white-space: pre-wrap;
+        margin-top: 0.35rem;
     }
 
     /* GLOBAL TEXT FIX */
@@ -2854,6 +2918,259 @@ def render_opportunities_page(results: dict) -> None:
         st.info("No social opportunities available yet. Upload a Meta content export and run the workflow.")
 
 
+def build_take_action_payload(card: dict, results: dict) -> dict | None:
+    """Build a drill-down action payload for supported recommendation types."""
+    if not results or not card:
+        return None
+
+    category = str(card.get("category", "")).strip().lower()
+    issue_text = str(card.get("issue", "")).strip()
+    recommendation_text = str(card.get("recommendation", "") or card.get("action", "")).strip()
+    combined_text = f"{category} {issue_text} {recommendation_text}".lower()
+
+    website_terms = [
+        "seo",
+        "keyword",
+        "ctr",
+        "title",
+        "meta",
+        "h1",
+        "faq",
+        "content update",
+        "content refresh",
+    ]
+    social_terms = [
+        "social",
+        "follow",
+        "format",
+        "variation",
+        "content series",
+        "conversion",
+        "best-performing",
+        "growth",
+        "reel",
+    ]
+
+    if any(term in combined_text for term in website_terms):
+        insight = results.get("insight", {})
+        strategy = results.get("strategy", {}).get("strategy", {})
+        semrush_positions_data = results.get("semrush_positions_data")
+        combined = results.get("data_intake", {}).get("summary", {}).get("combined", {})
+
+        top_query = get_first_value(insight.get("high_impression_low_click", []), "query")
+        primary_page = (
+            str(strategy.get("primary_page", "")).strip()
+            or get_first_value(combined.get("top_pages", []), "page_title")
+        )
+
+        keywords: list[str] = []
+        if top_query != "Not available":
+            keywords.append(top_query)
+
+        if semrush_positions_data is not None and not getattr(semrush_positions_data, "empty", True):
+            for item in build_semrush_opportunity_cards(semrush_positions_data)[:5]:
+                keyword = str(item.get("keyword", "")).strip()
+                if keyword and keyword not in keywords:
+                    keywords.append(keyword)
+
+        for item in insight.get("query_analysis", [])[:5]:
+            query = str(item.get("query", "")).strip()
+            if query and query not in keywords:
+                keywords.append(query)
+
+        keywords = keywords[:5]
+        focus_keyword = keywords[0] if keywords else "priority keyword"
+        page_label = primary_page if primary_page and primary_page != "Not available" else "priority landing page"
+
+        faq_ideas = []
+        if keywords:
+            faq_ideas = [f"Answer the search intent behind '{keyword}' directly on the page." for keyword in keywords[:3]]
+        else:
+            faq_ideas = [
+                "Add one FAQ that addresses the core patient question behind the target search.",
+                "Add one FAQ that handles cost, fit, or treatment expectations.",
+                "Add one FAQ that moves the visitor toward booking or contacting the clinic.",
+            ]
+
+        return {
+            "type": "seo",
+            "button_label": "View keyword opportunities & rewrite examples",
+            "headline": "SEO Take Action",
+            "keywords": keywords or ["No strong keyword set available from the current run."],
+            "rewrites": {
+                "title_tag": f"{focus_keyword.title()} | {page_label}",
+                "h1": f"{focus_keyword.title()}: What Patients Should Know",
+                "meta_description": (
+                    f"Explore {focus_keyword} on {page_label}. Get clear answers, stronger on-page guidance, and the next step for patients ready to take action."
+                ),
+            },
+            "faq_ideas": faq_ideas,
+        }
+
+    if category.startswith("social_") or any(term in combined_text for term in social_terms):
+        social_insights = results.get("social_insights", {})
+        top_examples_rows = social_insights.get("top_performing_content", []) or []
+        conversion_rows = social_insights.get("conversion_content", []) or []
+        best_post_type = str(social_insights.get("best_post_type", "Not available")).strip()
+        top_topics = social_insights.get("top_topics", []) or []
+        what_drives_follows = str(social_insights.get("what_drives_follows", "Not available")).strip()
+        what_drives_saves = str(social_insights.get("what_drives_saves", "Not available")).strip()
+
+        top_examples = []
+        seen_examples = set()
+        for row in top_examples_rows[:3] + conversion_rows[:3]:
+            hook = str(row.get("Hook", "")).strip()
+            post_type = str(row.get("Post type", "Unknown")).strip()
+            topic = humanize_social_topic(str(row.get("Topic", "general")).strip())
+            example_key = (hook, post_type, topic)
+            if example_key in seen_examples:
+                continue
+            seen_examples.add(example_key)
+            example_text = f"{post_type} | {topic}"
+            if hook:
+                example_text = f"{post_type} | {topic} | Hook: {hook}"
+            top_examples.append(example_text)
+            if len(top_examples) == 3:
+                break
+
+        why_they_worked = []
+        if what_drives_follows and what_drives_follows != "Not available":
+            why_they_worked.append(what_drives_follows)
+        if what_drives_saves and what_drives_saves != "Not available":
+            why_they_worked.append(what_drives_saves)
+        if best_post_type and best_post_type != "Not available":
+            why_they_worked.append(f"{best_post_type} is the strongest current format in this run.")
+        if top_topics:
+            why_they_worked.append(
+                f"Top topic signal: {', '.join(humanize_social_topic(topic) for topic in top_topics[:2])}."
+            )
+
+        base_topic = humanize_social_topic(top_topics[0]) if top_topics else "the strongest current topic"
+        format_label = best_post_type if best_post_type and best_post_type != "Not available" else "your best-performing format"
+        base_hook = ""
+        if top_examples_rows:
+            base_hook = str(top_examples_rows[0].get("Hook", "")).strip()
+
+        variations = [
+            f"{format_label} variation focused on {base_topic} with a stronger booking-oriented CTA.",
+            f"{format_label} variation that reuses the winning structure but tests a shorter first-line hook.",
+            f"{format_label} variation that turns the current high-interest topic into a clearer follow-driving post.",
+        ]
+        if base_hook:
+            variations[1] = f"{format_label} variation using a hook inspired by '{base_hook}' with a tighter patient outcome angle."
+
+        return {
+            "type": "social",
+            "button_label": "View follow-driving posts & generate variations",
+            "headline": "Social Take Action",
+            "top_examples": top_examples or ["No high-performing examples were available from the current run."],
+            "why_they_worked": why_they_worked or ["Not enough social performance context is loaded yet."],
+            "variations": variations[:5],
+        }
+
+    return None
+
+
+def render_take_action_block(payload: dict, unique_key: str) -> None:
+    """Render a take-action drill-down block beneath a recommendation."""
+    st.markdown('<div class="take-action-panel">', unsafe_allow_html=True)
+    icon = "↗" if payload.get("type") == "seo" else "✦"
+    st.markdown(
+        f'''
+        <div class="take-action-header">
+            <div class="take-action-icon">{icon}</div>
+            <div class="take-action-title">{payload.get("headline", "Take Action")}</div>
+        </div>
+        ''',
+        unsafe_allow_html=True,
+    )
+
+    if payload.get("type") == "seo":
+        keywords = payload.get("keywords", [])
+        if keywords:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Best Keywords</div>', unsafe_allow_html=True)
+            keyword_items = "".join(f"<li>{keyword}</li>" for keyword in keywords)
+            st.markdown(f'<ul class="take-action-list">{keyword_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        rewrites = payload.get("rewrites", {})
+        if rewrites:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Rewrite Examples</div>', unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div class="take-action-code">
+                    <strong>Title Tag:</strong><br>
+                    {rewrites.get('title_tag', '')}
+                    <br><br>
+                    <strong>H1:</strong><br>
+                    {rewrites.get('h1', '')}
+                    <br><br>
+                    <strong>Meta Description:</strong><br>
+                    {rewrites.get('meta_description', '')}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        faq_ideas = payload.get("faq_ideas", [])
+        if faq_ideas:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">FAQ Ideas</div>', unsafe_allow_html=True)
+            faq_items = "".join(f"<li>{item}</li>" for item in faq_ideas)
+            st.markdown(f'<ul class="take-action-list">{faq_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    elif payload.get("type") == "social":
+        top_examples = payload.get("top_examples", [])
+        if top_examples:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Top Examples</div>', unsafe_allow_html=True)
+            example_items = "".join(f"<li>{example}</li>" for example in top_examples)
+            st.markdown(f'<ul class="take-action-list">{example_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        why_they_worked = payload.get("why_they_worked", [])
+        if why_they_worked:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Why They Worked</div>', unsafe_allow_html=True)
+            why_items = "".join(f"<li>{item}</li>" for item in why_they_worked)
+            st.markdown(f'<ul class="take-action-list">{why_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        variations = payload.get("variations", [])
+        if variations:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">New Variations</div>', unsafe_allow_html=True)
+            variation_items = "".join(f"<li>{variation}</li>" for variation in variations)
+            st.markdown(f'<ul class="take-action-list">{variation_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.info("No drill-down action plan is available for this recommendation yet.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_recommendation_take_action(card: dict, results: dict, unique_key: str) -> None:
+    """Render a Take Action control and drill-down block when supported."""
+    payload = build_take_action_payload(card, results)
+    if not payload:
+        return
+
+    open_key = f"take_action_open_{unique_key}"
+    button_key = f"take_action_button_{unique_key}"
+    is_open = st.session_state.get(open_key, False)
+    button_label = "Hide Take Action" if is_open else payload.get("button_label", "Take Action")
+
+    if st.button(button_label, key=button_key, type="primary"):
+        st.session_state[open_key] = not is_open
+
+    if st.session_state.get(open_key, False):
+        render_take_action_block(payload, unique_key)
+
+
 def render_recommendations_page(results: dict) -> None:
     """Render the Recommendations page."""
     st.title("Recommendations")
@@ -2876,9 +3193,16 @@ def render_recommendations_page(results: dict) -> None:
 
     st.subheader("Website Recommendations")
     for category, recommendations in strategy["recommendations"].items():
-        for recommendation in recommendations:
+        for index, recommendation in enumerate(recommendations):
             priority = priority_cycle[action_index % len(priority_cycle)]
             pill_class = priority_class_map[priority]
+            recommendation_card = {
+                "category": category,
+                "issue": "",
+                "recommendation": "",
+                "why_it_matters": "",
+                "priority": priority,
+            }
 
             if isinstance(recommendation, dict):
                 issue = recommendation.get("issue", "").strip()
@@ -2897,9 +3221,23 @@ def render_recommendations_page(results: dict) -> None:
                     body_parts.append(f"<strong>Best Practice Category:</strong> {bp_category}")
                 body_html = "<br><br>".join(body_parts) if body_parts else "No recommendation details available."
                 display_priority = rec_priority or priority
+                recommendation_card.update(
+                    {
+                        "issue": issue,
+                        "recommendation": rec_text,
+                        "why_it_matters": why,
+                        "priority": display_priority,
+                    }
+                )
             else:
                 body_html = str(recommendation)
                 display_priority = priority
+                recommendation_card.update(
+                    {
+                        "recommendation": str(recommendation),
+                        "priority": display_priority,
+                    }
+                )
 
             pill_class = priority_class_map.get(display_priority, pill_class)
 
@@ -2917,11 +3255,16 @@ def render_recommendations_page(results: dict) -> None:
                 """,
                 unsafe_allow_html=True,
             )
+            render_recommendation_take_action(
+                recommendation_card,
+                results,
+                f"website_{str(category).strip().lower()}_{index}",
+            )
             action_index += 1
 
     st.subheader("Social Recommendations")
     if social_cards:
-        for card in social_cards:
+        for index, card in enumerate(social_cards):
             display_priority = str(card.get("priority", "Medium")).strip().title()
             pill_class = priority_class_map.get(display_priority, "priority-medium-pill")
             body_parts = []
@@ -2946,6 +3289,11 @@ def render_recommendations_page(results: dict) -> None:
                 </div>
                 """,
                 unsafe_allow_html=True,
+            )
+            render_recommendation_take_action(
+                card,
+                results,
+                f"social_{str(card.get('category', 'social')).strip().lower()}_{index}",
             )
     else:
         st.info("No social recommendations available yet. Upload a Meta content export and run the workflow.")
