@@ -22,137 +22,393 @@ st.set_page_config(page_title="AI Marketing Workflow System", layout="wide")
 st.markdown(
     """
     <style>
+    :root {
+        --page-bg: #F7F8FC;
+        --panel-bg: #FFFFFF;
+        --text-main: #162033;
+        --text-muted: #667085;
+        --border-soft: #E6E8F0;
+        --accent-purple: #7C3AED;
+        --accent-purple-soft: #F3EDFF;
+        --success-green: #22C55E;
+        --success-soft: #ECFDF3;
+        --warning-soft: #FFF4D6;
+        --warning-accent: #F4C95D;
+        --info-soft: #EEF4FF;
+        --info-accent: #7CB3FF;
+        --purple-soft: #F4ECFF;
+        --purple-accent: #C084FC;
+        --orange-soft: #FFF1E8;
+        --orange-accent: #FDBA74;
+        --shadow-soft: 0 4px 16px rgba(16, 24, 40, 0.04);
+    }
+    html, body, [class*="css"]  {
+        color: var(--text-main);
+    }
+    .stApp {
+        background: var(--page-bg);
+        color: var(--text-main);
+    }
+    [data-testid="stAppViewContainer"] {
+        background: var(--page-bg);
+    }
+    [data-testid="stAppViewContainer"] > .main {
+        background: var(--page-bg);
+    }
+    .main .block-container {
+        padding-top: 2.35rem;
+        padding-bottom: 2.2rem;
+        max-width: 1400px;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: var(--text-main);
+    }
+    p, label, span {
+        color: inherit;
+    }
+    [data-testid="stHeader"] {
+        background: rgba(247, 248, 252, 0.92);
+        border-bottom: 1px solid rgba(230, 232, 240, 0.75);
+    }
+    [data-testid="stSidebar"] {
+        background: var(--panel-bg);
+        border-right: 1px solid var(--border-soft);
+    }
+    [data-testid="stSidebar"] > div:first-child {
+        background: var(--panel-bg);
+    }
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div {
+        color: var(--text-main);
+    }
+    [data-testid="stSidebar"] .block-container {
+        padding-top: 1.25rem;
+    }
+    [data-testid="stSidebar"] [role="radiogroup"] label {
+        border-radius: 14px;
+        padding: 0.5rem 0.7rem;
+        margin-bottom: 0.28rem;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+    }
+    [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
+        background: var(--accent-purple-soft);
+        color: var(--accent-purple);
+        border: 1px solid rgba(124, 58, 237, 0.16);
+        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.03);
+    }
+    [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) * {
+        color: var(--accent-purple);
+        font-weight: 600;
+    }
+    [data-testid="stSidebar"] [role="radiogroup"] label:hover {
+        background: #F9FAFB;
+        border-color: var(--border-soft);
+    }
+    .stButton > button,
+    [data-testid="baseButton-secondary"] {
+        border-radius: 12px;
+        border: 1px solid var(--border-soft);
+        background: var(--panel-bg);
+        color: var(--text-main);
+        font-weight: 600;
+        min-height: 2.7rem;
+        box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
+        transition: all 0.18s ease;
+    }
+    .stButton > button[kind="primary"] {
+        background: var(--accent-purple);
+        color: #ffffff;
+        border: 1px solid var(--accent-purple);
+        box-shadow: 0 8px 18px rgba(124, 58, 237, 0.18);
+    }
+    .stButton > button:hover {
+        border-color: #D0D5DD;
+        background: #F9FAFB;
+        color: var(--text-main);
+    }
+    .stButton > button[kind="primary"]:hover {
+        background: #6D28D9;
+        border-color: #6D28D9;
+        color: #ffffff;
+    }
+    .stTextInput input,
+    .stTextArea textarea,
+    .stSelectbox div[data-baseweb="select"] > div,
+    .stMultiSelect div[data-baseweb="select"] > div {
+        background: #FFFFFF;
+        color: var(--text-main);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+    }
+    .stTextInput input::placeholder,
+    .stTextArea textarea::placeholder {
+        color: #98A2B3;
+    }
+    .stMetric {
+        background: #FFFFFF;
+        border: 1px solid var(--border-soft);
+        border-radius: 18px;
+        padding: 0.9rem 1rem;
+        box-shadow: var(--shadow-soft);
+    }
+    .stDataFrame, .stTable {
+        background: #FFFFFF;
+        border-radius: 18px;
+    }
     .dashboard-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 0.25rem;
+        font-size: 2.3rem;
+        font-weight: 800;
+        color: #162033;
+        margin-bottom: 0.35rem;
+        letter-spacing: -0.02em;
+        line-height: 1.18;
     }
     .dashboard-subtitle {
-        color: #5b6470;
-        margin-bottom: 1.5rem;
+        color: #667085;
+        margin-bottom: 1.75rem;
+        font-size: 1rem;
+        line-height: 1.55;
     }
     .panel {
-        background: #f7f9fc;
-        border: 1px solid #e6ebf2;
-        border-radius: 14px;
-        padding: 1rem 1.1rem;
+        background: var(--panel-bg);
+        border: 1px solid var(--border-soft);
+        border-radius: 18px;
+        padding: 1.2rem 1.25rem;
         margin-bottom: 1rem;
+        box-shadow: var(--shadow-soft);
     }
     .panel-title {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 0.75rem;
+        font-size: 1.04rem;
+        font-weight: 700;
+        color: #162033;
+        margin-bottom: 0.9rem;
+        line-height: 1.35;
     }
     .change-card {
-        background: #ffffff;
-        border: 1px solid #e6ebf2;
-        border-radius: 14px;
-        padding: 1rem 1.1rem;
+        background: var(--panel-bg);
+        border: 1px solid var(--border-soft);
+        border-radius: 18px;
+        padding: 1.2rem 1.25rem;
         margin-bottom: 1rem;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+        box-shadow: var(--shadow-soft);
     }
     .mock-block {
-        background: #f7f9fc;
-        border: 1px dashed #cdd6e1;
-        border-radius: 10px;
-        padding: 0.85rem;
+        background: #FAFBFF;
+        border: 1px dashed #D8DCE8;
+        border-radius: 16px;
+        padding: 1rem 1.05rem;
         margin-top: 0.5rem;
+        color: var(--text-muted);
     }
     .recommendation-card {
-        background: #ffffff;
-        border: 1px solid #e6ebf2;
-        border-radius: 14px;
-        padding: 1rem 1.1rem;
+        background: var(--panel-bg);
+        border: 1px solid var(--border-soft);
+        border-radius: 18px;
+        padding: 1.15rem 1.2rem;
         margin-bottom: 0.9rem;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+        box-shadow: var(--shadow-soft);
     }
     .recommendation-card-top {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 0.75rem;
+        gap: 0.9rem;
+        margin-bottom: 0.9rem;
         flex-wrap: wrap;
     }
     .recommendation-category {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #111827;
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #162033;
         letter-spacing: 0.01em;
+        line-height: 1.35;
     }
     .recommendation-body {
-        color: #374151;
+        color: #667085;
         font-size: 0.95rem;
-        line-height: 1.55;
+        line-height: 1.62;
     }
     .priority-high-pill {
         display: inline-block;
-        background: #fee2e2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
+        background: #FDECEC;
+        color: #B42318;
+        border: 1px solid #F7C7C2;
         border-radius: 999px;
-        padding: 0.3rem 0.65rem;
+        padding: 0.34rem 0.72rem;
         font-size: 0.75rem;
         font-weight: 700;
         white-space: nowrap;
     }
     .priority-medium-pill {
         display: inline-block;
-        background: #ffedd5;
-        color: #c2410c;
-        border: 1px solid #fed7aa;
+        background: #FFF1E8;
+        color: #B54708;
+        border: 1px solid #F4D1B0;
         border-radius: 999px;
-        padding: 0.3rem 0.65rem;
+        padding: 0.34rem 0.72rem;
         font-size: 0.75rem;
         font-weight: 700;
         white-space: nowrap;
     }
     .priority-low-pill {
         display: inline-block;
-        background: #e5e7eb;
-        color: #374151;
-        border: 1px solid #d1d5db;
+        background: #F5F6FA;
+        color: #667085;
+        border: 1px solid #E4E7EC;
         border-radius: 999px;
-        padding: 0.3rem 0.65rem;
+        padding: 0.34rem 0.72rem;
         font-size: 0.75rem;
         font-weight: 700;
         white-space: nowrap;
     }
     .topic-tag-row {
         display: flex;
-        gap: 0.45rem;
+        gap: 0.5rem;
         flex-wrap: wrap;
-        margin: 0.45rem 0 0.75rem;
+        margin: 0.5rem 0 0.8rem;
     }
     .topic-tag {
         display: inline-block;
-        background: #eef2f7;
-        color: #334155;
-        border: 1px solid #d7dee8;
+        background: var(--accent-purple-soft);
+        color: #5B45C6;
+        border: 1px solid #E5DAFF;
         border-radius: 999px;
-        padding: 0.22rem 0.55rem;
+        padding: 0.3rem 0.68rem;
         font-size: 0.74rem;
         font-weight: 600;
         white-space: nowrap;
     }
     .what-next-card {
-        background: #ffffff;
-        border: 1px solid #e6ebf2;
-        border-radius: 14px;
-        padding: 1rem 1.1rem;
+        background: var(--panel-bg);
+        border: 1px solid var(--border-soft);
+        border-radius: 18px;
+        padding: 1.15rem 1.2rem;
         margin-bottom: 0.9rem;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+        box-shadow: var(--shadow-soft);
     }
     .what-next-title {
-        font-size: 1rem;
+        font-size: 1.04rem;
         font-weight: 700;
-        color: #111827;
-        margin-bottom: 0.5rem;
+        color: #162033;
+        margin-bottom: 0.58rem;
+        line-height: 1.35;
     }
     .what-next-label {
-        font-weight: 600;
-        color: #111827;
+        font-weight: 700;
+        color: #162033;
     }
+    .ai-rail-panel {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-soft);
+        border-radius: 18px;
+        padding: 18px;
+        height: fit-content;
+        position: sticky;
+        top: 20px;
+        box-shadow: var(--shadow-soft);
+    }
+    .ai-rail-title {
+        font-size: 1.02rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.8rem;
+    }
+    .ai-insight-card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.7rem;
+        box-shadow: 0 2px 10px rgba(16, 24, 40, 0.03);
+    }
+    .ai-insight-title {
+        font-size: 0.94rem;
+        font-weight: 700;
+        margin-bottom: 0.38rem;
+        color: var(--text-main);
+    }
+    .ai-insight-text {
+        font-size: 0.88rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+    }
+    .ai-insight-warning {
+        background: var(--warning-soft);
+        border-left: 4px solid var(--warning-accent);
+    }
+    .ai-insight-info {
+        background: var(--info-soft);
+        border-left: 4px solid var(--info-accent);
+    }
+    .ai-insight-success {
+        background: var(--purple-soft);
+        border-left: 4px solid var(--purple-accent);
+    }
+    .ai-strategy-button-wrap {
+        margin-top: 1rem;
+        margin-bottom: 0.85rem;
+    }
+    .ai-chat-box {
+        margin-top: 1rem;
+    }
+    .ai-chat-response {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        padding: 0.95rem 1rem;
+        margin-top: 0.75rem;
+        color: var(--text-main);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        box-shadow: 0 2px 10px rgba(16, 24, 40, 0.03);
+    }
+
+    /* GLOBAL TEXT FIX */
+    body, p, span, div, label {
+        color: #111827 !important;
+    }
+    /* HEADINGS */
+    h1, h2, h3, h4, h5, h6 {
+        color: #111827 !important;
+        font-weight: 600;
+    }
+    /* STREAMLIT METRICS */
+    [data-testid="stMetricValue"] {
+        color: #111827 !important;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #6b7280 !important;
+    }
+    /* TABLE FIX */
+    [data-testid="stDataFrame"] {
+        background: white !important;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    [data-testid="stDataFrame"] * {
+        color: #111827 !important;
+    }
+    thead tr th {
+        background: #f9fafb !important;
+        color: #374151 !important;
+    }
+    tbody tr {
+        background: white !important;
+    }
+    .css-1n76uvr, .css-1d391kg {
+        background: white !important;
+    }
+    input, textarea {
+        color: #111827 !important;
+    }
+    [data-testid="stSidebar"] * {
+        color: #111827 !important;
+    }
+
     </style>
     """,
     unsafe_allow_html=True,
@@ -255,23 +511,64 @@ def extract_hook_from_caption(caption) -> str:
 def infer_social_topic(caption) -> str:
     """Infer a simple social content topic from caption text."""
     if caption is None or (isinstance(caption, float) and pd.isna(caption)):
-        return "other"
+        return "general"
 
     caption_text = str(caption).lower()
 
+    if any(keyword in caption_text for keyword in ["meet one of the providers", "provider", "pa-c", "specialists"]):
+        return "provider spotlight"
+    if any(keyword in caption_text for keyword in ["testimonial", "results", "before and after", "patient story", "success story"]):
+        return "social proof"
     if any(keyword in caption_text for keyword in ["quiz", "book", "schedule", "consultation", "evaluation", "call us"]):
-        return "conversion"
+        return "patient conversion"
     if any(keyword in caption_text for keyword in ["botox", "treatment", "fda-approved", "options", "relief is possible"]):
         return "treatment education"
-    if any(keyword in caption_text for keyword in ["meet one of the providers", "provider", "pa-c", "specialists"]):
-        return "authority"
-    if any(keyword in caption_text for keyword in ["patient", "story", "proof", "testimonial", "results"]):
-        return "social proof"
+    if any(keyword in caption_text for keyword in ["myth", "fact", "facts", "misconception", "truth"]):
+        return "myth / education"
     if any(keyword in caption_text for keyword in ["why", "what causes", "migraines are", "headaches aren’t", "symptoms"]):
-        return "educational"
-    if any(keyword in caption_text for keyword in ["expo", "community", "event", "opening", "westmont"]):
-        return "promotional/community"
-    return "other"
+        return "symptom awareness"
+    if any(keyword in caption_text for keyword in ["opening", "launch", "now open", "new location", "grand opening"]):
+        return "announcement / launch"
+    if any(keyword in caption_text for keyword in ["expo", "community", "event", "westmont"]):
+        return "community / event"
+    return "general"
+
+
+def humanize_social_topic(topic: str) -> str:
+    """Convert internal social topic labels into natural user-facing language."""
+    topic_map = {
+        "provider spotlight": "Provider Spotlight",
+        "treatment education": "Treatment Education",
+        "myth / education": "Myth / Education",
+        "symptom awareness": "Symptom Awareness",
+        "patient conversion": "Patient Conversion",
+        "announcement / launch": "Announcement / Launch",
+        "community / event": "Community / Event",
+        "social proof": "Social Proof",
+        "general": "General",
+    }
+    return topic_map.get(str(topic).strip().lower(), str(topic).replace("_", " "))
+
+
+def describe_social_post_pattern(row: pd.Series) -> str:
+    """Describe a strong social post pattern in natural language."""
+    hook = str(row.get("Hook", "")).strip()
+    post_type = str(row.get("Post type", "Unknown")).strip()
+    topic = humanize_social_topic(str(row.get("Topic", "general")).strip())
+
+    post_type_map = {
+        "reel": "IG Reel",
+        "ig reel": "IG Reel",
+        "carousel": "IG Carousel",
+        "ig carousel": "IG Carousel",
+        "image": "IG Image",
+        "ig image": "IG Image",
+    }
+    post_type_label = post_type_map.get(post_type.lower(), post_type if post_type else "Social posts")
+
+    if hook:
+        return f"{post_type_label} posts with hooks like '{hook}' and {topic}"
+    return f"{post_type_label} {topic}"
 
 
 def classify_social_post(row) -> str:
@@ -337,6 +634,17 @@ def build_social_insights(meta_posts_data) -> dict[str, object]:
 
     post_type_summary = summarize_group("Post type")
     topic_summary = summarize_group("Topic")
+    top_topics = topic_summary.head(3).index.tolist() if not topic_summary.empty else []
+    top_topic_set = {str(topic).strip().lower() for topic in top_topics}
+    weak_topics: list[str] = []
+    if not topic_summary.empty:
+        for topic in reversed(topic_summary.index.tolist()):
+            normalized_topic = str(topic).strip().lower()
+            if normalized_topic in top_topic_set:
+                continue
+            weak_topics.append(topic)
+            if len(weak_topics) == 3:
+                break
 
     balance_problems = []
     if ((dataframe["Reach"] >= 150) & (dataframe["Engagement Rate"] < 3)).any():
@@ -348,25 +656,15 @@ def build_social_insights(meta_posts_data) -> dict[str, object]:
     if ((dataframe["Reach"] >= 150) & (dataframe["Engagement Rate"] >= 5) & (dataframe["Follows"] >= 1)).any():
         balance_problems.append("Best-performing pattern combines strong reach, strong engagement, and at least one follow.")
 
-    top_save_post_type = (
-        dataframe.groupby("Post type")["Saves"].sum().sort_values(ascending=False).index[0]
+    top_save_row = (
+        dataframe.sort_values(["Saves", "Reach", "Engagement Rate"], ascending=[False, False, False]).iloc[0]
         if not dataframe.empty
-        else "Not available"
+        else None
     )
-    top_save_topic = (
-        dataframe.groupby("Topic")["Saves"].sum().sort_values(ascending=False).index[0]
+    top_follow_row = (
+        dataframe.sort_values(["Follows", "Reach", "Engagement Rate"], ascending=[False, False, False]).iloc[0]
         if not dataframe.empty
-        else "Not available"
-    )
-    top_follow_post_type = (
-        dataframe.groupby("Post type")["Follows"].sum().sort_values(ascending=False).index[0]
-        if not dataframe.empty
-        else "Not available"
-    )
-    top_follow_topic = (
-        dataframe.groupby("Topic")["Follows"].sum().sort_values(ascending=False).index[0]
-        if not dataframe.empty
-        else "Not available"
+        else None
     )
 
     return {
@@ -388,16 +686,16 @@ def build_social_insights(meta_posts_data) -> dict[str, object]:
         ),
         "best_post_type": post_type_summary.index[0] if not post_type_summary.empty else "Not available",
         "worst_post_type": post_type_summary.index[-1] if not post_type_summary.empty else "Not available",
-        "top_topics": topic_summary.head(3).index.tolist() if not topic_summary.empty else [],
-        "weak_topics": topic_summary.tail(3).index.tolist() if not topic_summary.empty else [],
+        "top_topics": top_topics,
+        "weak_topics": weak_topics,
         "what_drives_saves": (
-            f"{top_save_post_type} posts about {top_save_topic} are currently driving the most saves."
-            if top_save_post_type != "Not available"
+            f"{describe_social_post_pattern(top_save_row)} are currently driving the most saves."
+            if top_save_row is not None
             else "Not enough Meta content data yet."
         ),
         "what_drives_follows": (
-            f"{top_follow_post_type} posts about {top_follow_topic} are currently driving the most follows."
-            if top_follow_post_type != "Not available"
+            f"{describe_social_post_pattern(top_follow_row)} are currently driving the most follows."
+            if top_follow_row is not None
             else "Not enough Meta content data yet."
         ),
         "balance_problems": balance_problems,
@@ -997,8 +1295,8 @@ def render_social_analysis_page(results: dict) -> None:
     weak_topics = social_insights.get("weak_topics", [])
     best_post_type = social_insights.get("best_post_type", "Not available")
     worst_post_type = social_insights.get("worst_post_type", "Not available")
-    top_topic = top_topics[0] if top_topics else "Not available"
-    weak_topic = weak_topics[0] if weak_topics else "Not available"
+    top_topic = humanize_social_topic(top_topics[0]) if top_topics else "Not available"
+    weak_topic = humanize_social_topic(weak_topics[0]) if weak_topics else "Not available"
 
     metric_cols = st.columns(4)
     with metric_cols[0]:
@@ -1043,7 +1341,7 @@ def render_social_analysis_page(results: dict) -> None:
         st.markdown("**Top Topics**")
         if top_topics:
             for topic in top_topics:
-                st.write(f"- {topic}")
+                st.write(f"- {humanize_social_topic(topic)}")
         else:
             st.write("No top topics available yet.")
 
@@ -1051,7 +1349,7 @@ def render_social_analysis_page(results: dict) -> None:
         st.markdown("**Weak Topics**")
         if weak_topics:
             for topic in weak_topics:
-                st.write(f"- {topic}")
+                st.write(f"- {humanize_social_topic(topic)}")
         else:
             st.write("No weak topics available yet.")
 
@@ -2163,6 +2461,313 @@ def build_combined_what_next_cards(results: dict) -> list[dict[str, str]]:
     return combined_cards[:6]
 
 
+def build_chat_context_summary(results: dict) -> str:
+    """Create a concise internal summary of the loaded website and social context."""
+    if not results:
+        return "No marketing data is currently loaded."
+
+    insight = results.get("insight", {})
+    strategy = results.get("strategy", {}).get("strategy", {})
+    social_insights = results.get("social_insights", {})
+    semrush_positions_data = results.get("semrush_positions_data")
+    semrush_pages_data = results.get("semrush_pages_data")
+    semrush_topics_data = results.get("semrush_topics_data")
+
+    summary_parts = [
+        f"Top opportunity query: {get_first_value(insight.get('high_impression_low_click', []), 'query')}.",
+        f"Top traffic source: {get_first_value(insight.get('top_sources', []), 'source_medium')}.",
+        f"Primary page: {strategy.get('primary_page', 'Not available')}.",
+    ]
+
+    patterns = insight.get("patterns", [])
+    if patterns:
+        summary_parts.append(f"Top website patterns: {' | '.join(patterns[:3])}.")
+
+    if semrush_positions_data is not None and not getattr(semrush_positions_data, "empty", True):
+        keyword_cards = build_semrush_opportunity_cards(semrush_positions_data)
+        if keyword_cards:
+            summary_parts.append(f"Top keyword opportunity: {keyword_cards[0].get('keyword', 'Not available')}.")
+
+    if semrush_pages_data is not None and not getattr(semrush_pages_data, "empty", True):
+        page_cards = build_semrush_page_cards(semrush_pages_data)
+        if page_cards:
+            summary_parts.append(f"Top page opportunity: {page_cards[0].get('page_url', 'Not available')}.")
+
+    if semrush_topics_data is not None and not getattr(semrush_topics_data, "empty", True):
+        topic_cards = build_semrush_topic_cards(
+            semrush_topics_data,
+            strategy.get("topic_opportunities", []),
+        )
+        if topic_cards:
+            summary_parts.append(f"Top topic opportunity: {topic_cards[0].get('topic', 'Not available')}.")
+
+    if social_insights:
+        summary_parts.append(f"Best social format: {social_insights.get('best_post_type', 'Not available')}.")
+        summary_parts.append(f"Worst social format: {social_insights.get('worst_post_type', 'Not available')}.")
+        if social_insights.get("top_topics"):
+            summary_parts.append(
+                f"Top social topics: {', '.join(humanize_social_topic(topic) for topic in social_insights.get('top_topics', [])[:3])}."
+            )
+        if social_insights.get("weak_topics"):
+            summary_parts.append(
+                f"Weak social topics: {', '.join(humanize_social_topic(topic) for topic in social_insights.get('weak_topics', [])[:3])}."
+            )
+        summary_parts.append(f"What drives saves: {social_insights.get('what_drives_saves', 'Not available')}.")
+        summary_parts.append(f"What drives follows: {social_insights.get('what_drives_follows', 'Not available')}.")
+        if social_insights.get("balance_problems"):
+            summary_parts.append(
+                f"Balance problems: {' | '.join(social_insights.get('balance_problems', [])[:3])}."
+            )
+
+    priority_actions = strategy.get("priority_actions", [])
+    if priority_actions:
+        summary_parts.append(
+            f"Top website priority actions: {' | '.join(action.get('title', '') for action in priority_actions[:3])}."
+        )
+
+    social_recommendations = build_social_recommendation_cards(results)
+    if social_recommendations:
+        summary_parts.append(
+            f"Top social recommendation themes: {' | '.join(format_heading(card.get('category', 'social')).title() for card in social_recommendations[:3])}."
+        )
+
+    return " ".join(summary_parts)
+
+
+def user_asked_for_more_ideas(user_message: str) -> bool:
+    """Return True when the user is explicitly asking for multiple ideas or options."""
+    message_lower = user_message.lower()
+    triggers = [
+        "more ideas",
+        "more options",
+        "3 ideas",
+        "3 recommendations",
+        "what else",
+        "give me more",
+        "additional recommendations",
+    ]
+    return any(trigger in message_lower for trigger in triggers)
+
+
+def generate_ai_chat_response(user_message: str, results: dict | None) -> str:
+    """Generate a structured strategist response using loaded run data."""
+    if not results:
+        return (
+            "INSIGHT\n"
+            "No marketing data is loaded yet.\n\n"
+            "WHY IT MATTERS\n"
+            "Without a loaded run, I cannot tie advice to your actual GA4, GSC, SEMrush, or Meta performance.\n\n"
+            "RECOMMENDATION\n"
+            "Load a saved run or upload fresh data on the Data Sources page first.\n\n"
+            "NEXT ACTION\n"
+            "Go to Data Sources, load a previous run or upload your files, then ask your question again."
+        )
+
+    message_lower = user_message.lower()
+    insight = results.get("insight", {})
+    strategy = results.get("strategy", {}).get("strategy", {})
+    social_insights = results.get("social_insights", {})
+    context_summary = build_chat_context_summary(results)
+
+    top_query = get_first_value(insight.get("high_impression_low_click", []), "query")
+    top_source = get_first_value(insight.get("top_sources", []), "source_medium")
+    primary_page = strategy.get("primary_page", "Not available")
+    priority_actions = strategy.get("priority_actions", [])
+    social_best_format = social_insights.get("best_post_type", "Not available")
+    social_worst_format = social_insights.get("worst_post_type", "Not available")
+    social_top_topic = (
+        humanize_social_topic(social_insights.get("top_topics", [])[0])
+        if social_insights.get("top_topics")
+        else "Not available"
+    )
+    social_weak_topic = (
+        humanize_social_topic(social_insights.get("weak_topics", [])[0])
+        if social_insights.get("weak_topics")
+        else "Not available"
+    )
+    social_balance_problems = social_insights.get("balance_problems", [])
+
+    insight_text = ""
+    why_text = ""
+    recommendation_text = ""
+    next_action_text = ""
+    additional_ideas: list[str] = []
+
+    if any(term in message_lower for term in ["reel", "reels", "engagement", "post", "social", "instagram", "facebook"]):
+        if not social_insights:
+            insight_text = "Meta social data is not loaded in the current run."
+            why_text = "Without Meta post-level performance, I cannot diagnose what is driving reach, saves, follows, or weak engagement."
+            recommendation_text = "Upload a Meta content export so the strategy can connect content format, topic, and conversion behavior."
+            next_action_text = "Go to Data Sources, upload the Meta Content Export CSV, and rerun the workflow."
+        elif "conversion" in message_lower and "low" in message_lower:
+            issue = social_balance_problems[0] if social_balance_problems else "The current social funnel is not converting as strongly as engagement suggests."
+            insight_text = issue
+            why_text = "Your loaded social data suggests interest exists, but the path from attention to follow, quiz, or booking action is still too weak."
+            recommendation_text = "Strengthen conversion prompts on the formats and topics already earning attention, especially by adding clearer next-step guidance, quiz prompts, or booking language."
+            next_action_text = "Start with the best-performing format and add one direct CTA variant to the next 3 posts."
+            additional_ideas = [
+                "Turn save-worthy content into CTA-led variants with a clearer follow or booking prompt.",
+                "Use the strongest follow-driving hook again, but change the close so it pushes one clear next step.",
+            ]
+        elif "engagement" in message_lower and "low" in message_lower:
+            issue = next((item for item in social_balance_problems if "low engagement" in item.lower()), "")
+            insight_text = issue or f"{social_worst_format} is the weakest current social format."
+            why_text = "Low engagement usually means the post is getting seen but the opening, framing, or payoff is not strong enough to hold attention."
+            recommendation_text = "Improve the first frame and hook on the weakest format before increasing volume."
+            next_action_text = "Rewrite the next 3 low-performing posts so the first line or first frame creates a sharper problem-solution payoff."
+            additional_ideas = [
+                f"Test the strongest topic, {social_top_topic}, in a more attention-grabbing format.",
+                "Repurpose a post that already drove saves into a shorter, stronger opening sequence.",
+            ]
+        elif any(term in message_lower for term in ["what should i post", "content works best", "what content works best"]):
+            insight_text = f"{social_best_format} is the strongest current social format, and {social_top_topic} is the strongest topic theme in the loaded run."
+            why_text = "The fastest social growth usually comes from scaling what is already producing saves, follows, or strong engagement, not from inventing a new content direction from scratch."
+            recommendation_text = f"Create more {social_best_format} content around {social_top_topic}, using the same style of hook that is already driving saves or follows."
+            next_action_text = "Build a 3-post content series this week using your strongest topic and strongest format."
+            additional_ideas = [
+                "Create one educational variation, one trust-building variation, and one CTA-led variation of the same topic.",
+                "Turn the top save-driving pattern into a Reel and a Carousel to test format expansion.",
+            ]
+        else:
+            insight_text = f"Your current social signals point to {social_best_format} as the strongest format and {social_top_topic} as the strongest topic, while {social_weak_topic} is lagging."
+            why_text = "That gives a clear performance split between what should be scaled and what should be fixed or reduced."
+            recommendation_text = "Scale the strongest format-topic combination first instead of spreading effort evenly across all content types."
+            next_action_text = "Use the next content cycle to prioritize one winning format and one winning topic."
+            additional_ideas = [
+                "Reduce effort on the weakest topic until a stronger hook or format test is ready.",
+                "Replicate the strongest follow-driving pattern with a sharper patient-acquisition CTA.",
+            ]
+    elif any(term in message_lower for term in ["top opportunity", "optimize first", "seo", "website", "query", "page", "traffic"]):
+        if not insight:
+            insight_text = "Website and SEO data is missing from the current run."
+            why_text = "Without GA4, GSC, or SEMrush inputs, I cannot identify the highest-leverage website opportunity."
+            recommendation_text = "Load a run with website data so the recommendation can be tied to actual search and traffic performance."
+            next_action_text = "Upload GA4, GSC, or SEMrush data and rerun the workflow."
+        else:
+            top_action = priority_actions[0] if priority_actions else {}
+            insight_text = (
+                f"The clearest website opportunity is {top_query}, with {primary_page} as the primary page to optimize first."
+            )
+            why_text = (
+                f"The loaded run shows existing visibility around {top_query} and a clear page-level focus, which means you can improve growth faster by concentrating effort instead of spreading it across multiple pages."
+            )
+            recommendation_text = (
+                top_action.get("action")
+                or f"Optimize {primary_page} first around {top_query}, tightening page structure, SERP messaging, and conversion guidance."
+            )
+            next_action_text = (
+                f"Start with {primary_page}, then align the title, H1, FAQ content, and CTA flow to the demand showing up in {top_query}."
+            )
+            additional_ideas = [
+                f"Use {top_source} landing-page traffic as a second optimization layer so the page converts better once rankings improve.",
+                "Support the primary page with one related topic asset to strengthen internal linking and topical depth.",
+            ]
+    elif any(term in message_lower for term in ["what should i do", "give me recommendations", "strategy", "mixed", "growth"]):
+        website_action = priority_actions[0] if priority_actions else {}
+        social_recommendations = build_social_recommendation_cards(results)
+        top_social = social_recommendations[0] if social_recommendations else {}
+
+        insight_text = (
+            f"Your loaded run shows a split opportunity: website growth is centered on {top_query}, while social momentum is strongest in {social_best_format} content."
+        )
+        why_text = (
+            "That means your next move should not be generic marketing activity. It should be one website action and one content action that both map to the strongest available signals."
+        )
+        recommendation_text = (
+            website_action.get("action")
+            or f"Optimize {primary_page} first for {top_query}, then align social content to reinforce the same patient questions and conversion themes."
+        )
+        next_action_text = (
+            top_social.get("recommendation")
+            or "Use the strongest website topic as the basis for the next social content series so both channels reinforce the same growth priority."
+        )
+        additional_ideas = [
+            "Turn the primary SEO question into a short-form social series that warms up the same patient audience.",
+            "Use social save-driving content as a clue for which FAQs should move higher on the main website page.",
+        ]
+    else:
+        insight_text = context_summary
+        why_text = "The loaded run gives enough context to identify one immediate growth move, but your question is broad enough that I need to anchor the response to the strongest currently visible signal."
+        recommendation_text = (
+            priority_actions[0].get("action")
+            if priority_actions
+            else "Start with the clearest loaded website or social signal rather than spreading effort across every channel."
+        )
+        next_action_text = (
+            "Ask a more specific question about SEO, social, conversions, content, or optimization priority if you want a tighter strategist answer."
+        )
+        additional_ideas = [
+            "Ask which page to optimize first.",
+            "Ask what social content format to scale next.",
+        ]
+
+    response = (
+        f"INSIGHT\n{insight_text}\n\n"
+        f"WHY IT MATTERS\n{why_text}\n\n"
+        f"RECOMMENDATION\n{recommendation_text}\n\n"
+        f"NEXT ACTION\n{next_action_text}"
+    )
+
+    if user_asked_for_more_ideas(user_message):
+        extra_lines = [f"- {idea}" for idea in additional_ideas[:2]] or ["- Ask a more specific follow-up and I can give two grounded options."]
+        response += "\n\nADDITIONAL IDEAS\n" + "\n".join(extra_lines)
+
+    return response
+
+
+
+def render_opportunity_card(title: str, data: dict[str, str]) -> None:
+    """Render a website opportunity using the same card style as recommendations."""
+    priority = str(data.get("priority", "Medium")).strip().title()
+    priority_class_map = {
+        "High": "priority-high-pill",
+        "Medium": "priority-medium-pill",
+        "Low": "priority-low-pill",
+    }
+    pill_class = priority_class_map.get(priority, "priority-medium-pill")
+
+    body_parts = []
+
+    if data.get("keyword"):
+        body_parts.append(f"<strong>Keyword:</strong> {data.get('keyword', '-')}")
+    if data.get("position"):
+        body_parts.append(f"<strong>Position:</strong> {data.get('position', '-')}")
+    if data.get("page_url"):
+        body_parts.append(f"<strong>Page:</strong> {data.get('page_url', '-')}")
+    if data.get("metric_line"):
+        body_parts.append(f"<strong>Metrics:</strong> {data.get('metric_line', '-')}")
+    if data.get("topic"):
+        body_parts.append(f"<strong>Topic:</strong> {data.get('topic', '-')}")
+    if data.get("volume") and data.get("volume") != "Not available":
+        body_parts.append(f"<strong>Volume:</strong> {data.get('volume', '-')}")
+    if data.get("url") and data.get("url") != "Not available":
+        url = str(data.get("url", "#"))
+        body_parts.append(f'<strong>URL:</strong> <a href="{url}" target="_blank">{url}</a>')
+    if data.get("intent_type") or data.get("opportunity_type") or data.get("gap_type"):
+        tag_parts = [part for part in [data.get("intent_type"), data.get("opportunity_type"), data.get("gap_type")] if part]
+        body_parts.append(f"<strong>Tags:</strong> {' | '.join(tag_parts)}")
+    if data.get("why_it_matters") or data.get("reason"):
+        body_parts.append(f"<strong>Why it matters:</strong> {data.get('why_it_matters', data.get('reason', ''))}")
+    if data.get("recommended_action") or data.get("action"):
+        body_parts.append(f"<strong>Recommended action:</strong> {data.get('recommended_action', data.get('action', ''))}")
+
+    body_html = "<br><br>".join(body_parts) if body_parts else "No opportunity details available."
+
+    st.markdown(
+        f"""
+        <div class="recommendation-card">
+            <div class="recommendation-card-top">
+                <div class="recommendation-category">{title}</div>
+                <div class="{pill_class}">{priority} Priority</div>
+            </div>
+            <div class="recommendation-body">
+                {body_html}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 def render_opportunities_page(results: dict) -> None:
     """Render the Opportunities page."""
     st.title("Opportunities")
@@ -2185,16 +2790,7 @@ def render_opportunities_page(results: dict) -> None:
         opportunity_cards = build_semrush_opportunity_cards(semrush_positions_data)
         if opportunity_cards:
             for card in opportunity_cards:
-                st.markdown(f"**{card['keyword']}**")
-                st.write(f"Position: {card['position']}")
-                if card["volume"] != "Not available":
-                    st.write(f"Volume: {card['volume']}")
-                if card["url"] != "Not available":
-                    st.write(f"URL: {card['url']}")
-                st.write(f"Why it matters: {card['why_it_matters']}")
-                st.write(f"Recommended action: {card['recommended_action']}")
-                st.write(f"Priority: {card['priority']}")
-                st.divider()
+                render_opportunity_card("SEO Opportunity", card)
         else:
             st.info("No SEMrush keyword opportunities available yet.")
     else:
@@ -2205,12 +2801,7 @@ def render_opportunities_page(results: dict) -> None:
         page_cards = build_semrush_page_cards(semrush_pages_data)
         if page_cards:
             for card in page_cards:
-                st.markdown(f"**{card['page_url']}**")
-                st.write(card["metric_line"])
-                st.write(f"Why it matters: {card['why_it_matters']}")
-                st.write(f"Recommended action: {card['recommended_action']}")
-                st.write(f"Priority: {card['priority']}")
-                st.divider()
+                render_opportunity_card("Page Opportunity", card)
         else:
             st.info("No SEMrush page opportunities available yet.")
     else:
@@ -2224,25 +2815,7 @@ def render_opportunities_page(results: dict) -> None:
         )
         if topic_cards:
             for card in topic_cards:
-                st.markdown(f"**{card['topic']}**")
-                topic_tags = []
-                if card.get("intent_type"):
-                    topic_tags.append(f'<span class="topic-tag">Intent: {card["intent_type"]}</span>')
-                if card.get("opportunity_type"):
-                    topic_tags.append(f'<span class="topic-tag">Opportunity: {card["opportunity_type"]}</span>')
-                if card.get("gap_type"):
-                    topic_tags.append(f'<span class="topic-tag">Gap: {card["gap_type"]}</span>')
-                if topic_tags:
-                    st.markdown(
-                        f'<div class="topic-tag-row">{"".join(topic_tags)}</div>',
-                        unsafe_allow_html=True,
-                    )
-                if card["volume"] != "Not available":
-                    st.write(f"Volume: {card['volume']}")
-                st.write(f"Why it matters: {card['why_it_matters']}")
-                st.write(f"Recommended action: {card['recommended_action']}")
-                st.write(f"Priority: {card['priority']}")
-                st.divider()
+                render_opportunity_card("Topic Opportunity", card)
         else:
             st.info("No SEMrush topic opportunities available yet.")
     else:
@@ -2424,6 +2997,227 @@ def render_reports_page(results: dict) -> None:
     render_export_section(results)
 
 
+def render_ai_chat_page(results: dict | None) -> None:
+    """Render the AI Chat strategist interface."""
+    st.title("AI Chat")
+    st.caption("Ask your AI Marketing Strategist anything about your loaded data")
+
+    if "ai_chat_messages" not in st.session_state:
+        st.session_state["ai_chat_messages"] = [
+            {
+                "role": "assistant",
+                "content": "Hi — I’m your AI Marketing Strategist. Ask me about your website, SEO, social performance, opportunities, or recommendations.",
+            }
+        ]
+
+    for message in st.session_state["ai_chat_messages"]:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    user_prompt = st.chat_input("Ask about your marketing data...")
+    if user_prompt:
+        st.session_state["ai_chat_messages"].append({"role": "user", "content": user_prompt})
+        with st.chat_message("user"):
+            st.markdown(user_prompt)
+
+        assistant_response = generate_ai_chat_response(user_prompt, results)
+        st.session_state["ai_chat_messages"].append({"role": "assistant", "content": assistant_response})
+
+        with st.chat_message("assistant"):
+            st.markdown(assistant_response)
+
+
+def build_ai_insight_feed(results: dict | None) -> list[dict[str, str]]:
+    """Build a short list of AI insight cards for the shared rail."""
+    if not results:
+        return [
+            {
+                "title": "No Data Loaded",
+                "message": "Load a saved run or upload data to activate AI insights.",
+                "level": "info",
+            }
+        ]
+
+    cards = []
+    insight = results.get("insight", {})
+    social_insights = results.get("social_insights", {})
+    semrush_positions_data = results.get("semrush_positions_data")
+    semrush_pages_data = results.get("semrush_pages_data")
+
+    high_ctr_gap = insight.get("high_impression_low_click", [])
+    if high_ctr_gap:
+        top_item = high_ctr_gap[0]
+        cards.append(
+            {
+                "title": "Low CTR Detected",
+                "message": (
+                    f"{top_item.get('query', 'A top query')} is getting visibility but not enough clicks, which suggests a stronger SERP message or page alignment is needed."
+                ),
+                "level": "warning",
+            }
+        )
+
+    if semrush_positions_data is not None and not getattr(semrush_positions_data, "empty", True):
+        keyword_cards = build_semrush_opportunity_cards(semrush_positions_data)
+        if keyword_cards:
+            cards.append(
+                {
+                    "title": "Ranking Opportunity",
+                    "message": (
+                        f"{keyword_cards[0].get('keyword', 'A tracked keyword')} is within striking distance and can likely move with focused optimization."
+                    ),
+                    "level": "info",
+                }
+            )
+    elif semrush_pages_data is not None and not getattr(semrush_pages_data, "empty", True):
+        page_cards = build_semrush_page_cards(semrush_pages_data)
+        if page_cards:
+            cards.append(
+                {
+                    "title": "Ranking Opportunity",
+                    "message": (
+                        f"{page_cards[0].get('page_url', 'A tracked page')} already has visibility and looks like a strong optimization candidate."
+                    ),
+                    "level": "info",
+                }
+            )
+
+    if insight.get("patterns"):
+        cards.append(
+            {
+                "title": "Growth Insight",
+                "message": str(insight["patterns"][0]),
+                "level": "success",
+            }
+        )
+
+    best_post_type = social_insights.get("best_post_type", "Not available")
+    if best_post_type and best_post_type != "Not available":
+        cards.append(
+            {
+                "title": "Social Format Winner",
+                "message": f"{best_post_type} is currently the strongest social format in the loaded run.",
+                "level": "success",
+            }
+        )
+
+    balance_problems = social_insights.get("balance_problems", [])
+    if balance_problems:
+        cards.append(
+            {
+                "title": "Content Gap Identified",
+                "message": str(balance_problems[0]),
+                "level": "warning",
+            }
+        )
+    elif social_insights.get("what_drives_follows") and social_insights.get("what_drives_follows") != "Not available":
+        cards.append(
+            {
+                "title": "Social Performance Signal",
+                "message": str(social_insights.get("what_drives_follows", "")),
+                "level": "info",
+            }
+        )
+    elif social_insights.get("what_drives_saves") and social_insights.get("what_drives_saves") != "Not available":
+        cards.append(
+            {
+                "title": "Social Performance Signal",
+                "message": str(social_insights.get("what_drives_saves", "")),
+                "level": "info",
+            }
+        )
+
+    return cards[:5] if cards else [
+        {
+            "title": "No Data Loaded",
+            "message": "Load a saved run or upload data to activate AI insights.",
+            "level": "info",
+        }
+    ]
+
+
+def render_ai_right_rail(results: dict | None) -> None:
+    """Render the shared AI rail used across app pages."""
+    insight_cards = build_ai_insight_feed(results)
+
+    st.markdown('<div class="ai-rail-panel">', unsafe_allow_html=True)
+    st.markdown('<div class="ai-rail-title">AI Insights Feed</div>', unsafe_allow_html=True)
+    for card in insight_cards:
+        level_class = {
+            "warning": "ai-insight-warning",
+            "success": "ai-insight-success",
+            "info": "ai-insight-info",
+        }.get(card.get("level", "info"), "ai-insight-info")
+
+        st.markdown(
+            f"""
+            <div class="ai-insight-card {level_class}">
+                <div class="ai-insight-title">{card.get("title", "Insight")}</div>
+                <div class="ai-insight-text">{card.get("message", "")}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown('<div class="ai-rail-title">Generate Strategy</div>', unsafe_allow_html=True)
+    st.markdown('<div class="ai-strategy-button-wrap">', unsafe_allow_html=True)
+    if st.button("Generate Strategy", key="ai_rail_generate_strategy"):
+        if results:
+            st.session_state["ai_strategy_summary"] = generate_ai_chat_response("What should I optimize first?", results)
+        else:
+            st.session_state["ai_strategy_summary"] = (
+                "INSIGHT\nNo data is loaded yet.\n\nWHY IT MATTERS\nThe strategist summary depends on a loaded run.\n\nRECOMMENDATION\nLoad a saved run or upload data first.\n\nNEXT ACTION\nGo to Data Sources and load or run your marketing data."
+            )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.session_state.get("ai_strategy_summary"):
+        st.markdown(
+            f'<div class="ai-chat-response">{st.session_state["ai_strategy_summary"]}</div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown('<div class="ai-rail-title">Chat with AI Agent</div>', unsafe_allow_html=True)
+    st.markdown('<div class="ai-chat-box">', unsafe_allow_html=True)
+    sidebar_prompt = st.text_area(
+        "Ask about your data",
+        key="ai_sidebar_prompt_input",
+        height=100,
+        label_visibility="visible",
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+    if st.button("Send", key="ai_sidebar_send_button"):
+        st.session_state["ai_sidebar_last_prompt"] = sidebar_prompt
+        st.session_state["ai_sidebar_last_response"] = generate_ai_chat_response(sidebar_prompt, results)
+
+    if st.session_state.get("ai_sidebar_last_response"):
+        st.markdown(
+            f'<div class="ai-chat-response">{st.session_state["ai_sidebar_last_response"]}</div>',
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_dashboard_page(results: dict | None, ga4_debug_titles: list[str], show_debug: bool) -> None:
+    """Render the dashboard page inside the shared shell."""
+    if results:
+        render_standard_view(results, ga4_debug_titles, show_debug)
+    else:
+        st.title("Marketing Intelligence Dashboard")
+        st.caption("Overview of your marketing performance and opportunities")
+        st.info("Run the workflow first on the Data Sources page.")
+
+
+def render_with_ai_rail(page_renderer, results=None, *args) -> None:
+    """Render a page inside the shared main-content plus AI-rail shell."""
+    main_col, rail_col = st.columns([4.2, 1])
+
+    with main_col:
+        page_renderer(*args)
+
+    with rail_col:
+        render_ai_right_rail(results)
+
+
 # Sidebar Navigation
 with st.sidebar:
     st.markdown("## AI Marketing")
@@ -2449,6 +3243,7 @@ results = None
 ga4_debug_titles: list[str] = []
 
 if page == "Data Sources":
+    current_results = st.session_state.get("results")
     uploaded = render_data_sources()
 
     if uploaded["load_saved_run_button"] and uploaded["selected_saved_run_id"]:
@@ -2457,6 +3252,7 @@ if page == "Data Sources":
             st.session_state["results"] = loaded_run["results"]
             st.session_state["ga4_debug_titles"] = loaded_run["ga4_debug_titles"]
             st.session_state["loaded_run_id"] = loaded_run["run_id"]
+            current_results = loaded_run["results"]
             st.success(f"Loaded saved run: {loaded_run['run_id']}")
         else:
             st.error("Could not load the selected saved run.")
@@ -2511,52 +3307,31 @@ if page == "Data Sources":
         st.session_state["results"] = results
         st.session_state["ga4_debug_titles"] = ga4_debug_titles
         st.session_state["loaded_run_id"] = run_id
+        current_results = results
 
         st.success("Workflow complete. Results were saved and can now be loaded from Saved Runs.")
 
 elif page == "Dashboard":
-    st.title("Marketing Intelligence Dashboard")
-    st.caption("Overview of your marketing performance and opportunities")
-
     results = st.session_state.get("results")
     ga4_debug_titles = st.session_state.get("ga4_debug_titles", [])
-
-    if results:
-        render_standard_view(results, ga4_debug_titles, show_debug)
-    else:
-        st.info("Run the workflow first on the Data Sources page.")
+    render_dashboard_page(results, ga4_debug_titles, show_debug)
 
 elif page == "Analysis":
     results = st.session_state.get("results")
-    if results:
-        render_analysis_page(results)
-    else:
-        st.info("Run the workflow first on the Data Sources page.")
+    render_with_ai_rail(render_analysis_page, results, results)
 
 elif page == "Social Analysis":
     results = st.session_state.get("results")
-    if results:
-        render_social_analysis_page(results)
-    else:
-        st.info("Run the workflow first on the Data Sources page.")
+    render_with_ai_rail(render_social_analysis_page, results, results)
 
 elif page == "Opportunities":
     results = st.session_state.get("results")
-    if results:
-        render_opportunities_page(results)
-    else:
-        st.info("Run the workflow first on the Data Sources page.")
+    render_with_ai_rail(render_opportunities_page, results, results)
 
 elif page == "Recommendations":
     results = st.session_state.get("results")
-    if results:
-        render_recommendations_page(results)
-    else:
-        st.info("Run the workflow first on the Data Sources page.")
+    render_with_ai_rail(render_recommendations_page, results, results)
 
 elif page == "Reports":
     results = st.session_state.get("results")
-    if results:
-        render_reports_page(results)
-    else:
-        st.info("Run the workflow first on the Data Sources page.")
+    render_with_ai_rail(render_reports_page, results, results)
