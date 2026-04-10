@@ -3396,17 +3396,50 @@ def render_reports_page(results: dict) -> None:
 
 
 def render_ai_chat_page(results: dict | None) -> None:
-    """Render the AI Chat strategist interface."""
-    st.title("AI Chat")
-    st.caption("Ask your AI Marketing Strategist anything about your loaded data")
-
+    """Render the dedicated Chat with AI Agent page."""
     if "ai_chat_messages" not in st.session_state:
         st.session_state["ai_chat_messages"] = [
             {
                 "role": "assistant",
-                "content": "Hi — I’m your AI Marketing Strategist. Ask me about your website, SEO, social performance, opportunities, or recommendations.",
+                "content": (
+                    "I’m your AI Marketing Strategist. Ask about your SEO, website performance, "
+                    "social content, opportunities, or recommendations."
+                ),
             }
         ]
+
+    st.title("Chat with AI Agent")
+    st.caption("Ask your AI Marketing Strategist about your loaded website, SEO, and social data.")
+    st.write("Choose a suggested prompt or type your own question.")
+
+    suggested_prompts = [
+        "What are my biggest SEO opportunities?",
+        "Which queries have high impressions but low CTR?",
+        "What pages should I update first?",
+        "What content topics could drive more traffic?",
+        "What are the biggest issues in my social content?",
+        "Summarize the top recommendations from this dataset.",
+        "Which queries should I prioritize for quick wins?",
+        "Compare website insights vs social insights.",
+    ]
+
+    def submit_chat_message(prompt_text: str) -> None:
+        prompt = str(prompt_text).strip()
+        if not prompt:
+            return
+
+        st.session_state["ai_chat_messages"].append({"role": "user", "content": prompt})
+        assistant_response = generate_ai_chat_response(prompt, results)
+        st.session_state["ai_chat_messages"].append({"role": "assistant", "content": assistant_response})
+
+    prompt_columns = st.columns(2)
+    for index, prompt in enumerate(suggested_prompts):
+        with prompt_columns[index % 2]:
+            if st.button(prompt, key=f"chat_page_prompt_chip_{index}"):
+                submit_chat_message(prompt)
+
+    if not results:
+        st.info("Load a saved run or upload data first, then ask the AI agent about your marketing performance.")
 
     for message in st.session_state["ai_chat_messages"]:
         with st.chat_message(message["role"]):
@@ -3414,15 +3447,8 @@ def render_ai_chat_page(results: dict | None) -> None:
 
     user_prompt = st.chat_input("Ask about your marketing data...")
     if user_prompt:
-        st.session_state["ai_chat_messages"].append({"role": "user", "content": user_prompt})
-        with st.chat_message("user"):
-            st.markdown(user_prompt)
-
-        assistant_response = generate_ai_chat_response(user_prompt, results)
-        st.session_state["ai_chat_messages"].append({"role": "assistant", "content": assistant_response})
-
-        with st.chat_message("assistant"):
-            st.markdown(assistant_response)
+        submit_chat_message(user_prompt)
+        st.rerun()
 
 
 def build_ai_insight_feed(results: dict | None) -> list[dict[str, str]]:
@@ -3575,6 +3601,25 @@ def render_ai_right_rail(results: dict | None) -> None:
         )
 
     st.markdown('<div class="ai-rail-title">Chat with AI Agent</div>', unsafe_allow_html=True)
+    st.caption("Choose a suggested prompt or type your own question.")
+
+    suggested_prompts = [
+        "What are my biggest SEO opportunities?",
+        "Which queries have high impressions but low CTR?",
+        "What pages should I update first?",
+        "What content topics could drive more traffic?",
+        "What are the biggest issues in my social content?",
+        "Summarize the top recommendations from this dataset.",
+        "Which queries should I prioritize for quick wins?",
+        "Compare website insights vs social insights.",
+    ]
+
+    prompt_columns = st.columns(2)
+    for index, prompt in enumerate(suggested_prompts):
+        with prompt_columns[index % 2]:
+            if st.button(prompt, key=f"ai_prompt_chip_{index}"):
+                st.session_state["ai_sidebar_prompt_input"] = prompt
+
     st.markdown('<div class="ai-chat-box">', unsafe_allow_html=True)
     sidebar_prompt = st.text_area(
         "Ask about your data",
@@ -3631,6 +3676,7 @@ with st.sidebar:
             "Opportunities",
             "Recommendations",
             "Reports",
+            "Chat with AI Agent",
         ],
     )
 
@@ -3716,20 +3762,24 @@ elif page == "Dashboard":
 
 elif page == "Analysis":
     results = st.session_state.get("results")
-    render_with_ai_rail(render_analysis_page, results, results)
+    render_analysis_page(results)
 
 elif page == "Social Analysis":
     results = st.session_state.get("results")
-    render_with_ai_rail(render_social_analysis_page, results, results)
+    render_social_analysis_page(results)
 
 elif page == "Opportunities":
     results = st.session_state.get("results")
-    render_with_ai_rail(render_opportunities_page, results, results)
+    render_opportunities_page(results)
 
 elif page == "Recommendations":
     results = st.session_state.get("results")
-    render_with_ai_rail(render_recommendations_page, results, results)
+    render_recommendations_page(results)
 
 elif page == "Reports":
     results = st.session_state.get("results")
-    render_with_ai_rail(render_reports_page, results, results)
+    render_reports_page(results)
+
+elif page == "Chat with AI Agent":
+    results = st.session_state.get("results")
+    render_ai_chat_page(results)
