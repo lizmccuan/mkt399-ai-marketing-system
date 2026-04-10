@@ -148,11 +148,8 @@ def analyze_queries(sample_records: list[dict[str, Any]]) -> list[dict[str, Any]
         query_lower = query_text.lower()
         clicks = to_number(record.get("clicks"))
         impressions = to_number(record.get("impressions"))
-        ctr = to_number(record.get("ctr"))
+        ctr = normalize_ctr_percent(record.get("ctr"), clicks, impressions)
         position = to_number(record.get("position"))
-
-        if ctr == 0 and impressions > 0 and clicks >= 0:
-            ctr = round((clicks / impressions) * 100, 2)
 
         analyzed_queries.append(
             {
@@ -177,6 +174,15 @@ def analyze_queries(sample_records: list[dict[str, Any]]) -> list[dict[str, Any]
         )
 
     return sorted(analyzed_queries, key=lambda item: item["opportunity_score"], reverse=True)
+
+
+def normalize_ctr_percent(raw_ctr: Any, clicks: float, impressions: float) -> float:
+    """Normalize CTR into percentage units for all downstream logic."""
+    if impressions > 0 and clicks >= 0:
+        return round((clicks / impressions) * 100, 2)
+
+    ctr = to_number(raw_ctr)
+    return ctr
 
 
 def build_opportunity_score(

@@ -486,6 +486,49 @@ def get_first_value(items: list[dict], key: str, fallback: str = "Not available"
     return fallback
 
 
+def format_ctr_value(value, fallback: str = "Not available") -> str:
+    """Format an already-normalized CTR percentage for display."""
+    if value is None or value == "":
+        return fallback
+
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        text_value = str(value).strip()
+        return text_value if text_value else fallback
+
+    if pd.isna(numeric_value):
+        return fallback
+
+    return f"{numeric_value:.2f}%"
+
+
+def normalize_ctr_percent(value) -> float | None:
+    """Read a CTR percentage value safely for app-side calculations."""
+    if value is None or value == "":
+        return None
+
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    if pd.isna(numeric_value):
+        return None
+
+    return numeric_value
+
+
+def format_ctr_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Return a copy of a dataframe with CTR column formatted for display."""
+    if "ctr" not in dataframe.columns:
+        return dataframe
+
+    formatted_dataframe = dataframe.copy()
+    formatted_dataframe["ctr"] = formatted_dataframe["ctr"].apply(format_ctr_value)
+    return formatted_dataframe
+
+
 def parse_semrush_positions_csv(file) -> pd.DataFrame:
     """Read an uploaded SEMrush Organic Positions CSV into a DataFrame."""
     if file is None:
@@ -900,9 +943,12 @@ def build_scorecard(results: dict) -> dict[str, str]:
     """Collect the main scorecard values from workflow results."""
     insight = results["insight"]
     top_opportunity_item = insight["high_impression_low_click"][0] if insight["high_impression_low_click"] else {}
+    target_ctr_percent = 5.0
 
     top_opportunity_query = get_first_value(insight["high_impression_low_click"], "query")
-    top_ctr_gap = get_first_value(insight["high_impression_low_click"], "ctr")
+    top_ctr_percent = normalize_ctr_percent(top_opportunity_item.get("ctr")) if top_opportunity_item else None
+    top_ctr_gap_value = max(0.0, target_ctr_percent - top_ctr_percent) if top_ctr_percent is not None else None
+    top_ctr_gap = format_ctr_value(top_ctr_gap_value)
     top_traffic_source = get_first_value(insight["top_sources"], "source_medium")
     opportunity_score = str(top_opportunity_item.get("opportunity_score", "Not available"))
 
@@ -1066,7 +1112,7 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
             if has_query_data:
                 st.markdown('<div class="panel">', unsafe_allow_html=True)
                 st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
-                top_queries_df = pd.DataFrame(insight["query_analysis"])
+                top_queries_df = format_ctr_dataframe(pd.DataFrame(insight["query_analysis"]))
                 st.dataframe(
                     top_queries_df[["query", "ctr", "impressions", "position"]].head(5),
                     use_container_width=True,
@@ -1312,7 +1358,7 @@ def render_analysis_page(results: dict) -> None:
 
     if has_query_data:
         st.subheader("Top Queries")
-        top_queries_df = pd.DataFrame(insight["query_analysis"])
+        top_queries_df = format_ctr_dataframe(pd.DataFrame(insight["query_analysis"]))
         st.dataframe(
             top_queries_df[["query", "ctr", "impressions", "position"]].head(10),
             use_container_width=True,
@@ -1739,7 +1785,7 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
             {
                 "title": f"Improve CTR for {item['query']}",
                 "data_source": "GSC",
-                "supporting_data": f"Impressions: {int(impressions)} | CTR: {ctr}% | Position: {position}",
+                "supporting_data": f"Impressions: {int(impressions)} | CTR: {format_ctr_value(ctr)} | Position: {position}",
                 "why_it_matters": "This query already has visibility but is underperforming on clicks, which signals a strong high-intent gap.",
                 "recommended_action": "Refresh the title tag, meta description, and on-page answer structure to better match search intent.",
                 "priority": "High",
@@ -1761,7 +1807,7 @@ def build_priority_action_queue(results: dict) -> list[dict[str, str]]:
             {
                 "title": f"Expand visibility for {item['query']}",
                 "data_source": "GSC",
-                "supporting_data": f"Impressions: {int(impressions)} | CTR: {ctr}% | Position: {position}",
+                "supporting_data": f"Impressions: {int(impressions)} | CTR: {format_ctr_value(ctr)} | Position: {position}",
                 "why_it_matters": "This conversion-oriented query suggests commercial demand that could turn into appointments with stronger coverage.",
                 "recommended_action": "Add targeted copy, FAQs, and internal links so the page better supports decision-stage search intent.",
                 "priority": priority,
@@ -2002,12 +2048,16 @@ def build_export_dataframe(results: dict) -> pd.DataFrame:
         )
 
     for item in combined["top_queries"]:
+        metric_name = item["metric"]
+        metric_value = item["value"]
+        if str(metric_name).strip().lower() == "ctr":
+            metric_value = format_ctr_value(metric_value)
         rows.append(
             {
                 "section": "top_queries",
                 "label": item["query"],
-                "metric": item["metric"],
-                "value": str(item["value"]),
+                "metric": metric_name,
+                "value": str(metric_value),
             }
         )
 
