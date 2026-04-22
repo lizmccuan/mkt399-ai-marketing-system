@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import re
+import textwrap
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -14,8 +16,19 @@ from main import run_workflow
 from utils.parser import parse_csv_file, parse_uploaded_csv
 
 
+BASE_DIR = Path(__file__).resolve().parent
+DISTILLED_DIR = BASE_DIR / "reference_docs" / "distilled"
 RUNS_DIR = Path("saved_runs")
 RUNS_DIR.mkdir(exist_ok=True)
+
+
+def load_decision_rules() -> dict:
+    path = DISTILLED_DIR / "decision_rules.json"
+    if not path.exists():
+        return {"version": "1.0", "rules": []}
+
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 st.set_page_config(page_title="AI Marketing Workflow System", layout="wide")
@@ -153,6 +166,7 @@ st.markdown(
         border-radius: 18px;
         padding: 0.9rem 1rem;
         box-shadow: var(--shadow-soft);
+        min-height: 126px;
     }
     .stDataFrame, .stTable {
         background: #FFFFFF;
@@ -430,6 +444,61 @@ st.markdown(
         white-space: pre-wrap;
         margin-top: 0.35rem;
     }
+    .chat-message-wrap {
+        margin: 0.65rem 0 1rem;
+    }
+    .chat-message-card {
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+        box-shadow: 0 4px 16px rgba(16, 24, 40, 0.04);
+        line-height: 1.65;
+    }
+    .chat-message-user {
+        background: #F8FAFC;
+        border: 1px solid #DCE3EE;
+    }
+    .chat-message-assistant {
+        background: #FFFFFF;
+        border: 1px solid #E6E8F0;
+    }
+    .chat-message-label {
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #667085;
+        margin-bottom: 0.5rem;
+    }
+    .chat-message-body {
+        color: #162033;
+        font-size: 0.95rem;
+        line-height: 1.7;
+    }
+    .chat-response-section {
+        margin-bottom: 0.95rem;
+    }
+    .chat-response-section:last-child {
+        margin-bottom: 0;
+    }
+    .chat-response-title {
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #667085;
+        margin-bottom: 0.32rem;
+    }
+    .chat-response-text {
+        color: #162033;
+        line-height: 1.72;
+    }
+    .chat-response-next {
+        background: #F3EDFF;
+        border: 1px solid #E5DAFF;
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+        margin-top: 0.35rem;
+    }
 
     /* GLOBAL TEXT FIX */
     body, p, span, div, label {
@@ -443,9 +512,24 @@ st.markdown(
     /* STREAMLIT METRICS */
     [data-testid="stMetricValue"] {
         color: #111827 !important;
+        font-size: 1.55rem !important;
+        line-height: 1.2 !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
     }
     [data-testid="stMetricLabel"] {
         color: #6b7280 !important;
+        font-size: 0.85rem !important;
+        line-height: 1.3 !important;
+        white-space: normal !important;
+    }
+    [data-testid="stMetricValue"] > div,
+    [data-testid="stMetricLabel"] > div {
+        width: 100%;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
     }
     /* TABLE FIX */
     [data-testid="stDataFrame"] {
@@ -818,6 +902,138 @@ def save_uploaded_file(file, destination: Path) -> None:
         output_file.write(file.getbuffer())
 
 
+def format_saved_run_date_range(start_date: datetime, end_date: datetime) -> str:
+    """Format a readable saved-run date range label."""
+    if start_date.date() == end_date.date():
+        return start_date.strftime("%b %d")
+
+    if start_date.year == end_date.year and start_date.month == end_date.month:
+        return f"{start_date.strftime('%b')} {start_date.day}\u2013{end_date.day}"
+
+    if start_date.year == end_date.year:
+        return f"{start_date.strftime('%b')} {start_date.day}\u2013{end_date.strftime('%b')} {end_date.day}"
+
+    return (
+        f"{start_date.strftime('%b')} {start_date.day}, {start_date.year}"
+        f"\u2013{end_date.strftime('%b')} {end_date.day}, {end_date.year}"
+    )
+
+
+def parse_saved_run_date_token(token: str, fallback_year: int | None = None) -> datetime | None:
+    """Parse a date token from uploaded file header text."""
+    cleaned = str(token).strip().replace(".", "")
+    if not cleaned:
+        return None
+
+    for date_format in ["%b %d, %Y", "%B %d, %Y", "%m/%d/%Y", "%m/%d/%y", "%Y-%m-%d"]:
+        try:
+            return datetime.strptime(cleaned, date_format)
+        except ValueError:
+            continue
+
+    if fallback_year is not None:
+        for date_format in ["%b %d", "%B %d", "%m/%d"]:
+            try:
+                parsed = datetime.strptime(cleaned, date_format)
+                return parsed.replace(year=fallback_year)
+            except ValueError:
+                continue
+
+    return None
+
+
+def extract_uploaded_file_date_range(file) -> dict[str, str] | None:
+    """Extract a best-effort date range from the uploaded file header."""
+    if file is None:
+        return None
+
+    text_data = file.getvalue().decode("utf-8-sig", errors="ignore")
+    header_lines = [line.strip() for line in text_data.splitlines()[:15] if line.strip()]
+    if not header_lines:
+        return None
+
+    shared_month_pattern = re.compile(
+        r"(?P<month>Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|"
+        r"Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+"
+        r"(?P<day1>\d{1,2})\s*(?:-|–|to)\s*(?P<day2>\d{1,2})(?:,\s*(?P<year>\d{4}))?",
+        re.IGNORECASE,
+    )
+    multi_month_pattern = re.compile(
+        r"(?P<month1>Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|"
+        r"Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+"
+        r"(?P<day1>\d{1,2})(?:,\s*(?P<year1>\d{4}))?\s*(?:-|–|to)\s*"
+        r"(?P<month2>Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|"
+        r"Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+"
+        r"(?P<day2>\d{1,2})(?:,\s*(?P<year2>\d{4}))?",
+        re.IGNORECASE,
+    )
+    single_date_pattern = re.compile(
+        r"(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|"
+        r"Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:,\s*\d{4})?"
+        r"|\d{1,2}/\d{1,2}/\d{2,4}"
+        r"|\d{4}-\d{2}-\d{2}",
+        re.IGNORECASE,
+    )
+
+    fallback_year = datetime.now().year
+
+    for line in header_lines:
+        multi_month_match = multi_month_pattern.search(line)
+        if multi_month_match:
+            year1 = int(multi_month_match.group("year1") or multi_month_match.group("year2") or fallback_year)
+            year2 = int(multi_month_match.group("year2") or multi_month_match.group("year1") or fallback_year)
+            start_date = parse_saved_run_date_token(
+                f"{multi_month_match.group('month1')} {multi_month_match.group('day1')}",
+                fallback_year=year1,
+            )
+            end_date = parse_saved_run_date_token(
+                f"{multi_month_match.group('month2')} {multi_month_match.group('day2')}",
+                fallback_year=year2,
+            )
+            if start_date and end_date:
+                return {
+                    "start_date": start_date.strftime("%Y-%m-%d"),
+                    "end_date": end_date.strftime("%Y-%m-%d"),
+                    "label": format_saved_run_date_range(start_date, end_date),
+                }
+
+        shared_month_match = shared_month_pattern.search(line)
+        if shared_month_match:
+            range_year = int(shared_month_match.group("year") or fallback_year)
+            start_date = parse_saved_run_date_token(
+                f"{shared_month_match.group('month')} {shared_month_match.group('day1')}",
+                fallback_year=range_year,
+            )
+            end_date = parse_saved_run_date_token(
+                f"{shared_month_match.group('month')} {shared_month_match.group('day2')}",
+                fallback_year=range_year,
+            )
+            if start_date and end_date:
+                return {
+                    "start_date": start_date.strftime("%Y-%m-%d"),
+                    "end_date": end_date.strftime("%Y-%m-%d"),
+                    "label": format_saved_run_date_range(start_date, end_date),
+                }
+
+    parsed_dates: list[datetime] = []
+    for line in header_lines:
+        for match in single_date_pattern.finditer(line):
+            parsed_date = parse_saved_run_date_token(match.group(0), fallback_year=fallback_year)
+            if parsed_date:
+                parsed_dates.append(parsed_date)
+
+    if parsed_dates:
+        start_date = min(parsed_dates)
+        end_date = max(parsed_dates)
+        return {
+            "start_date": start_date.strftime("%Y-%m-%d"),
+            "end_date": end_date.strftime("%Y-%m-%d"),
+            "label": format_saved_run_date_range(start_date, end_date),
+        }
+
+    return None
+
+
 def save_run_files(
     ga4_pages_file,
     ga4_source_file,
@@ -843,16 +1059,38 @@ def save_run_files(
     }
 
     included_files = []
+    file_date_ranges: dict[str, dict[str, str]] = {}
+    collected_start_dates: list[datetime] = []
+    collected_end_dates: list[datetime] = []
+
     for filename, uploaded_file in file_map.items():
         if uploaded_file is not None:
             save_uploaded_file(uploaded_file, run_dir / filename)
             included_files.append(filename)
+
+            date_range = extract_uploaded_file_date_range(uploaded_file)
+            if date_range:
+                file_date_ranges[filename] = date_range
+                try:
+                    collected_start_dates.append(datetime.strptime(date_range["start_date"], "%Y-%m-%d"))
+                    collected_end_dates.append(datetime.strptime(date_range["end_date"], "%Y-%m-%d"))
+                except ValueError:
+                    continue
+
+    overall_date_range_label = ""
+    if collected_start_dates and collected_end_dates:
+        overall_date_range_label = format_saved_run_date_range(
+            min(collected_start_dates),
+            max(collected_end_dates),
+        )
 
     metadata = {
         "run_id": run_id,
         "display_label": run_id,
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "included_files": included_files,
+        "date_range_label": overall_date_range_label,
+        "file_date_ranges": file_date_ranges,
     }
 
     with (run_dir / "metadata.json").open("w", encoding="utf-8") as metadata_file:
@@ -883,6 +1121,50 @@ def list_saved_runs() -> list[dict]:
             continue
 
     return sorted(saved_runs, key=lambda item: item.get("run_id", ""), reverse=True)
+
+
+def get_saved_run_metadata(run_id: str) -> dict | None:
+    """Return saved run metadata for a given run id when available."""
+    if not run_id:
+        return None
+
+    metadata_path = RUNS_DIR / run_id / "metadata.json"
+    if not metadata_path.exists():
+        return None
+
+    try:
+        with metadata_path.open("r", encoding="utf-8") as metadata_file:
+            return json.load(metadata_file)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def build_saved_run_date_label(run_id: str) -> str:
+    """Build the clearest available date label for a saved run."""
+    metadata = get_saved_run_metadata(run_id) or {}
+
+    for key in ["date_range_label", "report_date_label", "display_label"]:
+        value = str(metadata.get(key, "")).strip()
+        if value:
+            return value
+
+    created_at = str(metadata.get("created_at", "")).strip()
+    if created_at:
+        try:
+            created_at_dt = datetime.fromisoformat(created_at)
+            return created_at_dt.strftime("%b %d, %Y")
+        except ValueError:
+            pass
+
+    run_id_value = str(metadata.get("run_id", run_id)).strip()
+    if run_id_value:
+        try:
+            run_dt = datetime.strptime(run_id_value, "%Y-%m-%d_%H%M%S")
+            return run_dt.strftime("%b %d, %Y")
+        except ValueError:
+            return run_id_value
+
+    return "Not available"
 
 
 def load_saved_run(run_id: str) -> dict | None:
@@ -929,6 +1211,372 @@ def load_saved_run(run_id: str) -> dict | None:
     }
 
 
+def load_saved_ga4_pages_dataframe(run_id: str) -> pd.DataFrame:
+    """Load the saved GA4 Page Title CSV for a run when available."""
+    if not run_id:
+        return pd.DataFrame()
+
+    ga4_pages_path = RUNS_DIR / run_id / "ga4_pages.csv"
+    if not ga4_pages_path.exists():
+        return pd.DataFrame()
+
+    try:
+        return parse_csv_file(str(ga4_pages_path), "GA4_PAGES")
+    except Exception:
+        return pd.DataFrame()
+
+
+def normalize_percent_metric(value) -> float | None:
+    """Normalize a percent-like metric into percentage units for comparison."""
+    numeric_value = to_comparison_number(value)
+    if numeric_value is None:
+        return None
+
+    return numeric_value * 100 if numeric_value <= 1 else numeric_value
+
+
+def to_comparison_number(value) -> float | None:
+    """Convert a stored metric value into a comparison-safe float."""
+    if value is None or value == "":
+        return None
+
+    try:
+        numeric_value = float(str(value).replace(",", "").replace("%", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+    if pd.isna(numeric_value):
+        return None
+
+    return numeric_value
+
+
+def format_comparison_value(value, value_type: str = "number") -> str:
+    """Format comparison values for tables without changing underlying logic."""
+    numeric_value = to_comparison_number(value)
+    if numeric_value is None:
+        return "Not available"
+
+    if value_type == "percent":
+        return f"{numeric_value:.2f}%"
+
+    if float(numeric_value).is_integer():
+        return f"{int(numeric_value):,}"
+
+    return f"{numeric_value:,.2f}"
+
+
+def format_percent_change(value) -> str:
+    """Format a percentage delta for display."""
+    numeric_value = to_comparison_number(value)
+    if numeric_value is None:
+        return "Not available"
+    return f"{numeric_value:.2f}%"
+
+
+def build_run_metric_snapshot(results: dict | None, run_id: str | None = None) -> dict[str, list[dict[str, object]]]:
+    """Extract comparable GA4, GSC, and social metrics from a saved run."""
+    if not results:
+        return {"ga4": [], "gsc": [], "social": [], "semrush": [], "availability": {}}
+
+    data_summary = results.get("data_intake", {}).get("summary", {})
+    insight = results.get("insight", {})
+    meta_posts_data = results.get("meta_posts_data")
+    semrush_positions_data = results.get("semrush_positions_data")
+    semrush_pages_data = results.get("semrush_pages_data")
+    semrush_topics_data = results.get("semrush_topics_data")
+    ga4_pages_data = load_saved_ga4_pages_dataframe(run_id or "")
+
+    ga4_pages_available = not ga4_pages_data.empty if not ga4_pages_data.empty else data_summary.get("ga4_pages", {}).get("rows", 0) > 0
+    ga4_sources_available = data_summary.get("ga4_sources", {}).get("rows", 0) > 0
+    gsc_available = data_summary.get("gsc_queries", {}).get("rows", 0) > 0
+    social_available = meta_posts_data is not None and not getattr(meta_posts_data, "empty", True)
+    semrush_positions_available = semrush_positions_data is not None and not getattr(semrush_positions_data, "empty", True)
+    semrush_pages_available = semrush_pages_data is not None and not getattr(semrush_pages_data, "empty", True)
+    semrush_topics_available = semrush_topics_data is not None and not getattr(semrush_topics_data, "empty", True)
+
+    ga4_page_metrics = data_summary.get("ga4_pages", {}).get("key_metrics", {})
+    ga4_sessions = (
+        to_comparison_number(ga4_pages_data["sessions"].fillna(0).sum())
+        if ga4_pages_available and "sessions" in ga4_pages_data.columns
+        else to_comparison_number(ga4_page_metrics.get("sessions"))
+    )
+    ga4_active_users = (
+        to_comparison_number(ga4_pages_data["active_users"].fillna(0).sum())
+        if ga4_pages_available and "active_users" in ga4_pages_data.columns
+        else to_comparison_number(ga4_page_metrics.get("active_users"))
+    )
+    ga4_engagement_rate = (
+        normalize_percent_metric(ga4_pages_data["engagement_rate"].fillna(0).mean())
+        if ga4_pages_available and "engagement_rate" in ga4_pages_data.columns
+        else normalize_percent_metric(ga4_page_metrics.get("engagement_rate"))
+    )
+    ga4_metrics = [
+        {"label": "Sessions", "value": ga4_sessions, "type": "number"},
+        {"label": "Active Users", "value": ga4_active_users, "type": "number"},
+        {
+            "label": "Engagement Rate",
+            "value": ga4_engagement_rate,
+            "type": "percent",
+        },
+    ]
+
+    query_analysis = insight.get("query_analysis", []) or []
+    total_clicks = sum(to_comparison_number(item.get("clicks")) or 0 for item in query_analysis)
+    total_impressions = sum(to_comparison_number(item.get("impressions")) or 0 for item in query_analysis)
+    average_position = (
+        sum(to_comparison_number(item.get("position")) or 0 for item in query_analysis) / len(query_analysis)
+        if query_analysis
+        else None
+    )
+    sample_ctr = (total_clicks / total_impressions * 100) if total_impressions else None
+    gsc_metrics = [
+        {"label": "Tracked GSC Clicks", "value": total_clicks if query_analysis else None, "type": "number"},
+        {"label": "Tracked GSC Impressions", "value": total_impressions if query_analysis else None, "type": "number"},
+        {"label": "Tracked CTR", "value": sample_ctr, "type": "percent"},
+        {"label": "Average Position", "value": average_position, "type": "number"},
+    ]
+
+    social_metrics: list[dict[str, object]] = []
+    if social_available:
+        social_metrics = [
+            {
+                "label": "Total Reach",
+                "value": to_comparison_number(meta_posts_data.get("Reach", pd.Series(dtype=float)).fillna(0).sum()),
+                "type": "number",
+            },
+            {
+                "label": "Total Engagement",
+                "value": to_comparison_number(meta_posts_data.get("Engagement", pd.Series(dtype=float)).fillna(0).sum()),
+                "type": "number",
+            },
+            {
+                "label": "Average Engagement Rate",
+                "value": to_comparison_number(meta_posts_data.get("Engagement Rate", pd.Series(dtype=float)).fillna(0).mean()),
+                "type": "percent",
+            },
+            {
+                "label": "Total Follows",
+                "value": to_comparison_number(meta_posts_data.get("Follows", pd.Series(dtype=float)).fillna(0).sum()),
+                "type": "number",
+            },
+        ]
+
+    semrush_metrics: list[dict[str, object]] = []
+    if semrush_positions_available or semrush_pages_available or semrush_topics_available:
+        semrush_metrics = [
+            {
+                "label": "Tracked Keywords",
+                "value": len(semrush_positions_data) if semrush_positions_available else None,
+                "type": "number",
+            },
+            {
+                "label": "Tracked Pages",
+                "value": len(semrush_pages_data) if semrush_pages_available else None,
+                "type": "number",
+            },
+            {
+                "label": "Tracked Topics",
+                "value": len(semrush_topics_data) if semrush_topics_available else None,
+                "type": "number",
+            },
+        ]
+
+    return {
+        "ga4": ga4_metrics,
+        "gsc": gsc_metrics,
+        "social": social_metrics,
+        "semrush": semrush_metrics,
+        "availability": {
+            "ga4_pages": ga4_pages_available,
+            "ga4_sources": ga4_sources_available,
+            "gsc": gsc_available,
+            "social": social_available,
+            "semrush_positions": semrush_positions_available,
+            "semrush_pages": semrush_pages_available,
+            "semrush_topics": semrush_topics_available,
+            "ga4_pages_columns": list(ga4_pages_data.columns),
+            "ga4_pages_rows": int(len(ga4_pages_data)),
+            "ga4_key_metric_keys": list(ga4_page_metrics.keys()),
+        },
+    }
+
+
+def compare_saved_runs(current_run_id: str, comparison_run_id: str) -> dict | None:
+    """Load two saved runs and compare their major metrics."""
+    current_run = load_saved_run(current_run_id)
+    comparison_run = load_saved_run(comparison_run_id)
+
+    if current_run is None or comparison_run is None:
+        return None
+
+    current_snapshot = build_run_metric_snapshot(current_run["results"], current_run_id)
+    comparison_snapshot = build_run_metric_snapshot(comparison_run["results"], comparison_run_id)
+    comparison_results: dict[str, object] = {
+        "current_run_id": current_run_id,
+        "comparison_run_id": comparison_run_id,
+        "current_run_date_label": build_saved_run_date_label(current_run_id),
+        "comparison_run_date_label": build_saved_run_date_label(comparison_run_id),
+        "comparison_date_label": (
+            f"{build_saved_run_date_label(current_run_id)} vs {build_saved_run_date_label(comparison_run_id)}"
+        ),
+        "ga4": [],
+        "gsc": [],
+        "social": [],
+        "semrush": [],
+        "section_messages": {},
+        "debug": {},
+    }
+
+    current_availability = current_snapshot.get("availability", {})
+    comparison_availability = comparison_snapshot.get("availability", {})
+    section_messages: dict[str, str] = {}
+
+    if not (current_availability.get("ga4_pages") and comparison_availability.get("ga4_pages")):
+        section_messages["ga4"] = "Requires GA4 Page Title report in both runs."
+    elif not (current_availability.get("ga4_sources") and comparison_availability.get("ga4_sources")):
+        section_messages["ga4"] = "Traffic-source comparisons require GA4 Source / Medium in both runs."
+
+    if not (current_availability.get("gsc") and comparison_availability.get("gsc")):
+        section_messages["gsc"] = "Requires GSC Queries in both runs."
+
+    if not (current_availability.get("social") and comparison_availability.get("social")):
+        section_messages["social"] = "Requires Meta/social export in both runs."
+
+    if not (
+        (current_availability.get("semrush_positions") or current_availability.get("semrush_pages") or current_availability.get("semrush_topics"))
+        and (
+            comparison_availability.get("semrush_positions")
+            or comparison_availability.get("semrush_pages")
+            or comparison_availability.get("semrush_topics")
+        )
+    ):
+        section_messages["semrush"] = "Requires SEMrush opportunity data in both runs."
+
+    comparison_results["section_messages"] = section_messages
+    comparison_results["debug"] = {
+        "current_run": {
+            "run_id": current_run_id,
+            "result_keys": sorted(current_run["results"].keys()),
+            "ga4_pages_available": current_availability.get("ga4_pages"),
+            "ga4_pages_rows": current_availability.get("ga4_pages_rows"),
+            "ga4_pages_columns": current_availability.get("ga4_pages_columns"),
+            "ga4_key_metric_keys": current_availability.get("ga4_key_metric_keys"),
+            "ga4_snapshot": current_snapshot.get("ga4", []),
+        },
+        "comparison_run": {
+            "run_id": comparison_run_id,
+            "result_keys": sorted(comparison_run["results"].keys()),
+            "ga4_pages_available": comparison_availability.get("ga4_pages"),
+            "ga4_pages_rows": comparison_availability.get("ga4_pages_rows"),
+            "ga4_pages_columns": comparison_availability.get("ga4_pages_columns"),
+            "ga4_key_metric_keys": comparison_availability.get("ga4_key_metric_keys"),
+            "ga4_snapshot": comparison_snapshot.get("ga4", []),
+        },
+    }
+
+    for section_key in ["ga4", "gsc", "social", "semrush"]:
+        current_metrics = {item["label"]: item for item in current_snapshot.get(section_key, [])}
+        previous_metrics = {item["label"]: item for item in comparison_snapshot.get(section_key, [])}
+        section_rows = []
+
+        for label in list(current_metrics.keys()):
+            current_metric = current_metrics.get(label, {})
+            previous_metric = previous_metrics.get(label, {})
+            current_value = to_comparison_number(current_metric.get("value"))
+            previous_value = to_comparison_number(previous_metric.get("value"))
+
+            absolute_change = (
+                current_value - previous_value
+                if current_value is not None and previous_value is not None
+                else None
+            )
+            percent_change = (
+                (absolute_change / previous_value) * 100
+                if absolute_change is not None and previous_value not in (None, 0)
+                else None
+            )
+
+            section_rows.append(
+                {
+                    "metric": label,
+                    "value_type": current_metric.get("type", previous_metric.get("type", "number")),
+                    "current_value": current_value,
+                    "previous_value": previous_value,
+                    "absolute_change": absolute_change,
+                    "percent_change": percent_change,
+                }
+            )
+
+        comparison_results[section_key] = section_rows
+
+    return comparison_results
+
+
+def render_comparison_summary(results: dict | None, sections: list[str]) -> None:
+    """Render saved-run comparison tables when comparison data exists."""
+    comparison_results = st.session_state.get("comparison_results")
+    comparison_mode = bool(st.session_state.get("comparison_mode"))
+    if not results or not comparison_results or not comparison_mode:
+        return
+
+    section_titles = {
+        "ga4": "GA4 Comparison",
+        "gsc": "GSC Comparison",
+        "social": "Social Comparison",
+        "semrush": "SEMrush Comparison",
+    }
+    section_messages = comparison_results.get("section_messages", {})
+    has_content = any(comparison_results.get(section) or section_messages.get(section) for section in sections)
+    if not has_content:
+        return
+
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">Saved Run Comparison</div>', unsafe_allow_html=True)
+    st.caption(
+        f"Current Run: {comparison_results.get('current_run_id', 'Not available')} | "
+        f"Comparison Run: {comparison_results.get('comparison_run_id', 'Not available')}"
+    )
+    st.caption(comparison_results.get("comparison_date_label", "Not available"))
+
+    for section in sections:
+        rows = comparison_results.get(section, [])
+        section_message = str(section_messages.get(section, "")).strip()
+
+        st.markdown(f"**{section_titles.get(section, section.title())}**")
+
+        if not rows:
+            if section_message:
+                st.info(section_message)
+            else:
+                st.info("Comparison data is not available for this section yet.")
+            continue
+
+        display_rows = []
+        for row in rows:
+            value_type = str(row.get("value_type", "number"))
+            display_rows.append(
+                {
+                    "Metric": row.get("metric", "Metric"),
+                    "Current Value": format_comparison_value(row.get("current_value"), value_type),
+                    "Previous Value": format_comparison_value(row.get("previous_value"), value_type),
+                    "Absolute Change": format_comparison_value(row.get("absolute_change"), value_type),
+                    "% Change": format_percent_change(row.get("percent_change")),
+                }
+            )
+
+        if section_message:
+            st.caption(section_message)
+        st.dataframe(pd.DataFrame(display_rows), use_container_width=True, hide_index=True)
+
+    debug_payload = comparison_results.get("debug")
+    if debug_payload:
+        with st.expander("Comparison Debug", expanded=False):
+            st.json(debug_payload)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def format_heading(value: str) -> str:
     """Convert keys like ux_conversion into clean labels."""
     return value.replace("_", " ").upper()
@@ -941,16 +1589,50 @@ def has_uploaded_data(files: list[object | None]) -> bool:
 
 def build_scorecard(results: dict) -> dict[str, str]:
     """Collect the main scorecard values from workflow results."""
-    insight = results["insight"]
-    top_opportunity_item = insight["high_impression_low_click"][0] if insight["high_impression_low_click"] else {}
+    insight = results.get("insight", {})
+    high_impression_low_click = insight.get("high_impression_low_click", []) or []
+    query_analysis = insight.get("query_analysis", []) or []
+    top_sources = insight.get("top_sources", []) or []
     target_ctr_percent = 5.0
 
-    top_opportunity_query = get_first_value(insight["high_impression_low_click"], "query")
+    top_opportunity_item = (
+        high_impression_low_click[0]
+        if high_impression_low_click
+        else max(
+            query_analysis,
+            key=lambda item: to_comparison_number(item.get("opportunity_score")) or 0,
+            default={},
+        )
+    )
+
+    if top_opportunity_item.get("query"):
+        top_opportunity_query = str(top_opportunity_item.get("query"))
+    elif query_analysis:
+        top_opportunity_query = "No standout GSC query opportunity found"
+    else:
+        top_opportunity_query = "Requires GSC Queries data"
+
+    opportunity_score_value = to_comparison_number(top_opportunity_item.get("opportunity_score"))
+    if opportunity_score_value is not None:
+        opportunity_score = str(int(opportunity_score_value) if float(opportunity_score_value).is_integer() else round(opportunity_score_value, 2))
+    elif query_analysis:
+        opportunity_score = "Requires GSC opportunity scoring"
+    else:
+        opportunity_score = "Requires GSC Queries data"
+
     top_ctr_percent = normalize_ctr_percent(top_opportunity_item.get("ctr")) if top_opportunity_item else None
     top_ctr_gap_value = max(0.0, target_ctr_percent - top_ctr_percent) if top_ctr_percent is not None else None
-    top_ctr_gap = format_ctr_value(top_ctr_gap_value)
-    top_traffic_source = get_first_value(insight["top_sources"], "source_medium")
-    opportunity_score = str(top_opportunity_item.get("opportunity_score", "Not available"))
+    if top_ctr_gap_value is not None:
+        top_ctr_gap = format_ctr_value(top_ctr_gap_value)
+    elif query_analysis:
+        top_ctr_gap = "No CTR gap found in loaded GSC data"
+    else:
+        top_ctr_gap = "Requires GSC Queries data"
+
+    if top_sources:
+        top_traffic_source = get_first_value(top_sources, "source_medium")
+    else:
+        top_traffic_source = "Requires GA4 Source / Medium"
 
     return {
         "Opportunity Score": opportunity_score,
@@ -983,37 +1665,21 @@ def render_scorecard(results: dict) -> None:
         st.markdown("</div>", unsafe_allow_html=True)
 
 
-def render_client_report(results: dict) -> None:
-    """Show a simplified client-facing report view."""
-    insight = results["insight"]
-    strategy = results["strategy"]["strategy"]
-    evaluation = results["evaluation"]["evaluation"]
+def collect_report_recommendations(strategy_recommendations: dict) -> dict[str, list[dict[str, str]]]:
+    """Normalize recommendation content for client-facing report output."""
+    formatted: dict[str, list[dict[str, str]]] = {}
 
-    st.subheader("Executive Summary")
-    st.write(
-        f"The strongest current opportunity is **{get_first_value(insight['high_impression_low_click'], 'query')}**, "
-        f"supported by traffic to **{strategy['primary_page']}** and acquisition led by "
-        f"**{get_first_value(insight['top_sources'], 'source_medium')}**."
-    )
-
-    st.subheader("Key Insights")
-    for item in insight["patterns"][:5]:
-        st.write(f"- {item}")
-
-    st.subheader("Recommended Actions")
-
-    for category, recommendations in strategy["recommendations"].items():
-        visible_recommendations = []
-
+    for category, recommendations in strategy_recommendations.items():
+        items: list[dict[str, str]] = []
         for recommendation in recommendations:
             if isinstance(recommendation, dict):
-                issue = recommendation.get("issue", "").strip()
-                rec_text = recommendation.get("recommendation", "").strip()
-                why = recommendation.get("why_it_matters", "").strip()
-                priority = recommendation.get("priority", "").strip()
+                issue = str(recommendation.get("issue", "")).strip()
+                rec_text = str(recommendation.get("recommendation", "")).strip()
+                why = str(recommendation.get("why_it_matters", "")).strip()
+                priority = str(recommendation.get("priority", "")).strip()
 
                 if issue or rec_text or why:
-                    visible_recommendations.append(
+                    items.append(
                         {
                             "issue": issue,
                             "recommendation": rec_text,
@@ -1022,7 +1688,7 @@ def render_client_report(results: dict) -> None:
                         }
                     )
             elif isinstance(recommendation, str) and recommendation.strip():
-                visible_recommendations.append(
+                items.append(
                     {
                         "issue": "",
                         "recommendation": recommendation.strip(),
@@ -1031,12 +1697,36 @@ def render_client_report(results: dict) -> None:
                     }
                 )
 
-        if not visible_recommendations:
-            continue
+        if items:
+            formatted[str(category)] = items
 
+    return formatted
+
+
+def render_client_report(results: dict) -> None:
+    """Show a simplified client-facing report view."""
+    insight = results["insight"]
+    strategy = results["strategy"]["strategy"]
+    evaluation = results["evaluation"]["evaluation"]
+    formatted_recommendations = collect_report_recommendations(strategy["recommendations"])
+
+    st.subheader("Executive Summary")
+    summary_parts = [
+        f"The strongest current opportunity is {get_first_value(insight['high_impression_low_click'], 'query')}.",
+        f"The page with the clearest strategic importance is {strategy['primary_page']}.",
+        f"The leading traffic source in the uploaded data is {get_first_value(insight['top_sources'], 'source_medium')}.",
+        f"The current readiness score is {evaluation['score']}/5.",
+    ]
+    st.write(" ".join(summary_parts))
+
+    st.subheader("Key Insights")
+    for item in insight["patterns"][:5]:
+        st.write(f"- {item}")
+
+    st.subheader("Recommended Actions")
+    for category, items in formatted_recommendations.items():
         st.markdown(f"### {format_heading(category)}")
-
-        for item in visible_recommendations:
+        for item in items:
             if item["priority"]:
                 st.markdown(f"**Priority:** {item['priority']}")
             if item["issue"]:
@@ -1045,7 +1735,7 @@ def render_client_report(results: dict) -> None:
                 st.markdown(f"**Recommendation:** {item['recommendation']}")
             if item["why"]:
                 st.markdown(f"**Why it matters:** {item['why']}")
-            st.markdown("---")
+            st.markdown("")
 
     st.subheader("Priority Opportunities")
     st.write(f"- Primary query focus: {strategy['primary_query']['query']}")
@@ -1088,6 +1778,7 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
         st.write("Profile placeholder")
         st.markdown("</div>", unsafe_allow_html=True)
 
+    render_comparison_summary(results, ["ga4", "gsc", "social", "semrush"])
     render_scorecard(results)
 
     left_col, right_col = st.columns([2.2, 1])
@@ -1318,6 +2009,8 @@ def render_analysis_page(results: dict) -> None:
         st.info("Run the workflow to view analysis.")
         return
 
+    render_comparison_summary(results, ["ga4", "gsc", "semrush"])
+
     insight = results["insight"]
     combined = results["data_intake"]["summary"]["combined"]
     data_summary = results["data_intake"]["summary"]
@@ -1393,6 +2086,8 @@ def render_social_analysis_page(results: dict) -> None:
     if not results:
         st.info("Upload a Meta content export and run the workflow first on the Data Sources page.")
         return
+
+    render_comparison_summary(results, ["social"])
 
     social_insights = results.get("social_insights") or {}
     meta_posts_data = results.get("meta_posts_data")
@@ -1587,7 +2282,7 @@ def build_suggested_change_cards(results: dict) -> list[dict[str, str]]:
 
 
 def build_semrush_opportunity_cards(semrush_positions_data: pd.DataFrame) -> list[dict[str, str]]:
-    """Turn SEMrush position data into clean keyword opportunity cards."""
+    """Turn SEMrush position data into strategic keyword opportunity cards."""
     dataframe = semrush_positions_data.copy()
     dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
 
@@ -1595,13 +2290,15 @@ def build_semrush_opportunity_cards(semrush_positions_data: pd.DataFrame) -> lis
         return []
 
     dataframe["position"] = pd.to_numeric(dataframe["position"], errors="coerce")
-
     if "volume" in dataframe.columns:
         dataframe["volume"] = pd.to_numeric(dataframe["volume"], errors="coerce")
-        opportunity_df = dataframe[(dataframe["position"] > 10) & (dataframe["volume"].fillna(0) > 0)]
+
+    opportunity_df = dataframe[dataframe["position"].between(4, 30, inclusive="both")].copy()
+    if "volume" in opportunity_df.columns:
+        opportunity_df = opportunity_df[opportunity_df["volume"].fillna(0) > 0]
         opportunity_df = opportunity_df.sort_values(["position", "volume"], ascending=[True, False])
     else:
-        opportunity_df = dataframe[dataframe["position"] > 10].sort_values("position", ascending=True)
+        opportunity_df = opportunity_df.sort_values("position", ascending=True)
 
     cards = []
     for _, row in opportunity_df.head(10).iterrows():
@@ -1610,24 +2307,52 @@ def build_semrush_opportunity_cards(semrush_positions_data: pd.DataFrame) -> lis
             int(row["volume"]) if "volume" in opportunity_df.columns and pd.notna(row.get("volume")) else "Not available"
         )
         url_value = str(row["url"]) if "url" in opportunity_df.columns and pd.notna(row.get("url")) else "Not available"
-        priority = "High" if pd.notna(row["position"]) and row["position"] > 20 else "Medium"
+        keyword_value = str(row["keyword"]).strip()
+
+        if pd.notna(row["position"]) and 8 <= row["position"] <= 15:
+            opportunity_type = "Quick-Win On-Page SEO"
+            why_it_matters = (
+                f"{keyword_value} is already ranking in a range where a focused on-page refresh can realistically push it into stronger click-driving positions."
+            )
+            recommended_action = (
+                f"Update the title tag, H1, opening paragraph, and FAQ block on the page targeting {keyword_value}, and add 2-3 internal links from closely related pages."
+            )
+            why_recommendation_works = (
+                "This works because the keyword already has visibility, so clearer relevance and stronger internal support can improve rankings without requiring a brand-new asset."
+            )
+            priority = "High"
+        elif pd.notna(row["position"]) and 16 <= row["position"] <= 30:
+            opportunity_type = "Content Expansion Opportunity"
+            why_it_matters = (
+                f"{keyword_value} has search visibility but is still too far from top positions, which usually means the current page does not cover the topic deeply enough."
+            )
+            recommended_action = (
+                f"Expand coverage around {keyword_value} with a dedicated supporting section or article, then link it back to the primary page to strengthen topic depth."
+            )
+            why_recommendation_works = (
+                "This works because broader coverage and supporting content help search engines connect the page cluster to the query’s intent, improving relevance and long-tail reach."
+            )
+            priority = "Medium"
+        else:
+            opportunity_type = "SEO Opportunity"
+            why_it_matters = f"{keyword_value} is visible in search and still has room to capture more qualified traffic."
+            recommended_action = (
+                f"Refresh the page targeting {keyword_value} so the headline, snippet language, and supporting content align more tightly with search intent."
+            )
+            why_recommendation_works = "Better keyword-to-page alignment typically improves both ranking strength and downstream traffic quality."
+            priority = "Medium"
 
         cards.append(
             {
+                "opportunity_type": opportunity_type,
+                "target": keyword_value,
                 "keyword": str(row["keyword"]),
                 "position": str(position_value),
                 "volume": str(volume_value),
                 "url": url_value,
-                "why_it_matters": (
-                    "This keyword is already ranking but still has room to move higher and capture more visibility."
-                    if priority == "Medium"
-                    else "This keyword has meaningful upside because it is outside the strongest ranking range and may need a bigger content or page update."
-                ),
-                "recommended_action": (
-                    "Tighten on-page targeting, improve internal links, and refresh supporting copy."
-                    if priority == "Medium"
-                    else "Create or expand a dedicated page or content section to improve relevance and ranking potential."
-                ),
+                "why_it_matters": why_it_matters,
+                "recommended_action": recommended_action,
+                "why_recommendation_works": why_recommendation_works,
                 "priority": priority,
             }
         )
@@ -1635,7 +2360,7 @@ def build_semrush_opportunity_cards(semrush_positions_data: pd.DataFrame) -> lis
     return cards
 
 def build_semrush_page_cards(semrush_pages_data: pd.DataFrame) -> list[dict[str, str]]:
-    """Turn SEMrush Pages Report data into page opportunity cards."""
+    """Turn SEMrush Pages Report data into page-level strategic opportunities."""
     dataframe = semrush_pages_data.copy()
     dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
 
@@ -1659,7 +2384,7 @@ def build_semrush_page_cards(semrush_pages_data: pd.DataFrame) -> list[dict[str,
     for _, row in dataframe.head(10).iterrows():
         traffic_value = int(row[traffic_column]) if traffic_column and pd.notna(row[traffic_column]) else None
         keywords_value = int(row[keywords_column]) if keywords_column and pd.notna(row[keywords_column]) else None
-        priority = "High" if (traffic_value or 0) >= 100 or (keywords_value or 0) >= 20 else "Medium"
+        page_url = str(row[url_column])
 
         metric_parts = []
         if traffic_value is not None:
@@ -1667,20 +2392,52 @@ def build_semrush_page_cards(semrush_pages_data: pd.DataFrame) -> list[dict[str,
         if keywords_value is not None:
             metric_parts.append(f"Keywords: {keywords_value}")
 
+        if (traffic_value or 0) >= 100 and (keywords_value or 0) >= 10:
+            opportunity_type = "UX Conversion Opportunity"
+            why_it_matters = (
+                f"{page_url} already attracts meaningful search demand, which means weak CTA placement, trust signals, or page flow can directly suppress conversions."
+            )
+            recommended_action = (
+                "Improve CTA visibility above the fold, add stronger provider/location trust language, and reduce friction between the main value proposition and the next step."
+            )
+            why_recommendation_works = (
+                "This should work because improving conversion flow on a page that already earns traffic is usually faster than trying to create demand from scratch."
+            )
+            priority = "High"
+        elif (keywords_value or 0) >= 20:
+            opportunity_type = "Thin Coverage Opportunity"
+            why_it_matters = (
+                f"{page_url} ranks for a broad keyword set, which suggests the page could capture more traffic if it covered the supporting subtopics more completely."
+            )
+            recommended_action = (
+                "Expand the page with deeper topic sections, related FAQs, and internal links to supporting assets so the page matches a wider set of long-tail intents."
+            )
+            why_recommendation_works = (
+                "This should work because fuller coverage helps the page compete across more related searches and makes its relevance clearer to search engines."
+            )
+            priority = "High"
+        else:
+            opportunity_type = "Page Optimization Opportunity"
+            why_it_matters = (
+                f"{page_url} has organic visibility and can likely perform better with clearer messaging, structure, and trust support."
+            )
+            recommended_action = (
+                "Refresh the headline-to-CTA flow, tighten the intro copy around user intent, and add more specific trust and conversion cues."
+            )
+            why_recommendation_works = (
+                "This should work because pages with some existing visibility usually respond well when content structure and conversion hierarchy are clarified."
+            )
+            priority = "Medium"
+
         cards.append(
             {
+                "opportunity_type": opportunity_type,
+                "target": page_url,
                 "page_url": str(row[url_column]),
                 "metric_line": " | ".join(metric_parts) if metric_parts else "Metrics not available",
-                "why_it_matters": (
-                    "This page already has visibility and may represent a strong optimization opportunity if engagement or conversion is not matching demand."
-                    if traffic_value and traffic_value > 0
-                    else "This page ranks for multiple keywords and could move higher with stronger page targeting and support content."
-                ),
-                "recommended_action": (
-                    "Improve layout, tighten CTA placement, and refresh page messaging to turn current traffic into stronger outcomes."
-                    if traffic_value and traffic_value > 0
-                    else "Expand topical depth, improve internal links, and strengthen keyword-to-page alignment."
-                ),
+                "why_it_matters": why_it_matters,
+                "recommended_action": recommended_action,
+                "why_recommendation_works": why_recommendation_works,
                 "priority": priority,
             }
         )
@@ -1692,7 +2449,7 @@ def build_semrush_topic_cards(
     semrush_topics_data: pd.DataFrame,
     strategy_topic_opportunities: list[dict[str, str]] | None = None,
 ) -> list[dict[str, str]]:
-    """Turn SEMrush Topic Opportunities data into AI topic cards."""
+    """Turn SEMrush Topic Opportunities data into strategic content opportunities."""
     dataframe = semrush_topics_data.copy()
     dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
     strategy_topic_opportunities = strategy_topic_opportunities or []
@@ -1728,8 +2485,56 @@ def build_semrush_topic_cards(
         )
 
         priority = "High" if (volume_value or 0) >= 500 or competitor_value >= 5 else "Medium"
+        opportunity_type = "Content Expansion Opportunity"
+        recommended_action = (
+            str(strategy_match.get("recommended_action", "")).strip()
+            or str(strategy_match.get("action", "")).strip()
+        )
+        why_it_matters = str(strategy_match.get("why_it_matters", "")).strip()
+        why_recommendation_works = ""
+
+        gap_type = str(strategy_match.get("gap_type", "")).strip().lower()
+        opportunity_type_value = str(strategy_match.get("opportunity_type", "")).strip().lower()
+        if opportunity_type_value in {"local"} or gap_type == "lack of authority":
+            opportunity_type = "Local / AEO-GEO Opportunity"
+            if not recommended_action:
+                recommended_action = (
+                    "Add local provider, location, and trust signals, then strengthen FAQ and entity-style language so the content is easier for search and AI systems to cite."
+                )
+            why_recommendation_works = (
+                "This should work because clearer local and authority signals make the page more credible for local-intent users and more quotable for AI-driven discovery."
+            )
+        elif gap_type in {"missing content", "weak content"}:
+            opportunity_type = "Content Expansion Opportunity"
+            if not recommended_action:
+                recommended_action = (
+                    "Create a focused page or article for this topic, then support it with FAQs and internal links from related assets."
+                )
+            why_recommendation_works = (
+                "This should work because filling a clear content gap gives the site a stronger chance to rank for the target topic and its related long-tail searches."
+            )
+        elif gap_type == "poor structure":
+            opportunity_type = "AEO / GEO Opportunity"
+            if not recommended_action:
+                recommended_action = (
+                    "Reformat the content with direct-answer headings, concise summaries, and extractable FAQ blocks so it is easier to surface in AI and answer-style search results."
+                )
+            why_recommendation_works = (
+                "This should work because answer-friendly formatting improves readability for both users and search systems looking for structured responses."
+            )
+        else:
+            if not recommended_action:
+                recommended_action = (
+                    "Add the topic into an existing cluster or build a focused supporting article tied to a strong conversion or authority page."
+                )
+            why_recommendation_works = (
+                "This should work because broader topic coverage and stronger internal linking improve both authority and discoverability."
+            )
+
         cards.append(
             {
+                "opportunity_type": opportunity_type,
+                "target": topic_value,
                 "topic": topic_value,
                 "volume": str(volume_value) if volume_value is not None else "Not available",
                 "intent_type": format_heading(str(strategy_match.get("intent_type", ""))).title()
@@ -1742,22 +2547,15 @@ def build_semrush_topic_cards(
                 if strategy_match.get("gap_type")
                 else "",
                 "why_it_matters": (
-                    str(strategy_match.get("why_it_matters", "")).strip()
+                    why_it_matters
                     or (
-                        "This topic can help the site build AI visibility and close a meaningful content gap."
+                        "This topic can help the site close a real visibility gap and strengthen authority around a meaningful patient question."
                         if priority == "High"
-                        else "This topic supports future authority building and can strengthen cluster-level coverage."
+                        else "This topic can extend supporting coverage and help the site capture more related long-tail intent."
                     )
                 ),
-                "recommended_action": (
-                    str(strategy_match.get("recommended_action", "")).strip()
-                    or str(strategy_match.get("action", "")).strip()
-                    or (
-                        "Create a dedicated page or in-depth guide supported by related cluster content."
-                        if priority == "High"
-                        else "Add the topic into an existing cluster or build a focused supporting article."
-                    )
-                ),
+                "recommended_action": recommended_action,
+                "why_recommendation_works": why_recommendation_works,
                 "priority": str(strategy_match.get("priority", priority)),
             }
         )
@@ -2079,34 +2877,52 @@ def build_pdf_report_bytes(results: dict) -> bytes:
     """Create a simple PDF report without extra dependencies."""
     insight = results["insight"]
     strategy = results["strategy"]["strategy"]
+    formatted_recommendations = collect_report_recommendations(strategy["recommendations"])
+    report_date = datetime.now().strftime("%B %d, %Y").replace(" 0", " ")
 
     report_lines = [
         "AI Marketing Workflow Report",
+        f"Report Date: {report_date}",
+        "Generated by the AI Marketing Workflow System",
+        "____________________________________________________________",
         "",
-        "Executive Summary",
+        "EXECUTIVE SUMMARY",
         (
-            f"Top opportunity: {get_first_value(insight['high_impression_low_click'], 'query')}. "
-            f"Primary page: {strategy['primary_page']}. "
-            f"Top traffic source: {get_first_value(insight['top_sources'], 'source_medium')}."
+            f"The strongest current opportunity is {get_first_value(insight['high_impression_low_click'], 'query')}. "
+            f"The primary page to improve is {strategy['primary_page']}, and the leading traffic source is "
+            f"{get_first_value(insight['top_sources'], 'source_medium')}. This report summarizes the most important "
+            "insights and actions to improve visibility, traffic quality, and conversions."
         ),
         "",
-        "Key Insights",
-        *[f"- {item}" for item in insight["patterns"][:5]],
-        "",
-        "Recommended Actions",
+        "KEY INSIGHTS",
     ]
 
-    for category, recommendations in strategy["recommendations"].items():
-        report_lines.append(f"{format_heading(category)}")
-        report_lines.extend([f"- {recommendation}" for recommendation in recommendations])
+    for item in insight["patterns"][:5]:
+        report_lines.append(f"- {item}")
+
+    report_lines.extend(["", "", "RECOMMENDED ACTIONS"])
+
+    for category, items in formatted_recommendations.items():
+        report_lines.append("")
+        report_lines.append(format_heading(category))
+        for item in items:
+            if item["issue"]:
+                report_lines.append(f"Issue: {item['issue']}")
+            if item["recommendation"]:
+                report_lines.append(f"Recommendation: {item['recommendation']}")
+            if item["why"]:
+                report_lines.append(f"Why it matters: {item['why']}")
+            if item["priority"]:
+                report_lines.append(f"Priority: {item['priority']}")
+            report_lines.append("")
 
     report_lines.extend(
         [
             "",
-            "Priority Opportunities",
-            f"- Primary query: {strategy['primary_query']['query']}",
-            f"- Secondary query: {strategy['secondary_query']['query']}",
-            f"- Primary page: {strategy['primary_page']}",
+            "PRIORITY OPPORTUNITIES",
+            f"- Primary query focus: {strategy['primary_query']['query']}",
+            f"- Secondary query focus: {strategy['secondary_query']['query']}",
+            f"- Primary page to refresh: {strategy['primary_page']}",
             f"- Top traffic source: {get_first_value(insight['top_sources'], 'source_medium')}",
         ]
     )
@@ -2115,29 +2931,81 @@ def build_pdf_report_bytes(results: dict) -> bytes:
 
 
 def simple_pdf_from_lines(lines: list[str]) -> bytes:
-    """Build a very small PDF document from plain text lines."""
-    safe_lines = [line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)") for line in lines]
-    content_lines = ["BT", "/F1 12 Tf", "50 780 Td", "14 TL"]
+    """Build a small multi-page PDF document sized for 8.5x11 output."""
 
-    first = True
-    for line in safe_lines:
-        if first:
-            content_lines.append(f"({line}) Tj")
-            first = False
-        else:
-            content_lines.append("T*")
-            content_lines.append(f"({line}) Tj")
+    def escape_pdf_text(value: str) -> str:
+        return value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
-    content_lines.append("ET")
-    content_stream = "\n".join(content_lines).encode("latin-1", errors="replace")
+    wrapped_lines: list[str] = []
+    for line in lines:
+        text = str(line).strip()
+        if not text:
+            wrapped_lines.append("")
+            continue
+        indent = "  " if text.startswith("- ") else ""
+        wrap_width = 78 if indent else 80
+        segments = textwrap.wrap(text, width=wrap_width) or [text]
+        for index, segment in enumerate(segments):
+            wrapped_lines.append(f"{indent}{segment}" if indent and index > 0 else segment)
 
-    objects = [
-        b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
-        b"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
-        b"3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj",
-        f"4 0 obj << /Length {len(content_stream)} >> stream\n".encode("latin-1") + content_stream + b"\nendstream endobj",
-        b"5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
-    ]
+    page_line_limit = 40
+    pages = [
+        wrapped_lines[index : index + page_line_limit]
+        for index in range(0, len(wrapped_lines), page_line_limit)
+    ] or [[]]
+
+    objects: list[bytes] = []
+    objects.append(b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj")
+
+    page_object_numbers = []
+    content_object_numbers = []
+    next_object_number = 3
+
+    for _ in pages:
+        page_object_numbers.append(next_object_number)
+        next_object_number += 1
+        content_object_numbers.append(next_object_number)
+        next_object_number += 1
+
+    kids_value = " ".join(f"{page_no} 0 R" for page_no in page_object_numbers)
+    objects.append(f"2 0 obj << /Type /Pages /Kids [{kids_value}] /Count {len(pages)} >> endobj".encode("latin-1"))
+
+    for page_index, page_lines in enumerate(pages):
+        page_no = page_object_numbers[page_index]
+        content_no = content_object_numbers[page_index]
+
+        content_lines = ["BT", "/F1 11 Tf", "54 736 Td", "16 TL"]
+        first = True
+
+        for line in page_lines:
+            text = escape_pdf_text(line)
+            if first:
+                content_lines.append(f"({text}) Tj")
+                first = False
+            else:
+                content_lines.append("T*")
+                content_lines.append(f"({text}) Tj")
+
+        content_lines.append("ET")
+        content_stream = "\n".join(content_lines).encode("latin-1", errors="replace")
+
+        objects.append(
+            (
+                f"{page_no} 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+                f"/Contents {content_no} 0 R /Resources << /Font << /F1 {next_object_number} 0 R >> >> >> endobj"
+            ).encode("latin-1")
+        )
+        objects.append(
+            f"{content_no} 0 obj << /Length {len(content_stream)} >> stream\n".encode("latin-1")
+            + content_stream
+            + b"\nendstream endobj"
+        )
+
+    font_object_number = next_object_number
+    objects.append(b"")
+    objects[-1] = f"{font_object_number} 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj".encode(
+        "latin-1"
+    )
 
     pdf = BytesIO()
     pdf.write(b"%PDF-1.4\n")
@@ -2214,11 +3082,40 @@ def render_data_sources() -> dict[str, object]:
             options=[run["run_id"] for run in saved_runs],
             format_func=lambda run_id: run_labels.get(run_id, run_id),
         )
-        load_saved_run_button = st.button("Load Selected Run")
+        load_saved_run_button = st.button("Load One Saved Run")
+
+        st.subheader("Compare Saved Runs")
+        comparison_options = [run["run_id"] for run in saved_runs]
+        loaded_run_id = st.session_state.get("loaded_run_id")
+        current_run_index = (
+            comparison_options.index(loaded_run_id)
+            if loaded_run_id in comparison_options
+            else 0
+        )
+        comparison_default_index = 1 if len(comparison_options) > 1 else 0
+
+        selected_current_run_id = st.selectbox(
+            "Current Run",
+            options=comparison_options,
+            index=current_run_index,
+            format_func=lambda run_id: run_labels.get(run_id, run_id),
+            key="comparison_current_run_id",
+        )
+        selected_comparison_run_id = st.selectbox(
+            "Comparison Run",
+            options=comparison_options,
+            index=comparison_default_index,
+            format_func=lambda run_id: run_labels.get(run_id, run_id),
+            key="comparison_previous_run_id",
+        )
+        compare_saved_runs_button = st.button("Compare Two Saved Runs")
     else:
         st.info("No saved runs yet.")
         selected_saved_run_id = None
         load_saved_run_button = False
+        selected_current_run_id = None
+        selected_comparison_run_id = None
+        compare_saved_runs_button = False
 
     st.subheader("Upload CSV files")
     st.write("GA4 Page Title Report: page-level behavior such as top pages, sessions, and engagement.")
@@ -2255,6 +3152,9 @@ def render_data_sources() -> dict[str, object]:
         "meta_posts_file": meta_posts_file,
         "selected_saved_run_id": selected_saved_run_id,
         "load_saved_run_button": load_saved_run_button,
+        "selected_current_run_id": selected_current_run_id,
+        "selected_comparison_run_id": selected_comparison_run_id,
+        "compare_saved_runs_button": compare_saved_runs_button,
         "run_button": run_button,
     }
 
@@ -2276,13 +3176,17 @@ def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
         cards.append(
             {
                 "title": f"Double down on {best_post_type}",
-                "area": "Format Opportunity",
+                "opportunity_type": "Social Format Opportunity",
+                "target": best_post_type,
                 "supporting_data": f"Best Post Type: {best_post_type}",
                 "why_it_matters": (
                     "This format is currently producing the strongest results and is the best candidate to scale with repeatable hooks and topics."
                 ),
                 "recommended_action": (
-                    "Create more content in this format using the same topic patterns, strong openings, and high-performing post structure."
+                    "Create a repeatable content series in this format using the strongest topic angle, a sharper opening hook, and a clearer conversion CTA."
+                ),
+                "why_recommendation_works": (
+                    "This should work because the format already has proof of traction, so scaling the same structure is a lower-risk way to grow reach and engagement."
                 ),
                 "priority": "High",
             }
@@ -2292,13 +3196,17 @@ def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
         cards.append(
             {
                 "title": f"Improve or reduce {worst_post_type}",
-                "area": "Format Opportunity",
+                "opportunity_type": "Social Performance Gap",
+                "target": worst_post_type,
                 "supporting_data": f"Worst Post Type: {worst_post_type}",
                 "why_it_matters": (
                     "This format is currently the weakest, which suggests it may need stronger hooks, clearer structure, or less overall emphasis."
                 ),
                 "recommended_action": (
-                    "Test stronger hooks and CTAs for this format, or shift effort toward better-performing content types."
+                    "Test one stronger hook, one clearer CTA, and one more patient-specific framing change before deciding whether to reduce this format."
+                ),
+                "why_recommendation_works": (
+                    "This should work because weak formats often underperform due to framing and structure, not just the format itself."
                 ),
                 "priority": "Medium",
             }
@@ -2308,13 +3216,17 @@ def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
         cards.append(
             {
                 "title": f"Scale content around {top_topics[0]}",
-                "area": "Topic Opportunity",
+                "opportunity_type": "Social Topic Opportunity",
+                "target": top_topics[0],
                 "supporting_data": f"Top Topic: {top_topics[0]}",
                 "why_it_matters": (
                     "This topic is currently resonating most and should be turned into a repeatable content theme across multiple posts."
                 ),
                 "recommended_action": (
-                    "Build a small content series with multiple hook variations, post formats, and follow-up angles around this topic."
+                    "Build a short content series around this topic with one educational post, one trust-building post, and one CTA-led post."
+                ),
+                "why_recommendation_works": (
+                    "This should work because repeating a proven topic across several angles helps compound reach while reinforcing a winning message."
                 ),
                 "priority": "High",
             }
@@ -2324,13 +3236,17 @@ def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
         cards.append(
             {
                 "title": f"Fix or replace weak topic: {weak_topics[0]}",
-                "area": "Topic Opportunity",
+                "opportunity_type": "Weak Topic Opportunity",
+                "target": weak_topics[0],
                 "supporting_data": f"Weak Topic: {weak_topics[0]}",
                 "why_it_matters": (
                     "This topic appears to be underperforming and may not be connecting with the audience in its current angle or format."
                 ),
                 "recommended_action": (
-                    "Test a new hook, a different format, or a stronger CTA for this topic, and reduce emphasis if performance stays weak."
+                    "Re-test the topic with a stronger hook and a different format first, then reduce emphasis if it still fails to earn saves, follows, or engagement."
+                ),
+                "why_recommendation_works": (
+                    "This should work because a topic can be weak due to presentation, and one sharper framing test can reveal whether it is still worth scaling."
                 ),
                 "priority": "Medium",
             }
@@ -2340,13 +3256,17 @@ def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
         cards.append(
             {
                 "title": "Turn save-worthy content into conversion content",
-                "area": "Content Gap",
+                "opportunity_type": "Social Conversion Opportunity",
+                "target": "Save-driving content",
                 "supporting_data": what_drives_saves,
                 "why_it_matters": (
                     "Content that earns saves already shows strong audience value, but it needs a clearer next-step path to drive business outcomes."
                 ),
                 "recommended_action": (
-                    "Add stronger CTAs, trust signals, booking prompts, or quiz links so high-value content also pushes users toward action."
+                    "Add a clearer next-step prompt such as booking, quiz, or consultation guidance so high-value content also moves users toward action."
+                ),
+                "why_recommendation_works": (
+                    "This should work because the content already has strong audience value, so improving conversion guidance is usually more effective than replacing the topic."
                 ),
                 "priority": "High",
             }
@@ -2356,13 +3276,17 @@ def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
         cards.append(
             {
                 "title": "Replicate follow-driving content",
-                "area": "Growth Opportunity",
+                "opportunity_type": "Social Growth Opportunity",
+                "target": "Follow-driving content",
                 "supporting_data": what_drives_follows,
                 "why_it_matters": (
                     "This content pattern is strongest for audience growth and can be scaled into a repeatable acquisition engine."
                 ),
                 "recommended_action": (
-                    "Create multiple new posts using similar hooks, topics, and structure to expand reach and follower growth."
+                    "Create 3-5 new posts using the same hook pattern, topic framing, and CTA style as the strongest follow-driving examples."
+                ),
+                "why_recommendation_works": (
+                    "This should work because the strongest follower-growth pattern has already proven what attracts the audience you want to build."
                 ),
                 "priority": "High",
             }
@@ -2388,12 +3312,16 @@ def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
         cards.append(
             {
                 "title": "Balance Problem Detected",
-                "area": "Performance Gap",
+                "opportunity_type": "Social Performance Gap",
+                "target": "Full-funnel content performance",
                 "supporting_data": issue_text,
                 "why_it_matters": (
                     "This imbalance suggests the content is not yet performing strongly across the full funnel from reach to engagement to conversion."
                 ),
                 "recommended_action": recommended_action,
+                "why_recommendation_works": (
+                    "This should work because fixing the weakest stage of the funnel usually creates the clearest performance lift without needing to rebuild everything."
+                ),
                 "priority": priority,
             }
         )
@@ -2840,32 +3768,42 @@ def render_opportunity_card(title: str, data: dict[str, str]) -> None:
     }
     pill_class = priority_class_map.get(priority, "priority-medium-pill")
 
-    body_parts = []
-
-    if data.get("keyword"):
-        body_parts.append(f"<strong>Keyword:</strong> {data.get('keyword', '-')}")
+    target_value = (
+        data.get("target")
+        or data.get("keyword")
+        or data.get("page_url")
+        or data.get("topic")
+        or "-"
+    )
+    supporting_parts = []
     if data.get("position"):
-        body_parts.append(f"<strong>Position:</strong> {data.get('position', '-')}")
-    if data.get("page_url"):
-        body_parts.append(f"<strong>Page:</strong> {data.get('page_url', '-')}")
-    if data.get("metric_line"):
-        body_parts.append(f"<strong>Metrics:</strong> {data.get('metric_line', '-')}")
-    if data.get("topic"):
-        body_parts.append(f"<strong>Topic:</strong> {data.get('topic', '-')}")
+        supporting_parts.append(f"Position: {data.get('position', '-')}")
     if data.get("volume") and data.get("volume") != "Not available":
-        body_parts.append(f"<strong>Volume:</strong> {data.get('volume', '-')}")
+        supporting_parts.append(f"Volume: {data.get('volume', '-')}")
+    if data.get("metric_line"):
+        supporting_parts.append(str(data.get("metric_line", "-")))
+    if data.get("supporting_data"):
+        supporting_parts.append(str(data.get("supporting_data", "-")))
     if data.get("url") and data.get("url") != "Not available":
         url = str(data.get("url", "#"))
-        body_parts.append(f'<strong>URL:</strong> <a href="{url}" target="_blank">{url}</a>')
+        supporting_parts.append(f'URL: <a href="{url}" target="_blank">{url}</a>')
+
     if data.get("intent_type") or data.get("opportunity_type") or data.get("gap_type"):
         tag_parts = [part for part in [data.get("intent_type"), data.get("opportunity_type"), data.get("gap_type")] if part]
-        body_parts.append(f"<strong>Tags:</strong> {' | '.join(tag_parts)}")
-    if data.get("why_it_matters") or data.get("reason"):
-        body_parts.append(f"<strong>Why it matters:</strong> {data.get('why_it_matters', data.get('reason', ''))}")
-    if data.get("recommended_action") or data.get("action"):
-        body_parts.append(f"<strong>Recommended action:</strong> {data.get('recommended_action', data.get('action', ''))}")
+        supporting_parts.append(f"Signals: {' | '.join(tag_parts)}")
 
-    body_html = "<br><br>".join(body_parts) if body_parts else "No opportunity details available."
+    body_parts = [
+        f"<strong>Opportunity Type:</strong> {data.get('opportunity_type', title)}",
+        f"<strong>Target:</strong> {target_value}",
+    ]
+    if supporting_parts:
+        body_parts.append(f"<strong>Supporting Data:</strong> {' | '.join(supporting_parts)}")
+    body_parts.append(f"<strong>Why this is an opportunity:</strong> {data.get('why_it_matters', data.get('reason', ''))}")
+    body_parts.append(f"<strong>Best Recommendation:</strong> {data.get('recommended_action', data.get('action', ''))}")
+    if data.get("why_recommendation_works"):
+        body_parts.append(f"<strong>Why it should work:</strong> {data.get('why_recommendation_works', '')}")
+
+    body_html = "<br><br>".join(body_parts)
 
     st.markdown(
         f"""
@@ -2978,41 +3916,18 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
     recommendation_text = str(card.get("recommendation", "") or card.get("action", "")).strip()
     combined_text = f"{category} {issue_text} {recommendation_text}".lower()
 
-    website_terms = [
-        "seo",
-        "keyword",
-        "ctr",
-        "title",
-        "meta",
-        "h1",
-        "faq",
-        "content update",
-        "content refresh",
-    ]
-    social_terms = [
-        "social",
-        "follow",
-        "format",
-        "variation",
-        "content series",
-        "conversion",
-        "best-performing",
-        "growth",
-        "reel",
-    ]
+    insight = results.get("insight", {})
+    strategy = results.get("strategy", {}).get("strategy", {})
+    combined = results.get("data_intake", {}).get("summary", {}).get("combined", {})
+    semrush_positions_data = results.get("semrush_positions_data")
+    top_query = get_first_value(insight.get("high_impression_low_click", []), "query")
+    primary_page = (
+        str(strategy.get("primary_page", "")).strip()
+        or get_first_value(combined.get("top_pages", []), "page_title")
+    )
+    page_label = primary_page if primary_page and primary_page != "Not available" else "priority landing page"
 
-    if any(term in combined_text for term in website_terms):
-        insight = results.get("insight", {})
-        strategy = results.get("strategy", {}).get("strategy", {})
-        semrush_positions_data = results.get("semrush_positions_data")
-        combined = results.get("data_intake", {}).get("summary", {}).get("combined", {})
-
-        top_query = get_first_value(insight.get("high_impression_low_click", []), "query")
-        primary_page = (
-            str(strategy.get("primary_page", "")).strip()
-            or get_first_value(combined.get("top_pages", []), "page_title")
-        )
-
+    if category in {"seo", "seo_keyword_strategy"}:
         keywords: list[str] = []
         if top_query != "Not available":
             keywords.append(top_query)
@@ -3030,17 +3945,6 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
 
         keywords = keywords[:5]
         focus_keyword = keywords[0] if keywords else "priority keyword"
-        page_label = primary_page if primary_page and primary_page != "Not available" else "priority landing page"
-
-        faq_ideas = []
-        if keywords:
-            faq_ideas = [f"Answer the search intent behind '{keyword}' directly on the page." for keyword in keywords[:3]]
-        else:
-            faq_ideas = [
-                "Add one FAQ that addresses the core patient question behind the target search.",
-                "Add one FAQ that handles cost, fit, or treatment expectations.",
-                "Add one FAQ that moves the visitor toward booking or contacting the clinic.",
-            ]
 
         return {
             "type": "seo",
@@ -3054,10 +3958,94 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
                     f"Explore {focus_keyword} on {page_label}. Get clear answers, stronger on-page guidance, and the next step for patients ready to take action."
                 ),
             },
-            "faq_ideas": faq_ideas,
+            "keyword_variations": [f"{focus_keyword} near me", f"{focus_keyword} cost", f"best {focus_keyword}"],
         }
 
-    if category.startswith("social_") or any(term in combined_text for term in social_terms):
+    if category in {"aeo_geo", "aeo_geo_ai_search"}:
+        related_queries = [
+            str(item.get("query", "")).strip()
+            for item in insight.get("query_analysis", [])[:5]
+            if str(item.get("query", "")).strip()
+        ]
+        answer_focus = top_query if top_query != "Not available" else (related_queries[0] if related_queries else "the priority query")
+        faq_suggestions = [f"Add a direct answer block for '{query}' near the top of {page_label}." for query in related_queries[:3]]
+        if not faq_suggestions:
+            faq_suggestions = [
+                f"Add a direct answer block for {answer_focus} near the top of {page_label}.",
+                "Add a comparison-style FAQ that addresses the most likely follow-up question.",
+                "Add a concise decision-stage FAQ that supports AI answer extraction.",
+            ]
+
+        return {
+            "type": "aeo_geo",
+            "button_label": "View answer block & FAQ suggestions",
+            "headline": "AEO / GEO Take Action",
+            "answer_blocks": faq_suggestions,
+            "structure_examples": [
+                "Use a question heading followed by a 2-3 sentence direct answer.",
+                "Follow the answer with a short bullet list and one supporting fact or comparison.",
+                f"Place the answer block high on {page_label} so both users and AI systems can find it quickly.",
+            ],
+            "schema_recommendations": [
+                "Add FAQ schema to the page section that contains the strongest answer-driven questions.",
+                "Strengthen citation signals with clear provider, location, and treatment entity references.",
+                "Use concise comparison or definition language that is easier for AI summaries to quote.",
+            ],
+        }
+
+    if category in {"ux_conversion", "website_ux_conversion"}:
+        return {
+            "type": "ux_conversion",
+            "button_label": "View CTA & landing page improvements",
+            "headline": "UX Conversion Take Action",
+            "conversion_suggestions": [
+                f"Strengthen the primary CTA on {page_label} so the next step is visible without heavy scrolling.",
+                "Bring trust signals closer to the CTA, including provider reassurance, outcomes, or patient confidence signals.",
+                "Reduce decision friction by tightening headline-to-CTA message alignment.",
+            ],
+            "checklist": [
+                "Primary CTA above the fold",
+                "Supporting CTA after the main answer section",
+                "Trust block near the booking or contact action",
+                "Clear form, quiz, or consultation next step",
+            ],
+            "ux_recommendations": [
+                "Shorten or reorganize dense sections before the first conversion action.",
+                "Use visual hierarchy so benefits, trust, and next steps are easier to scan.",
+                "Keep mobile CTA placement and form friction under review for the primary landing page.",
+            ],
+        }
+
+    if category == "content_expansion":
+        topic_opportunities = strategy.get("topic_opportunities", [])
+        topic_names = [str(item.get("topic", "")).strip() for item in topic_opportunities if str(item.get("topic", "")).strip()]
+        if not topic_names:
+            topic_names = [
+                str(item.get("query", "")).strip()
+                for item in insight.get("query_analysis", [])[:5]
+                if str(item.get("query", "")).strip()
+            ]
+        topic_focus = topic_names[0] if topic_names else "the primary topic opportunity"
+
+        return {
+            "type": "content_expansion",
+            "button_label": "View supporting content ideas",
+            "headline": "Content Expansion Take Action",
+            "supporting_content_ideas": [f"Create a supporting article focused on {topic}." for topic in topic_names[:3]]
+            or [f"Create a supporting article focused on {topic_focus}."],
+            "new_page_recommendations": [
+                f"Build a focused landing page or guide for {topic_focus}.",
+                "Add a blog or resource piece that addresses the next most relevant related query.",
+                f"Use {page_label} as the hub page and connect new content back to it with internal links.",
+            ],
+            "topic_cluster_suggestions": [
+                "Choose one hub page and 2-3 supporting articles around the same patient intent theme.",
+                "Link informational content to the conversion page so traffic can move deeper into the funnel.",
+                "Reuse strong FAQs across the cluster so the site builds clearer topical authority.",
+            ],
+        }
+
+    if category.startswith("social_"):
         social_insights = results.get("social_insights", {})
         top_examples_rows = social_insights.get("top_performing_content", []) or []
         conversion_rows = social_insights.get("conversion_content", []) or []
@@ -3111,10 +4099,15 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
 
         return {
             "type": "social",
-            "button_label": "View follow-driving posts & generate variations",
+            "button_label": "View top-performing posts & content variations",
             "headline": "Social Take Action",
             "top_examples": top_examples or ["No high-performing examples were available from the current run."],
             "why_they_worked": why_they_worked or ["Not enough social performance context is loaded yet."],
+            "hook_cta_examples": [
+                "Test a stronger first-line hook that names the patient problem immediately.",
+                "Pair the winning content angle with a clearer CTA such as booking, quiz, or consultation.",
+                "Use the highest-performing post format to repeat the strongest hook in a shorter, sharper version.",
+            ],
             "variations": variations[:5],
         }
 
@@ -3124,7 +4117,14 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
 def render_take_action_block(payload: dict, unique_key: str) -> None:
     """Render a take-action drill-down block beneath a recommendation."""
     st.markdown('<div class="take-action-panel">', unsafe_allow_html=True)
-    icon = "↗" if payload.get("type") == "seo" else "✦"
+    icon_map = {
+        "seo": "↗",
+        "aeo_geo": "?",
+        "ux_conversion": "UX",
+        "content_expansion": "+",
+        "social": "✦",
+    }
+    icon = icon_map.get(str(payload.get("type", "")), "✦")
     st.markdown(
         f'''
         <div class="take-action-header">
@@ -3173,6 +4173,89 @@ def render_take_action_block(payload: dict, unique_key: str) -> None:
             st.markdown(f'<ul class="take-action-list">{faq_items}</ul>', unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
+        keyword_variations = payload.get("keyword_variations", [])
+        if keyword_variations:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Suggested Keyword Variations</div>', unsafe_allow_html=True)
+            variation_items = "".join(f"<li>{item}</li>" for item in keyword_variations)
+            st.markdown(f'<ul class="take-action-list">{variation_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    elif payload.get("type") == "aeo_geo":
+        answer_blocks = payload.get("answer_blocks", [])
+        if answer_blocks:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Answer Block / FAQ Suggestions</div>', unsafe_allow_html=True)
+            answer_items = "".join(f"<li>{item}</li>" for item in answer_blocks)
+            st.markdown(f'<ul class="take-action-list">{answer_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        structure_examples = payload.get("structure_examples", [])
+        if structure_examples:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">AI-Friendly Content Structure</div>', unsafe_allow_html=True)
+            structure_items = "".join(f"<li>{item}</li>" for item in structure_examples)
+            st.markdown(f'<ul class="take-action-list">{structure_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        schema_recommendations = payload.get("schema_recommendations", [])
+        if schema_recommendations:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Schema / Citation Recommendations</div>', unsafe_allow_html=True)
+            schema_items = "".join(f"<li>{item}</li>" for item in schema_recommendations)
+            st.markdown(f'<ul class="take-action-list">{schema_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    elif payload.get("type") == "ux_conversion":
+        conversion_suggestions = payload.get("conversion_suggestions", [])
+        if conversion_suggestions:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">CTA / Trust / Conversion Suggestions</div>', unsafe_allow_html=True)
+            suggestion_items = "".join(f"<li>{item}</li>" for item in conversion_suggestions)
+            st.markdown(f'<ul class="take-action-list">{suggestion_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        checklist = payload.get("checklist", [])
+        if checklist:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Landing Page Improvement Checklist</div>', unsafe_allow_html=True)
+            checklist_items = "".join(f"<li>{item}</li>" for item in checklist)
+            st.markdown(f'<ul class="take-action-list">{checklist_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        ux_recommendations = payload.get("ux_recommendations", [])
+        if ux_recommendations:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">UX Recommendations</div>', unsafe_allow_html=True)
+            ux_items = "".join(f"<li>{item}</li>" for item in ux_recommendations)
+            st.markdown(f'<ul class="take-action-list">{ux_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    elif payload.get("type") == "content_expansion":
+        supporting_content_ideas = payload.get("supporting_content_ideas", [])
+        if supporting_content_ideas:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Supporting Content Ideas</div>', unsafe_allow_html=True)
+            idea_items = "".join(f"<li>{item}</li>" for item in supporting_content_ideas)
+            st.markdown(f'<ul class="take-action-list">{idea_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        new_page_recommendations = payload.get("new_page_recommendations", [])
+        if new_page_recommendations:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">New Page / Blog Recommendations</div>', unsafe_allow_html=True)
+            page_items = "".join(f"<li>{item}</li>" for item in new_page_recommendations)
+            st.markdown(f'<ul class="take-action-list">{page_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        topic_cluster_suggestions = payload.get("topic_cluster_suggestions", [])
+        if topic_cluster_suggestions:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Topic Cluster Expansion Suggestions</div>', unsafe_allow_html=True)
+            cluster_items = "".join(f"<li>{item}</li>" for item in topic_cluster_suggestions)
+            st.markdown(f'<ul class="take-action-list">{cluster_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
     elif payload.get("type") == "social":
         top_examples = payload.get("top_examples", [])
         if top_examples:
@@ -3188,6 +4271,14 @@ def render_take_action_block(payload: dict, unique_key: str) -> None:
             st.markdown('<div class="take-action-section-title">Why They Worked</div>', unsafe_allow_html=True)
             why_items = "".join(f"<li>{item}</li>" for item in why_they_worked)
             st.markdown(f'<ul class="take-action-list">{why_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        hook_cta_examples = payload.get("hook_cta_examples", [])
+        if hook_cta_examples:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Hook / CTA Examples</div>', unsafe_allow_html=True)
+            hook_items = "".join(f"<li>{item}</li>" for item in hook_cta_examples)
+            st.markdown(f'<ul class="take-action-list">{hook_items}</ul>', unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
         variations = payload.get("variations", [])
@@ -3432,6 +4523,48 @@ def render_ai_chat_page(results: dict | None) -> None:
         assistant_response = generate_ai_chat_response(prompt, results)
         st.session_state["ai_chat_messages"].append({"role": "assistant", "content": assistant_response})
 
+    def format_assistant_response(content: str) -> str:
+        section_order = ["INSIGHT", "WHY IT MATTERS", "RECOMMENDATION", "NEXT ACTION"]
+        normalized_content = str(content).replace("\r\n", "\n")
+        sections: dict[str, str] = {}
+
+        for index, section in enumerate(section_order):
+            marker = section
+            start = normalized_content.find(marker)
+            if start == -1:
+                continue
+
+            body_start = start + len(marker)
+            next_positions = [
+                normalized_content.find(next_section, body_start)
+                for next_section in section_order[index + 1 :]
+                if normalized_content.find(next_section, body_start) != -1
+            ]
+            end = min(next_positions) if next_positions else len(normalized_content)
+            section_text = normalized_content[body_start:end].strip(" \n:")
+            sections[section] = section_text.strip()
+
+        if sections:
+            html_sections = []
+            for section in section_order:
+                if section not in sections:
+                    continue
+                section_class = "chat-response-section"
+                body_class = "chat-response-text"
+                if section == "NEXT ACTION":
+                    body_class = "chat-response-text chat-response-next"
+                html_sections.append(
+                    f"""
+                    <div class="{section_class}">
+                        <div class="chat-response-title">{section}</div>
+                        <div class="{body_class}">{sections[section]}</div>
+                    </div>
+                    """
+                )
+            return "".join(html_sections)
+
+        return f'<div class="chat-message-body">{content}</div>'
+
     prompt_columns = st.columns(2)
     for index, prompt in enumerate(suggested_prompts):
         with prompt_columns[index % 2]:
@@ -3443,7 +4576,31 @@ def render_ai_chat_page(results: dict | None) -> None:
 
     for message in st.session_state["ai_chat_messages"]:
         with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+            role = str(message["role"])
+            if role == "assistant":
+                st.markdown(
+                    f"""
+                    <div class="chat-message-wrap">
+                        <div class="chat-message-card chat-message-assistant">
+                            <div class="chat-message-label">AI Marketing Strategist</div>
+                            {format_assistant_response(str(message["content"]))}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    f"""
+                    <div class="chat-message-wrap">
+                        <div class="chat-message-card chat-message-user">
+                            <div class="chat-message-label">You</div>
+                            <div class="chat-message-body">{message["content"]}</div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
     user_prompt = st.chat_input("Ask about your marketing data...")
     if user_prompt:
@@ -3661,6 +4818,61 @@ def render_with_ai_rail(page_renderer, results=None, *args) -> None:
         render_ai_right_rail(results)
 
 
+decision_rules_data = load_decision_rules()
+decision_rules = decision_rules_data.get("rules", [])
+query_analysis_data = st.session_state.get("query_analysis", [])
+top_query = query_analysis_data[0] if query_analysis_data else {}
+sample_data = {
+    "impressions": top_query.get("impressions"),
+    "ctr": top_query.get("ctr"),
+    "position": top_query.get("position"),
+}
+
+triggered_rules = []
+
+for rule in decision_rules:
+    conditions = rule.get("conditions", {}).get("all", [])
+    match = True
+
+    for condition in conditions:
+        field = condition["field"]
+        operator = condition["operator"]
+        value = condition["value"]
+
+        if field not in sample_data:
+            match = False
+            break
+
+        data_value = sample_data[field]
+
+        if data_value is None:
+            match = False
+            break
+
+        if operator == ">=" and not (data_value >= value):
+            match = False
+        elif operator == "<=" and not (data_value <= value):
+            match = False
+        elif operator == "==" and not (data_value == value):
+            match = False
+
+    if match:
+        triggered_rules.append(rule)
+
+generated_recommendations = []
+
+for rule in triggered_rules:
+    rec = {
+        "title": rule.get("title"),
+        "insight": rule.get("insight"),
+        "why_it_matters": rule.get("why_it_matters"),
+        "recommendation": rule.get("recommendation"),
+        "priority": rule.get("priority"),
+        "action_type": rule.get("action_type")
+    }
+    generated_recommendations.append(rec)
+
+
 # Sidebar Navigation
 with st.sidebar:
     st.markdown("## AI Marketing")
@@ -3682,6 +4894,13 @@ with st.sidebar:
 
     show_debug = st.checkbox("Show debug data", value=False)
 
+    if st.sidebar.checkbox("Debug decision rules"):
+        st.sidebar.write("Decision rules loaded:", len(decision_rules))
+        st.sidebar.write("Decision rules version:", decision_rules_data.get("version"))
+        st.sidebar.write("Triggered rules:", len(triggered_rules))
+        for r in triggered_rules:
+            st.sidebar.write(r["title"])
+
 
 results = None
 ga4_debug_titles: list[str] = []
@@ -3696,10 +4915,38 @@ if page == "Data Sources":
             st.session_state["results"] = loaded_run["results"]
             st.session_state["ga4_debug_titles"] = loaded_run["ga4_debug_titles"]
             st.session_state["loaded_run_id"] = loaded_run["run_id"]
+            st.session_state["comparison_results"] = None
+            st.session_state["comparison_mode"] = False
+            st.session_state["comparison_current_run_id"] = None
+            st.session_state["comparison_run_id"] = None
             current_results = loaded_run["results"]
             st.success(f"Loaded saved run: {loaded_run['run_id']}")
         else:
             st.error("Could not load the selected saved run.")
+
+    if uploaded["compare_saved_runs_button"]:
+        current_run_id = uploaded.get("selected_current_run_id")
+        comparison_run_id = uploaded.get("selected_comparison_run_id")
+
+        if not current_run_id or not comparison_run_id:
+            st.error("Please choose both a current run and a comparison run.")
+        elif current_run_id == comparison_run_id:
+            st.error("Choose two different saved runs to compare.")
+        else:
+            loaded_run = load_saved_run(current_run_id)
+            comparison_results = compare_saved_runs(current_run_id, comparison_run_id)
+            if loaded_run is not None and comparison_results is not None:
+                st.session_state["results"] = loaded_run["results"]
+                st.session_state["ga4_debug_titles"] = loaded_run["ga4_debug_titles"]
+                st.session_state["loaded_run_id"] = loaded_run["run_id"]
+                st.session_state["comparison_results"] = comparison_results
+                st.session_state["comparison_mode"] = True
+                st.session_state["comparison_current_run_id"] = current_run_id
+                st.session_state["comparison_run_id"] = comparison_run_id
+                current_results = loaded_run["results"]
+                st.success(f"Comparison ready: {current_run_id} vs {comparison_run_id}")
+            else:
+                st.error("Could not compare the selected saved runs.")
 
     if uploaded["run_button"]:
         uploaded_files = [
@@ -3751,6 +4998,10 @@ if page == "Data Sources":
         st.session_state["results"] = results
         st.session_state["ga4_debug_titles"] = ga4_debug_titles
         st.session_state["loaded_run_id"] = run_id
+        st.session_state["comparison_results"] = None
+        st.session_state["comparison_mode"] = False
+        st.session_state["comparison_current_run_id"] = None
+        st.session_state["comparison_run_id"] = None
         current_results = results
 
         st.success("Workflow complete. Results were saved and can now be loaded from Saved Runs.")

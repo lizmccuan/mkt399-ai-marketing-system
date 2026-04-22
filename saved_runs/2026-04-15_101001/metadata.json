@@ -1,0 +1,10 @@
+{
+  "run_id": "2026-04-15_101001",
+  "display_label": "2026-04-15_101001",
+  "created_at": "2026-04-15T10:10:01",
+  "included_files": [
+    "ga4_pages.csv",
+    "ga4_source.csv",
+    "gsc_queries.csv"
+  ]
+}

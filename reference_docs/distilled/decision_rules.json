@@ -1,0 +1,101 @@
+{
+  "version": "1.0",
+  "rules": [
+
+    {
+      "id": "high_impressions_low_ctr",
+      "category": "seo",
+      "title": "High impressions but low CTR",
+      "conditions": {
+        "all": [
+          { "field": "impressions", "operator": ">=", "value": 1000 },
+          { "field": "ctr", "operator": "<=", "value": 0.05 }
+        ]
+      },
+      "insight": "This page or query is getting strong visibility but not enough clicks.",
+      "why_it_matters": "Search demand exists, but the search result is not compelling enough to drive traffic.",
+      "recommendation": "Improve title tags, meta descriptions, and intent alignment to increase click-through rate.",
+      "priority": "high",
+      "impact": "high",
+      "effort": "low",
+      "action_type": "seo"
+    },
+
+    {
+      "id": "high_position_low_ctr",
+      "category": "seo",
+      "title": "Strong ranking but low CTR",
+      "conditions": {
+        "all": [
+          { "field": "position", "operator": "<=", "value": 5 },
+          { "field": "ctr", "operator": "<=", "value": 0.05 }
+        ]
+      },
+      "insight": "The page ranks well but is not attracting clicks.",
+      "why_it_matters": "High rankings without clicks represent missed traffic opportunities.",
+      "recommendation": "Test new titles and descriptions that better match user intent and improve click appeal.",
+      "priority": "high",
+      "impact": "high",
+      "effort": "low",
+      "action_type": "seo"
+    },
+
+    {
+      "id": "high_traffic_low_engagement",
+      "category": "ux_cro",
+      "title": "High traffic but low engagement",
+      "conditions": {
+        "all": [
+          { "field": "sessions", "operator": ">=", "value": 100 },
+          { "field": "engagement_rate", "operator": "<=", "value": 0.4 }
+        ]
+      },
+      "insight": "Users are visiting the page but not engaging with it.",
+      "why_it_matters": "Traffic without engagement indicates mismatch or poor user experience.",
+      "recommendation": "Improve messaging clarity, layout, and relevance to better match user expectations.",
+      "priority": "high",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "ux_conversion"
+    },
+
+    {
+      "id": "high_engagement_low_conversion",
+      "category": "ux_cro",
+      "title": "High engagement but low conversion",
+      "conditions": {
+        "all": [
+          { "field": "engagement_rate", "operator": ">=", "value": 0.6 },
+          { "field": "conversions", "operator": "==", "value": 0 }
+        ]
+      },
+      "insight": "Users are engaging but not converting.",
+      "why_it_matters": "Strong interest is present, but something is blocking conversion.",
+      "recommendation": "Reduce friction in the conversion flow and improve CTA clarity.",
+      "priority": "high",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "ux_conversion"
+    },
+
+    {
+      "id": "high_reach_low_engagement_social",
+      "category": "social",
+      "title": "High reach but low engagement",
+      "conditions": {
+        "all": [
+          { "field": "reach", "operator": ">=", "value": 1000 },
+          { "field": "engagement_rate", "operator": "<=", "value": 0.02 }
+        ]
+      },
+      "insight": "Content is reaching users but not driving interaction.",
+      "why_it_matters": "Low engagement limits growth and algorithm performance.",
+      "recommendation": "Improve hooks, content value, and first impressions to increase engagement.",
+      "priority": "medium",
+      "impact": "medium",
+      "effort": "low",
+      "action_type": "social"
+    }
+
+  ]
+}
