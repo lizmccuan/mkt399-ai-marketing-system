@@ -44,8 +44,13 @@ st.markdown(
         --text-main: #162033;
         --text-muted: #667085;
         --border-soft: #E6E8F0;
+        --border-strong: #D8DEEA;
         --accent-purple: #7C3AED;
         --accent-purple-soft: #F3EDFF;
+        --accent-purple-border: #E4D7FF;
+        --panel-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+        --panel-shadow-soft: 0 4px 16px rgba(16, 24, 40, 0.04);
+        --panel-shadow-hover: 0 16px 40px rgba(16, 24, 40, 0.09);
         --success-green: #22C55E;
         --success-soft: #ECFDF3;
         --warning-soft: #FFF4D6;
@@ -61,6 +66,9 @@ st.markdown(
     html, body, [class*="css"]  {
         color: var(--text-main);
     }
+    body {
+        font-feature-settings: "ss01" on, "cv01" on;
+    }
     .stApp {
         background: var(--page-bg);
         color: var(--text-main);
@@ -72,12 +80,31 @@ st.markdown(
         background: var(--page-bg);
     }
     .main .block-container {
-        padding-top: 2.35rem;
-        padding-bottom: 2.2rem;
+        padding-top: 2.8rem;
+        padding-bottom: 3rem;
         max-width: 1400px;
     }
     h1, h2, h3, h4, h5, h6 {
         color: var(--text-main);
+    }
+    h1 {
+        font-size: 2.35rem !important;
+        line-height: 1.08 !important;
+        letter-spacing: -0.03em;
+        font-weight: 800 !important;
+        margin-bottom: 0.4rem !important;
+    }
+    h2 {
+        font-size: 1.55rem !important;
+        line-height: 1.15 !important;
+        letter-spacing: -0.02em;
+        font-weight: 750 !important;
+        margin-top: 0.15rem !important;
+    }
+    h3 {
+        font-size: 1.2rem !important;
+        line-height: 1.25 !important;
+        font-weight: 700 !important;
     }
     p, label, span {
         color: inherit;
@@ -89,6 +116,7 @@ st.markdown(
     [data-testid="stSidebar"] {
         background: var(--panel-bg);
         border-right: 1px solid var(--border-soft);
+        box-shadow: 10px 0 30px rgba(16, 24, 40, 0.03);
     }
     [data-testid="stSidebar"] > div:first-child {
         background: var(--panel-bg);
@@ -100,50 +128,57 @@ st.markdown(
         color: var(--text-main);
     }
     [data-testid="stSidebar"] .block-container {
-        padding-top: 1.25rem;
+        padding-top: 1.4rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
     [data-testid="stSidebar"] [role="radiogroup"] label {
-        border-radius: 14px;
-        padding: 0.5rem 0.7rem;
-        margin-bottom: 0.28rem;
-        border: 1px solid transparent;
+        border-radius: 16px;
+        padding: 0.72rem 0.8rem;
+        margin-bottom: 0.38rem;
+        border: 1px solid #EFF2F7;
         transition: all 0.2s ease;
+        background: #FCFCFD;
     }
     [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
         background: var(--accent-purple-soft);
         color: var(--accent-purple);
-        border: 1px solid rgba(124, 58, 237, 0.16);
-        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.03);
+        border: 1px solid rgba(124, 58, 237, 0.22);
+        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.03), 0 6px 16px rgba(124, 58, 237, 0.08);
     }
     [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) * {
         color: var(--accent-purple);
         font-weight: 600;
     }
     [data-testid="stSidebar"] [role="radiogroup"] label:hover {
-        background: #F9FAFB;
-        border-color: var(--border-soft);
+        background: #FFFFFF;
+        border-color: var(--border-strong);
+        box-shadow: 0 4px 14px rgba(16, 24, 40, 0.04);
     }
     .stButton > button,
     [data-testid="baseButton-secondary"] {
-        border-radius: 12px;
+        border-radius: 14px;
         border: 1px solid var(--border-soft);
         background: var(--panel-bg);
         color: var(--text-main);
-        font-weight: 600;
-        min-height: 2.7rem;
-        box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
+        font-weight: 650;
+        min-height: 2.85rem;
+        padding: 0.55rem 1rem;
+        box-shadow: 0 3px 10px rgba(16, 24, 40, 0.04);
         transition: all 0.18s ease;
     }
     .stButton > button[kind="primary"] {
         background: #8C52FF;
         color: #ffffff;
         border: 1px solid #8C52FF;
-        box-shadow: 0 8px 18px rgba(124, 58, 237, 0.18);
+        box-shadow: 0 10px 24px rgba(124, 58, 237, 0.18);
     }
     .stButton > button:hover {
         border-color: #D0D5DD;
         background: #F9FAFB;
         color: var(--text-main);
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px rgba(16, 24, 40, 0.06);
     }
     .stButton > button[kind="primary"]:hover {
         background: #D9C5FF;
@@ -166,166 +201,196 @@ st.markdown(
     .stMetric {
         background: #FFFFFF;
         border: 1px solid var(--border-soft);
-        border-radius: 18px;
-        padding: 0.9rem 1rem;
-        box-shadow: var(--shadow-soft);
-        min-height: 126px;
+        border-radius: 22px;
+        padding: 1.1rem 1.15rem;
+        box-shadow: var(--panel-shadow);
+        min-height: 132px;
+        position: relative;
+        overflow: hidden;
+    }
+    .stMetric::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto auto 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, rgba(124, 58, 237, 0.95), rgba(192, 132, 252, 0.45));
     }
     .stDataFrame, .stTable {
         background: #FFFFFF;
         border-radius: 18px;
+        border: 1px solid var(--border-soft);
+        box-shadow: var(--panel-shadow-soft);
     }
     .dashboard-title {
-        font-size: 2.3rem;
+        font-size: 2.55rem;
         font-weight: 800;
         color: #162033;
-        margin-bottom: 0.35rem;
-        letter-spacing: -0.02em;
-        line-height: 1.18;
+        margin-bottom: 0.45rem;
+        letter-spacing: -0.035em;
+        line-height: 1.08;
     }
     .dashboard-subtitle {
         color: #667085;
-        margin-bottom: 1.75rem;
-        font-size: 1rem;
-        line-height: 1.55;
+        margin-bottom: 2rem;
+        font-size: 1.01rem;
+        line-height: 1.65;
+        max-width: 760px;
     }
     .panel {
         background: var(--panel-bg);
         border: 1px solid var(--border-soft);
-        border-radius: 18px;
-        padding: 1.2rem 1.25rem;
-        margin-bottom: 1rem;
-        box-shadow: var(--shadow-soft);
+        border-radius: 22px;
+        padding: 1.35rem 1.45rem;
+        margin-bottom: 1.2rem;
+        box-shadow: var(--panel-shadow);
     }
     .panel-title {
-        font-size: 1.04rem;
-        font-weight: 700;
+        font-size: 1.08rem;
+        font-weight: 750;
         color: #162033;
-        margin-bottom: 0.9rem;
+        margin-bottom: 1rem;
         line-height: 1.35;
+        letter-spacing: -0.01em;
     }
     .change-card {
         background: var(--panel-bg);
         border: 1px solid var(--border-soft);
-        border-radius: 18px;
+        border-radius: 20px;
         padding: 1.2rem 1.25rem;
         margin-bottom: 1rem;
-        box-shadow: var(--shadow-soft);
+        box-shadow: var(--panel-shadow-soft);
     }
     .mock-block {
         background: #FAFBFF;
         border: 1px dashed #D8DCE8;
-        border-radius: 16px;
-        padding: 1rem 1.05rem;
-        margin-top: 0.5rem;
+        border-radius: 18px;
+        padding: 1.05rem 1.1rem;
+        margin-top: 0.65rem;
         color: var(--text-muted);
     }
     .recommendation-card {
         background: var(--panel-bg);
         border: 1px solid var(--border-soft);
-        border-radius: 18px;
-        padding: 1.15rem 1.2rem;
-        margin-bottom: 0.9rem;
-        box-shadow: var(--shadow-soft);
+        border-radius: 22px;
+        padding: 1.3rem 1.35rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--panel-shadow);
     }
     .recommendation-card-top {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 0.9rem;
-        margin-bottom: 0.9rem;
+        margin-bottom: 1rem;
         flex-wrap: wrap;
     }
     .recommendation-category {
-        font-size: 0.92rem;
-        font-weight: 700;
+        font-size: 0.98rem;
+        font-weight: 750;
         color: #162033;
-        letter-spacing: 0.01em;
+        letter-spacing: -0.01em;
         line-height: 1.35;
     }
     .recommendation-body {
-        color: #667085;
-        font-size: 0.95rem;
-        line-height: 1.62;
+        color: #52607A;
+        font-size: 0.96rem;
+        line-height: 1.7;
+    }
+    .recommendation-body strong {
+        color: #162033;
     }
     .priority-high-pill {
         display: inline-block;
-        background: #FDECEC;
+        background: linear-gradient(180deg, #FFF1F2 0%, #FFE4E8 100%);
         color: #B42318;
-        border: 1px solid #F7C7C2;
+        border: 1px solid #F5B7C0;
         border-radius: 999px;
-        padding: 0.34rem 0.72rem;
+        padding: 0.36rem 0.78rem;
         font-size: 0.75rem;
         font-weight: 700;
         white-space: nowrap;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
     }
     .priority-medium-pill {
         display: inline-block;
-        background: #FFF1E8;
+        background: linear-gradient(180deg, #FFF7ED 0%, #FFEEDC 100%);
         color: #B54708;
-        border: 1px solid #F4D1B0;
+        border: 1px solid #F6CFA7;
         border-radius: 999px;
-        padding: 0.34rem 0.72rem;
+        padding: 0.36rem 0.78rem;
         font-size: 0.75rem;
         font-weight: 700;
         white-space: nowrap;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
     }
     .priority-low-pill {
         display: inline-block;
-        background: #F5F6FA;
-        color: #667085;
+        background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+        color: #475467;
         border: 1px solid #E4E7EC;
         border-radius: 999px;
-        padding: 0.34rem 0.72rem;
+        padding: 0.36rem 0.78rem;
         font-size: 0.75rem;
         font-weight: 700;
         white-space: nowrap;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
     }
     .topic-tag-row {
         display: flex;
-        gap: 0.5rem;
+        gap: 0.55rem;
         flex-wrap: wrap;
-        margin: 0.5rem 0 0.8rem;
+        margin: 0.55rem 0 0.9rem;
     }
     .topic-tag {
         display: inline-block;
         background: var(--accent-purple-soft);
         color: #5B45C6;
-        border: 1px solid #E5DAFF;
+        border: 1px solid var(--accent-purple-border);
         border-radius: 999px;
-        padding: 0.3rem 0.68rem;
-        font-size: 0.74rem;
-        font-weight: 600;
+        padding: 0.34rem 0.72rem;
+        font-size: 0.76rem;
+        font-weight: 650;
         white-space: nowrap;
     }
     .what-next-card {
         background: var(--panel-bg);
         border: 1px solid var(--border-soft);
-        border-radius: 18px;
-        padding: 1.15rem 1.2rem;
-        margin-bottom: 0.9rem;
-        box-shadow: var(--shadow-soft);
+        border-radius: 22px;
+        padding: 1.25rem 1.3rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--panel-shadow);
     }
     .what-next-title {
-        font-size: 1.04rem;
-        font-weight: 700;
+        font-size: 1.08rem;
+        font-weight: 750;
         color: #162033;
-        margin-bottom: 0.58rem;
+        margin-bottom: 0.62rem;
         line-height: 1.35;
     }
     .what-next-label {
-        font-weight: 700;
+        font-weight: 750;
         color: #162033;
+    }
+    .stPlotlyChart {
+        background: #FFFFFF;
+        border: 1px solid var(--border-soft);
+        border-radius: 20px;
+        padding: 0.4rem 0.55rem 0.1rem;
+        box-shadow: var(--panel-shadow-soft);
+    }
+    .stPlotlyChart > div {
+        border-radius: 16px;
     }
     .ai-rail-panel {
         background: var(--panel-bg);
         border: 1px solid var(--border-soft);
-        border-radius: 18px;
+        border-radius: 22px;
         padding: 18px;
         height: fit-content;
         position: sticky;
         top: 20px;
-        box-shadow: var(--shadow-soft);
+        box-shadow: var(--panel-shadow);
     }
     .ai-rail-title {
         font-size: 1.02rem;
@@ -336,9 +401,9 @@ st.markdown(
     .ai-insight-card {
         background: #FFFFFF;
         border: 1px solid var(--border-soft);
-        border-radius: 16px;
-        padding: 0.9rem 1rem;
-        margin-bottom: 0.7rem;
+        border-radius: 18px;
+        padding: 0.95rem 1rem;
+        margin-bottom: 0.78rem;
         box-shadow: 0 2px 10px rgba(16, 24, 40, 0.03);
     }
     .ai-insight-title {
@@ -386,9 +451,9 @@ st.markdown(
     .take-action-panel {
         background: #FFFFFF;
         border: 1px solid #E6E8F0;
-        border-radius: 18px;
-        box-shadow: 0 4px 16px rgba(16, 24, 40, 0.04);
-        padding: 1.25rem 1.35rem;
+        border-radius: 22px;
+        box-shadow: var(--panel-shadow);
+        padding: 1.28rem 1.4rem;
         margin-top: 0.85rem;
         margin-bottom: 1rem;
     }
@@ -451,9 +516,9 @@ st.markdown(
         margin: 0.65rem 0 1rem;
     }
     .chat-message-card {
-        border-radius: 18px;
-        padding: 1rem 1.1rem;
-        box-shadow: 0 4px 16px rgba(16, 24, 40, 0.04);
+        border-radius: 20px;
+        padding: 1.08rem 1.15rem;
+        box-shadow: var(--panel-shadow-soft);
         line-height: 1.65;
     }
     .chat-message-user {
@@ -515,17 +580,22 @@ st.markdown(
     /* STREAMLIT METRICS */
     [data-testid="stMetricValue"] {
         color: #111827 !important;
-        font-size: 1.55rem !important;
-        line-height: 1.2 !important;
+        font-size: 1.48rem !important;
+        line-height: 1.18 !important;
         white-space: normal !important;
         overflow-wrap: anywhere !important;
         word-break: break-word !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.02em !important;
     }
     [data-testid="stMetricLabel"] {
         color: #6b7280 !important;
-        font-size: 0.85rem !important;
-        line-height: 1.3 !important;
+        font-size: 0.82rem !important;
+        line-height: 1.35 !important;
         white-space: normal !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em !important;
+        font-weight: 700 !important;
     }
     [data-testid="stMetricValue"] > div,
     [data-testid="stMetricLabel"] > div {
@@ -537,18 +607,25 @@ st.markdown(
     /* TABLE FIX */
     [data-testid="stDataFrame"] {
         background: white !important;
-        border-radius: 12px;
+        border-radius: 16px;
         overflow: hidden;
+        border: 1px solid var(--border-soft);
+        box-shadow: var(--panel-shadow-soft);
     }
     [data-testid="stDataFrame"] * {
         color: #111827 !important;
     }
     thead tr th {
-        background: #f9fafb !important;
+        background: #F8FAFC !important;
         color: #374151 !important;
+        font-weight: 700 !important;
+        border-bottom: 1px solid #E9EDF5 !important;
     }
     tbody tr {
         background: white !important;
+    }
+    tbody tr:nth-child(even) {
+        background: #FCFCFD !important;
     }
     .css-1n76uvr, .css-1d391kg {
         background: white !important;
@@ -759,10 +836,74 @@ def normalize_ga4_page_title_dataframe(df: pd.DataFrame | None) -> pd.DataFrame 
     df = df.copy()
     df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
 
-    if "engagement_rate" in df.columns:
-        df["engagement_rate"] = pd.to_numeric(df["engagement_rate"], errors="coerce")
+    required_metric_defaults = {
+        "sessions": None,
+        "active_users": None,
+        "engagement_rate": None,
+        "conversions": 0,
+    }
+    backfilled_metrics: list[str] = []
+
+    for column_name, default_value in required_metric_defaults.items():
+        if column_name not in df.columns:
+            df[column_name] = default_value
+            backfilled_metrics.append(column_name)
+
+    for numeric_column in required_metric_defaults:
+        if numeric_column in df.columns:
+            df[numeric_column] = pd.to_numeric(df[numeric_column], errors="coerce")
+
+    df.attrs["backfilled_ga4_metrics"] = backfilled_metrics
 
     return df
+
+
+def infer_saved_run_version(metadata: dict | None) -> str:
+    """Infer a saved run version when explicit metadata is unavailable."""
+    metadata = metadata or {}
+    run_version = str(metadata.get("run_version", "")).strip()
+    if run_version:
+        return run_version
+
+    if metadata.get("file_date_ranges") or metadata.get("date_range_label"):
+        return "v2"
+    if metadata.get("included_files"):
+        return "v1"
+    return "legacy"
+
+
+def backfill_ga4_key_metrics(results: dict, ga4_pages_data: pd.DataFrame | None) -> None:
+    """Backfill missing GA4 key metrics for older saved runs."""
+    data_summary = results.setdefault("data_intake", {}).setdefault("summary", {})
+    ga4_pages_summary = data_summary.setdefault("ga4_pages", {})
+    key_metrics = ga4_pages_summary.setdefault("key_metrics", {})
+
+    defaults = {
+        "sessions": None,
+        "active_users": None,
+        "engagement_rate": None,
+        "conversions": 0,
+    }
+    for metric_name, default_value in defaults.items():
+        key_metrics.setdefault(metric_name, default_value)
+
+    if ga4_pages_data is None or getattr(ga4_pages_data, "empty", True):
+        return
+
+    backfilled_metrics = set(ga4_pages_data.attrs.get("backfilled_ga4_metrics", []))
+
+    if key_metrics.get("sessions") in [None, "", "Not available"] and "sessions" not in backfilled_metrics:
+        key_metrics["sessions"] = to_comparison_number(ga4_pages_data["sessions"].fillna(0).sum())
+
+    if key_metrics.get("active_users") in [None, "", "Not available"] and "active_users" not in backfilled_metrics:
+        key_metrics["active_users"] = to_comparison_number(ga4_pages_data["active_users"].fillna(0).sum())
+
+    if key_metrics.get("engagement_rate") in [None, "", "Not available"] and "engagement_rate" not in backfilled_metrics:
+        engagement_rate = ga4_pages_data["engagement_rate"].dropna().mean()
+        key_metrics["engagement_rate"] = None if pd.isna(engagement_rate) else engagement_rate
+
+    if key_metrics.get("conversions") in [None, "", "Not available"] and "conversions" not in backfilled_metrics:
+        key_metrics["conversions"] = to_comparison_number(ga4_pages_data["conversions"].fillna(0).sum()) or 0
 
 
 def format_ga4_engagement_rate_kpi(value) -> str:
@@ -1241,6 +1382,7 @@ def save_run_files(
 
     metadata = {
         "run_id": run_id,
+        "run_version": "v2",
         "display_label": run_id,
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "included_files": included_files,
@@ -1271,7 +1413,9 @@ def list_saved_runs() -> list[dict]:
 
         try:
             with metadata_path.open("r", encoding="utf-8") as metadata_file:
-                saved_runs.append(json.load(metadata_file))
+                metadata = json.load(metadata_file)
+                metadata["run_version"] = infer_saved_run_version(metadata)
+                saved_runs.append(metadata)
         except (json.JSONDecodeError, OSError):
             continue
 
@@ -1289,7 +1433,9 @@ def get_saved_run_metadata(run_id: str) -> dict | None:
 
     try:
         with metadata_path.open("r", encoding="utf-8") as metadata_file:
-            return json.load(metadata_file)
+            metadata = json.load(metadata_file)
+            metadata["run_version"] = infer_saved_run_version(metadata)
+            return metadata
     except (json.JSONDecodeError, OSError):
         return None
 
@@ -1328,6 +1474,9 @@ def load_saved_run(run_id: str) -> dict | None:
     if not run_dir.exists():
         return None
 
+    metadata = get_saved_run_metadata(run_id) or {"run_id": run_id, "run_version": "legacy"}
+    run_version = infer_saved_run_version(metadata)
+
     ga4_pages_path = run_dir / "ga4_pages.csv"
     ga4_source_path = run_dir / "ga4_source.csv"
     gsc_queries_path = run_dir / "gsc_queries.csv"
@@ -1354,8 +1503,11 @@ def load_saved_run(run_id: str) -> dict | None:
         semrush_pages_data=semrush_pages_data,
         semrush_topics_data=semrush_topics_data,
     )
+    backfill_ga4_key_metrics(results, ga4_pages_data)
     results["meta_posts_data"] = meta_posts_data
     results["social_insights"] = build_social_insights(meta_posts_data)
+    results["saved_run_metadata"] = metadata
+    results["run_version"] = run_version
 
     ga4_debug_titles = []
     if ga4_pages_data is not None and "page_title" in ga4_pages_data.columns:
@@ -1365,6 +1517,7 @@ def load_saved_run(run_id: str) -> dict | None:
         "results": results,
         "ga4_debug_titles": ga4_debug_titles,
         "run_id": run_id,
+        "run_version": run_version,
     }
 
 
@@ -1434,7 +1587,7 @@ def format_percent_change(value) -> str:
 def build_run_metric_snapshot(results: dict | None, run_id: str | None = None) -> dict[str, list[dict[str, object]]]:
     """Extract comparable GA4, GSC, and social metrics from a saved run."""
     if not results:
-        return {"ga4": [], "gsc": [], "social": [], "semrush": [], "availability": {}}
+        return {"ga4": [], "gsc": [], "social": [], "semrush": [], "availability": {}, "run_version": "legacy"}
 
     data_summary = results.get("data_intake", {}).get("summary", {})
     insight = results.get("insight", {})
@@ -1443,6 +1596,9 @@ def build_run_metric_snapshot(results: dict | None, run_id: str | None = None) -
     semrush_pages_data = results.get("semrush_pages_data")
     semrush_topics_data = results.get("semrush_topics_data")
     ga4_pages_data = load_saved_ga4_pages_dataframe(run_id or "")
+    backfilled_ga4_metrics = set(ga4_pages_data.attrs.get("backfilled_ga4_metrics", [])) if not ga4_pages_data.empty else set()
+    run_metadata = get_saved_run_metadata(run_id or "") if run_id else {}
+    run_version = infer_saved_run_version(run_metadata or results.get("saved_run_metadata"))
 
     ga4_pages_available = not ga4_pages_data.empty if not ga4_pages_data.empty else data_summary.get("ga4_pages", {}).get("rows", 0) > 0
     ga4_sources_available = data_summary.get("ga4_sources", {}).get("rows", 0) > 0
@@ -1455,17 +1611,17 @@ def build_run_metric_snapshot(results: dict | None, run_id: str | None = None) -
     ga4_page_metrics = data_summary.get("ga4_pages", {}).get("key_metrics", {})
     ga4_sessions = (
         to_comparison_number(ga4_pages_data["sessions"].fillna(0).sum())
-        if ga4_pages_available and "sessions" in ga4_pages_data.columns
+        if ga4_pages_available and "sessions" in ga4_pages_data.columns and "sessions" not in backfilled_ga4_metrics
         else to_comparison_number(ga4_page_metrics.get("sessions"))
     )
     ga4_active_users = (
         to_comparison_number(ga4_pages_data["active_users"].fillna(0).sum())
-        if ga4_pages_available and "active_users" in ga4_pages_data.columns
+        if ga4_pages_available and "active_users" in ga4_pages_data.columns and "active_users" not in backfilled_ga4_metrics
         else to_comparison_number(ga4_page_metrics.get("active_users"))
     )
     ga4_engagement_rate = (
         normalize_percent_metric(ga4_pages_data["engagement_rate"].fillna(0).mean())
-        if ga4_pages_available and "engagement_rate" in ga4_pages_data.columns
+        if ga4_pages_available and "engagement_rate" in ga4_pages_data.columns and "engagement_rate" not in backfilled_ga4_metrics
         else normalize_percent_metric(ga4_page_metrics.get("engagement_rate"))
     )
     ga4_metrics = [
@@ -1544,6 +1700,7 @@ def build_run_metric_snapshot(results: dict | None, run_id: str | None = None) -
         "gsc": gsc_metrics,
         "social": social_metrics,
         "semrush": semrush_metrics,
+        "run_version": run_version,
         "availability": {
             "ga4_pages": ga4_pages_available,
             "ga4_sources": ga4_sources_available,
@@ -1555,6 +1712,7 @@ def build_run_metric_snapshot(results: dict | None, run_id: str | None = None) -
             "ga4_pages_columns": list(ga4_pages_data.columns),
             "ga4_pages_rows": int(len(ga4_pages_data)),
             "ga4_key_metric_keys": list(ga4_page_metrics.keys()),
+            "ga4_backfilled_metrics": sorted(backfilled_ga4_metrics),
         },
     }
 
@@ -1572,10 +1730,16 @@ def compare_saved_runs(current_run_id: str, comparison_run_id: str) -> dict | No
     comparison_results: dict[str, object] = {
         "current_run_id": current_run_id,
         "comparison_run_id": comparison_run_id,
+        "current_run_version": current_snapshot.get("run_version", "legacy"),
+        "comparison_run_version": comparison_snapshot.get("run_version", "legacy"),
         "current_run_date_label": build_saved_run_date_label(current_run_id),
         "comparison_run_date_label": build_saved_run_date_label(comparison_run_id),
         "comparison_date_label": (
             f"{build_saved_run_date_label(current_run_id)} vs {build_saved_run_date_label(comparison_run_id)}"
+        ),
+        "legacy_warning": (
+            current_snapshot.get("run_version") == "legacy"
+            or comparison_snapshot.get("run_version") == "legacy"
         ),
         "ga4": [],
         "gsc": [],
@@ -1619,6 +1783,8 @@ def compare_saved_runs(current_run_id: str, comparison_run_id: str) -> dict | No
             "ga4_pages_rows": current_availability.get("ga4_pages_rows"),
             "ga4_pages_columns": current_availability.get("ga4_pages_columns"),
             "ga4_key_metric_keys": current_availability.get("ga4_key_metric_keys"),
+            "ga4_backfilled_metrics": current_availability.get("ga4_backfilled_metrics"),
+            "run_version": current_snapshot.get("run_version"),
             "ga4_snapshot": current_snapshot.get("ga4", []),
         },
         "comparison_run": {
@@ -1628,6 +1794,8 @@ def compare_saved_runs(current_run_id: str, comparison_run_id: str) -> dict | No
             "ga4_pages_rows": comparison_availability.get("ga4_pages_rows"),
             "ga4_pages_columns": comparison_availability.get("ga4_pages_columns"),
             "ga4_key_metric_keys": comparison_availability.get("ga4_key_metric_keys"),
+            "ga4_backfilled_metrics": comparison_availability.get("ga4_backfilled_metrics"),
+            "run_version": comparison_snapshot.get("run_version"),
             "ga4_snapshot": comparison_snapshot.get("ga4", []),
         },
     }
@@ -1695,6 +1863,8 @@ def render_comparison_summary(results: dict | None, sections: list[str]) -> None
         f"Comparison Run: {comparison_results.get('comparison_run_id', 'Not available')}"
     )
     st.caption(comparison_results.get("comparison_date_label", "Not available"))
+    if comparison_results.get("legacy_warning"):
+        st.warning("This saved run was generated using an older data schema. Some metrics may be unavailable.")
 
     for section in sections:
         rows = comparison_results.get(section, [])
@@ -5525,6 +5695,7 @@ if page == "Data Sources":
             st.session_state["results"] = loaded_run["results"]
             st.session_state["ga4_debug_titles"] = loaded_run["ga4_debug_titles"]
             st.session_state["loaded_run_id"] = loaded_run["run_id"]
+            st.session_state["loaded_run_version"] = loaded_run.get("run_version", "legacy")
             st.session_state["comparison_results"] = None
             st.session_state["comparison_mode"] = False
             st.session_state["comparison_current_run_id"] = None
@@ -5549,6 +5720,7 @@ if page == "Data Sources":
                 st.session_state["results"] = loaded_run["results"]
                 st.session_state["ga4_debug_titles"] = loaded_run["ga4_debug_titles"]
                 st.session_state["loaded_run_id"] = loaded_run["run_id"]
+                st.session_state["loaded_run_version"] = loaded_run.get("run_version", "legacy")
                 st.session_state["comparison_results"] = comparison_results
                 st.session_state["comparison_mode"] = True
                 st.session_state["comparison_current_run_id"] = current_run_id
@@ -5595,8 +5767,10 @@ if page == "Data Sources":
             semrush_topics_data=semrush_topics_data,
         )
 
+        backfill_ga4_key_metrics(results, ga4_pages_data)
         results["meta_posts_data"] = meta_posts_data
         results["social_insights"] = build_social_insights(meta_posts_data)
+        results["run_version"] = "v2"
         run_id = save_run_files(
             uploaded["ga4_pages_file"],
             uploaded["ga4_source_file"],
@@ -5610,6 +5784,7 @@ if page == "Data Sources":
         st.session_state["results"] = results
         st.session_state["ga4_debug_titles"] = ga4_debug_titles
         st.session_state["loaded_run_id"] = run_id
+        st.session_state["loaded_run_version"] = "v2"
         st.session_state["comparison_results"] = None
         st.session_state["comparison_mode"] = False
         st.session_state["comparison_current_run_id"] = None
