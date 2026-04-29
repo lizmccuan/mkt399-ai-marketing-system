@@ -10,6 +10,7 @@ from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 from main import run_workflow
@@ -570,6 +571,117 @@ def get_first_value(items: list[dict], key: str, fallback: str = "Not available"
     return fallback
 
 
+def make_json_safe(obj):
+    import pandas as pd
+    if isinstance(obj, pd.DataFrame):
+        return obj.to_dict(orient="records")
+    if isinstance(obj, pd.Series):
+        return obj.to_dict()
+    if isinstance(obj, dict):
+        return {k: make_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [make_json_safe(v) for v in obj]
+    return obj
+
+
+def clamp_score(value: float, minimum: float = 0.0, maximum: float = 100.0) -> float:
+    """Clamp a score into a 0-100 range."""
+    return max(minimum, min(maximum, value))
+
+
+def normalize_rule_ctr_value(value) -> float | None:
+    """Normalize CTR into decimal form for rule scoring."""
+    numeric_value = to_comparison_number(value)
+    if numeric_value is None:
+        return None
+    return numeric_value / 100 if numeric_value > 1 else numeric_value
+
+
+def calculate_rule_scores(rule: dict, sample_data: dict) -> dict[str, float]:
+    """Score a triggered rule using strategic upside signals."""
+    impressions = to_comparison_number(sample_data.get("impressions")) or 0
+    ctr_decimal = normalize_rule_ctr_value(sample_data.get("ctr"))
+    position = to_comparison_number(sample_data.get("position"))
+    engagement_rate = to_comparison_number(sample_data.get("engagement_rate"))
+    sessions = to_comparison_number(sample_data.get("sessions")) or 0
+    conversions = to_comparison_number(sample_data.get("conversions")) or 0
+
+    target_ctr_decimal = 0.05
+    ctr_gap = max(0.0, target_ctr_decimal - ctr_decimal) if ctr_decimal is not None else 0.0
+
+    impressions_score = clamp_score((impressions / 2000) * 100)
+    ctr_gap_score = clamp_score((ctr_gap / target_ctr_decimal) * 100) if ctr_gap else 0.0
+    if position is None:
+        ranking_score = 35.0
+    elif position <= 3:
+        ranking_score = 95.0
+    elif position <= 8:
+        ranking_score = 82.0
+    elif position <= 15:
+        ranking_score = 72.0
+    elif position <= 25:
+        ranking_score = 55.0
+    else:
+        ranking_score = 35.0
+
+    if engagement_rate is None:
+        engagement_opportunity_score = 40.0
+    else:
+        engagement_opportunity_score = clamp_score(((0.65 - engagement_rate) / 0.65) * 100)
+
+    session_score = clamp_score((sessions / 250) * 100)
+    if sessions > 0:
+        conversion_efficiency = conversions / sessions
+        conversion_opportunity_score = clamp_score(((0.05 - conversion_efficiency) / 0.05) * 100)
+    else:
+        conversion_opportunity_score = 25.0
+
+    available_inputs = [
+        sample_data.get("impressions"),
+        sample_data.get("ctr"),
+        sample_data.get("position"),
+        sample_data.get("engagement_rate"),
+        sample_data.get("sessions"),
+        sample_data.get("conversions"),
+    ]
+    data_completeness_score = (sum(value is not None for value in available_inputs) / len(available_inputs)) * 100
+    matched_conditions = len(rule.get("conditions", {}).get("all", []))
+    confidence_score = round(
+        clamp_score((data_completeness_score * 0.65) + (min(matched_conditions, 3) / 3 * 35)),
+        2,
+    )
+
+    opportunity_score = round(
+        clamp_score(
+            (impressions_score * 0.24)
+            + (ctr_gap_score * 0.22)
+            + (ranking_score * 0.18)
+            + (engagement_opportunity_score * 0.14)
+            + (session_score * 0.12)
+            + (conversion_opportunity_score * 0.10)
+        ),
+        2,
+    )
+
+    business_impact_score = round(
+        clamp_score(
+            (impressions_score * 0.22)
+            + (session_score * 0.26)
+            + (conversion_opportunity_score * 0.22)
+            + (ranking_score * 0.12)
+            + (ctr_gap_score * 0.10)
+            + (engagement_opportunity_score * 0.08)
+        ),
+        2,
+    )
+
+    return {
+        "confidence_score": confidence_score,
+        "opportunity_score": opportunity_score,
+        "business_impact_score": business_impact_score,
+    }
+
+
 def format_ctr_value(value, fallback: str = "Not available") -> str:
     """Format an already-normalized CTR percentage for display."""
     if value is None or value == "":
@@ -635,6 +747,47 @@ def parse_semrush_topics_csv(file) -> pd.DataFrame:
         return pd.DataFrame()
 
     return pd.read_csv(file)
+
+
+def normalize_ga4_page_title_dataframe(df: pd.DataFrame | None) -> pd.DataFrame | None:
+    """Normalize GA4 Page Title columns needed for display."""
+    if df is None:
+        return None
+
+    df = df.copy()
+    df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
+
+    if "engagement_rate" in df.columns:
+        df["engagement_rate"] = pd.to_numeric(df["engagement_rate"], errors="coerce")
+
+    return df
+
+
+def format_ga4_engagement_rate_kpi(value) -> str:
+    """Format the GA4 engagement rate KPI as a percent."""
+    numeric_value = to_comparison_number(value)
+    if numeric_value is None:
+        return "—"
+
+    return f"{round(numeric_value * 100, 2)}%"
+
+
+def calculate_analysis_engagement_rate_kpi() -> str:
+    """Calculate Analysis-page engagement rate from GA4 Page Title rows."""
+    ga4_pages_df = load_saved_ga4_pages_dataframe(st.session_state.get("loaded_run_id", ""))
+
+    if ga4_pages_df.empty or "engagement_rate" not in ga4_pages_df.columns:
+        return "Not available (requires GA4 Page Title data)"
+
+    ga4_pages_df = ga4_pages_df.copy()
+    ga4_pages_df.columns = [col.strip().lower().replace(" ", "_") for col in ga4_pages_df.columns]
+    ga4_pages_df["engagement_rate"] = pd.to_numeric(ga4_pages_df["engagement_rate"], errors="coerce")
+    engagement_rate = ga4_pages_df["engagement_rate"].dropna().mean()
+
+    if pd.isna(engagement_rate):
+        return "Not available (requires GA4 Page Title data)"
+
+    return f"{round(engagement_rate * 100, 2)}%"
 
 
 def parse_meta_posts_csv(file) -> pd.DataFrame:
@@ -1181,7 +1334,9 @@ def load_saved_run(run_id: str) -> dict | None:
     semrush_topics_path = run_dir / "semrush_topics.csv"
     meta_posts_path = run_dir / "meta_posts.csv"
 
-    ga4_pages_data = parse_csv_file(str(ga4_pages_path), "GA4_PAGES") if ga4_pages_path.exists() else None
+    ga4_pages_data = normalize_ga4_page_title_dataframe(
+        parse_csv_file(str(ga4_pages_path), "GA4_PAGES")
+    ) if ga4_pages_path.exists() else None
     ga4_source_data = parse_csv_file(str(ga4_source_path), "GA4_SOURCE") if ga4_source_path.exists() else None
     gsc_queries_data = parse_csv_file(str(gsc_queries_path), "GSC_QUERIES") if gsc_queries_path.exists() else None
     semrush_positions_data = parse_semrush_positions_csv(semrush_positions_path) if semrush_positions_path.exists() else None
@@ -1221,7 +1376,7 @@ def load_saved_ga4_pages_dataframe(run_id: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     try:
-        return parse_csv_file(str(ga4_pages_path), "GA4_PAGES")
+        return normalize_ga4_page_title_dataframe(parse_csv_file(str(ga4_pages_path), "GA4_PAGES"))
     except Exception:
         return pd.DataFrame()
 
@@ -1850,7 +2005,9 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
                 behavior_metrics = {
                     "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
                     "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
-                    "Engagement Rate": data_summary["ga4_pages"]["key_metrics"].get("engagement_rate", "Not available"),
+                    "Engagement Rate": format_ga4_engagement_rate_kpi(
+                        data_summary["ga4_pages"]["key_metrics"].get("engagement_rate")
+                    ),
                     "Source Sessions": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
                 }
 
@@ -1996,7 +2153,8 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
             st.json(results["data_intake"]["summary"]["combined"])
 
             st.subheader("Full Workflow Output")
-            st.code(json.dumps(results, indent=2), language="json")
+            safe_results = make_json_safe(results)
+            st.code(json.dumps(safe_results, indent=2), language="json")
 
 
 
@@ -2037,7 +2195,7 @@ def render_analysis_page(results: dict) -> None:
         behavior_metrics = {
             "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "—"),
             "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "—"),
-            "Engagement Rate": data_summary["ga4_pages"]["key_metrics"].get("engagement_rate", "—"),
+            "Engagement Rate": calculate_analysis_engagement_rate_kpi(),
         }
 
         with col1:
@@ -2050,17 +2208,84 @@ def render_analysis_page(results: dict) -> None:
         st.divider()
 
     if has_query_data:
-        st.subheader("Top Queries")
-        top_queries_df = format_ctr_dataframe(pd.DataFrame(insight["query_analysis"]))
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
+        st.caption("Search queries with the highest impression volume from the loaded GSC data.")
+
+        top_queries_chart_df = pd.DataFrame(insight["query_analysis"]).copy()
+        top_queries_chart_df["impressions"] = pd.to_numeric(
+            top_queries_chart_df["impressions"],
+            errors="coerce",
+        ).fillna(0)
+        top_queries_chart_df["position"] = pd.to_numeric(
+            top_queries_chart_df["position"],
+            errors="coerce",
+        ).fillna(0)
+        top_queries_chart_df["ctr_display"] = top_queries_chart_df["ctr"].apply(format_ctr_value)
+        top_queries_chart_df = top_queries_chart_df.sort_values("impressions", ascending=False).head(5)
+
+        query_fig = px.bar(
+            top_queries_chart_df,
+            x="impressions",
+            y="query",
+            orientation="h",
+            hover_data={
+                "query": True,
+                "impressions": ":,.0f",
+                "ctr_display": True,
+                "position": ":.2f",
+            },
+            labels={
+                "query": "",
+                "impressions": "Impressions",
+                "ctr_display": "CTR",
+                "position": "Position",
+            },
+            color_discrete_sequence=["#8C52FF"],
+        )
+        query_fig.update_yaxes(
+            autorange="reversed",
+            title="",
+            tickfont={"color": "#111111", "size": 12},
+            title_font={"color": "#111111"},
+        )
+        query_fig.update_xaxes(
+            title="Impressions",
+            gridcolor="#E6E8F0",
+            zeroline=False,
+            tickfont={"color": "#111111", "size": 12},
+            title_font={"color": "#111111"},
+        )
+        query_fig.update_layout(
+            plot_bgcolor="#FFFFFF",
+            paper_bgcolor="#FFFFFF",
+            font={"color": "#111111", "size": 12},
+            title_font={"color": "#111111"},
+            hoverlabel={
+                "bgcolor": "#FFFFFF",
+                "bordercolor": "#E6E8F0",
+                "font": {"color": "#111111"},
+            },
+            margin={"l": 8, "r": 12, "t": 12, "b": 24},
+            height=320,
+            showlegend=False,
+        )
+        st.plotly_chart(query_fig, use_container_width=True)
+
+        top_queries_df = format_ctr_dataframe(top_queries_chart_df.copy())
         st.dataframe(
-            top_queries_df[["query", "ctr", "impressions", "position"]].head(10),
+            top_queries_df[["query", "ctr", "impressions", "position"]],
             use_container_width=True,
             hide_index=True,
         )
-        st.divider()
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
 
     if has_page_data:
-        st.subheader("Top Pages")
+        st.markdown('<div class="panel">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
+        st.caption("Highest-value pages from the loaded GA4 page-title report.")
+
         page_rows = []
         best_source = get_first_value(insight["top_sources"], "source_medium")
 
@@ -2075,7 +2300,69 @@ def render_analysis_page(results: dict) -> None:
             )
 
         top_pages_df = pd.DataFrame(page_rows)
-        st.dataframe(top_pages_df, use_container_width=True, hide_index=True)
+        top_pages_chart_df = top_pages_df.copy()
+        top_pages_chart_df["value"] = pd.to_numeric(top_pages_chart_df["value"], errors="coerce").fillna(0)
+        top_pages_chart_df = top_pages_chart_df.sort_values("value", ascending=False).head(5)
+        top_pages_chart_df["page_title_display"] = top_pages_chart_df["page_title"].apply(
+            lambda title: str(title) if len(str(title)) <= 58 else f"{str(title)[:55]}..."
+        )
+
+        pages_fig = px.bar(
+            top_pages_chart_df,
+            x="value",
+            y="page_title_display",
+            orientation="h",
+            hover_data={
+                "page_title": True,
+                "page_title_display": False,
+                "value": ":,.0f",
+                "metric": True,
+                "traffic_context": True,
+            },
+            labels={
+                "page_title_display": "",
+                "value": "Value",
+                "page_title": "Page Title",
+                "metric": "Metric",
+                "traffic_context": "Traffic Context",
+            },
+            color_discrete_sequence=["#7CB3FF"],
+        )
+        pages_fig.update_yaxes(
+            autorange="reversed",
+            title="",
+            tickfont={"color": "#111111", "size": 12},
+            title_font={"color": "#111111"},
+        )
+        pages_fig.update_xaxes(
+            title="Value",
+            gridcolor="#E6E8F0",
+            zeroline=False,
+            tickfont={"color": "#111111", "size": 12},
+            title_font={"color": "#111111"},
+        )
+        pages_fig.update_layout(
+            plot_bgcolor="#FFFFFF",
+            paper_bgcolor="#FFFFFF",
+            font={"color": "#111111", "size": 12},
+            title_font={"color": "#111111"},
+            hoverlabel={
+                "bgcolor": "#FFFFFF",
+                "bordercolor": "#E6E8F0",
+                "font": {"color": "#111111"},
+            },
+            margin={"l": 8, "r": 12, "t": 12, "b": 24},
+            height=340,
+            showlegend=False,
+        )
+        st.plotly_chart(pages_fig, use_container_width=True)
+
+        st.dataframe(
+            top_pages_chart_df[["page_title", "metric", "value", "traffic_context"]],
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_social_analysis_page(results: dict) -> None:
@@ -3958,10 +4245,20 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
                     f"Explore {focus_keyword} on {page_label}. Get clear answers, stronger on-page guidance, and the next step for patients ready to take action."
                 ),
             },
+            "meta_description_suggestions": [
+                f"Clarify the value of {focus_keyword} and include a patient-oriented next step in the meta description.",
+                "Use more decision-stage language so the snippet feels more actionable in search results.",
+                "Test one version focused on expertise and one focused on symptom or treatment intent.",
+            ],
             "keyword_variations": [f"{focus_keyword} near me", f"{focus_keyword} cost", f"best {focus_keyword}"],
+            "internal_links": [
+                f"Add an internal link from related educational pages to {page_label} using {focus_keyword} language.",
+                "Link supporting FAQ or blog content back to the primary page with intent-matched anchor text.",
+                "Add one conversion-oriented internal link near the middle of the page and one near the CTA section.",
+            ],
         }
 
-    if category in {"aeo_geo", "aeo_geo_ai_search"}:
+    if category in {"aeo", "aeo_geo", "aeo_geo_ai_search"}:
         related_queries = [
             str(item.get("query", "")).strip()
             for item in insight.get("query_analysis", [])[:5]
@@ -3977,10 +4274,25 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
             ]
 
         return {
-            "type": "aeo_geo",
+            "type": "aeo",
             "button_label": "View answer block & FAQ suggestions",
-            "headline": "AEO / GEO Take Action",
-            "answer_blocks": faq_suggestions,
+            "headline": "AEO Take Action",
+            "faq_ideas": faq_suggestions,
+            "heading_ideas": [
+                f"What should patients know about {answer_focus}?",
+                f"Who is a good candidate for {answer_focus}?",
+                f"When should someone seek help for {answer_focus}?",
+            ],
+            "answer_blocks": [
+                f"Lead {page_label} with a concise answer block for {answer_focus}.",
+                "Use a short definition, a one-sentence explanation, and a quick next-step answer under the main heading.",
+                "Break long answers into digestible blocks so AI systems can lift the most relevant section cleanly.",
+            ],
+            "paragraph_rewrites": [
+                f"{answer_focus.title()} can be explained in one direct sentence first, followed by one short supporting paragraph and a practical next step.",
+                "Start each key section with the plain-language answer before adding detail, nuance, or proof.",
+                "Use one example or patient-facing scenario after the direct answer so the content stays helpful without becoming dense.",
+            ],
             "structure_examples": [
                 "Use a question heading followed by a 2-3 sentence direct answer.",
                 "Follow the answer with a short bullet list and one supporting fact or comparison.",
@@ -3988,8 +4300,66 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
             ],
             "schema_recommendations": [
                 "Add FAQ schema to the page section that contains the strongest answer-driven questions.",
-                "Strengthen citation signals with clear provider, location, and treatment entity references.",
-                "Use concise comparison or definition language that is easier for AI summaries to quote.",
+                "Use Article, Service, or LocalBusiness schema where the page purpose clearly supports it.",
+                "Use concise comparison or definition language that is easier for featured snippets and AI summaries to quote.",
+            ],
+            "snippet_formatting": [
+                "Use a direct 40-60 word answer immediately under the question heading.",
+                "Follow the answer with bullets or a numbered list for scannability.",
+                "Use one consistent heading structure so the page is easier to parse for featured snippets and AI Overviews.",
+            ],
+            "ai_overview_optimizations": [
+                "Answer the main patient question plainly before moving into longer supporting detail.",
+                "Use comparison language, definitions, and eligibility-style answers that AI Overviews often summarize.",
+                "Make provider, treatment, and location entities explicit so the page is easier for AI systems to cite.",
+            ],
+        }
+
+    if category == "geo":
+        geo_focus = top_query if top_query != "Not available" else "priority local search terms"
+        return {
+            "type": "geo",
+            "button_label": "View local search & GBP improvements",
+            "headline": "GEO Take Action",
+            "local_keyword_targets": [
+                f"{geo_focus} near me",
+                f"{geo_focus} in evergreen park",
+                f"{geo_focus} specialist chicago",
+            ],
+            "entity_consistency_checklist": [
+                "Use the same brand, provider, organization, and location language across the website, GBP, and directories.",
+                "Keep treatment/service descriptions consistent so AI systems can connect the same entity across sources.",
+                "Align business category, service list, and local descriptors across every profile that mentions the brand.",
+            ],
+            "city_service_page_opportunities": [
+                "Build or refresh city + service pages that connect treatment intent with location-specific demand.",
+                f"Expand {page_label} with clearer service-area language and location-specific patient concerns.",
+                "Add unique local FAQs so city/service pages are not thin variations of each other.",
+            ],
+            "gbp_improvements": [
+                "Refresh Google Business Profile services, business description, and treatment-specific categories.",
+                "Add recent photos, service highlights, and posts that reinforce the primary local treatment focus.",
+                "Keep appointment, call, and website actions aligned with the main landing-page CTA.",
+            ],
+            "local_trust_signals": [
+                "Surface provider credentials, local proof, and service-area reassurance near conversion points.",
+                "Add neighborhood, city, or nearby-location references where they support real patient intent.",
+                "Strengthen on-page review snippets or testimonial placement for local decision-stage visitors.",
+            ],
+            "citation_review_recommendations": [
+                "Audit core local citations for NAP consistency and treatment/service accuracy.",
+                "Request fresh review language that mentions both service quality and location relevance when appropriate.",
+                "Make sure review and citation signals reinforce the same primary service themes as the page.",
+            ],
+            "quotable_insight_suggestions": [
+                "Add one or two short expert statements that explain a treatment or symptom clearly enough to quote externally.",
+                "Use provider insights that sound authoritative, specific, and easy for AI systems or journalists to reuse.",
+                "Turn complex treatment explanations into one-sentence plain-language insights that can travel beyond the page.",
+            ],
+            "external_trust_signal_opportunities": [
+                "Strengthen review volume and review specificity on trusted third-party platforms.",
+                "Look for PR, podcast, YouTube, or community/forum opportunities that reinforce expertise and brand mention frequency.",
+                "Support citation readiness with trustworthy off-site mentions that use consistent entity language.",
             ],
         }
 
@@ -3999,7 +4369,7 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
             "button_label": "View CTA & landing page improvements",
             "headline": "UX Conversion Take Action",
             "conversion_suggestions": [
-                f"Strengthen the primary CTA on {page_label} so the next step is visible without heavy scrolling.",
+                f"Rewrite the primary CTA on {page_label} so the next step is visible without heavy scrolling.",
                 "Bring trust signals closer to the CTA, including provider reassurance, outcomes, or patient confidence signals.",
                 "Reduce decision friction by tightening headline-to-CTA message alignment.",
             ],
@@ -4008,6 +4378,31 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
                 "Supporting CTA after the main answer section",
                 "Trust block near the booking or contact action",
                 "Clear form, quiz, or consultation next step",
+            ],
+            "cta_rewrites": [
+                "Book Your Migraine Evaluation",
+                "See If This Treatment Is Right For You",
+                "Start With a Quick Patient Next Step",
+            ],
+            "landing_page_clarity": [
+                "Make the main page promise clearer in the first screen so users know exactly what problem the page solves.",
+                "Use one primary next step and remove messaging that competes with the main conversion action.",
+                "Clarify what happens after the CTA so users feel less uncertainty before taking action.",
+            ],
+            "page_structure_fixes": [
+                "Move the main value proposition higher on the page before dense explanation sections.",
+                "Group FAQs, trust, and CTA sections so the user can move from question to action more easily.",
+                "Tighten long paragraphs into shorter blocks with clearer section hierarchy.",
+            ],
+            "friction_reduction": [
+                "Reduce the number of decisions required before a visitor can take the next step.",
+                "Clarify whether the CTA leads to booking, consultation, quiz, or contact so the action feels lower risk.",
+                "Remove repeated or competing calls to action that can dilute intent.",
+            ],
+            "trust_improvements": [
+                "Bring provider trust, treatment credibility, and patient reassurance closer to the first CTA.",
+                "Use concise proof points before the action area so the conversion decision feels safer.",
+                "Make care-path clarity more visible for users who are not ready to book immediately.",
             ],
             "ux_recommendations": [
                 "Shorten or reorganize dense sections before the first conversion action.",
@@ -4045,7 +4440,7 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
             ],
         }
 
-    if category.startswith("social_"):
+    if category == "social" or category.startswith("social_"):
         social_insights = results.get("social_insights", {})
         top_examples_rows = social_insights.get("top_performing_content", []) or []
         conversion_rows = social_insights.get("conversion_content", []) or []
@@ -4103,15 +4498,67 @@ def build_take_action_payload(card: dict, results: dict) -> dict | None:
             "headline": "Social Take Action",
             "top_examples": top_examples or ["No high-performing examples were available from the current run."],
             "why_they_worked": why_they_worked or ["Not enough social performance context is loaded yet."],
+            "hook_ideas": [
+                "Lead with the patient problem in the first line instead of the brand or service name.",
+                "Turn a common objection into the opening hook so the post feels immediately relevant.",
+                "Use a short symptom-based or outcome-based first line that is easier to stop on in-feed.",
+            ],
+            "engagement_improvements": [
+                "Use clearer tension in the first line so the audience has a reason to keep reading or watching.",
+                "Shorten the path from hook to value so the post rewards attention faster.",
+                "End with one focused prompt instead of multiple competing asks.",
+            ],
+            "retention_strategy": [
+                "Front-load the strongest value point in the first second or first line.",
+                "Use a tighter narrative arc so the audience has a reason to stay through the middle of the post.",
+                "Break educational posts into cleaner beats or slides so the payoff builds instead of flattening out.",
+            ],
+            "format_recommendations": [
+                f"Use {format_label} more aggressively when the goal is to repeat the strongest current format signal.",
+                "Turn one winning concept into Reel, carousel, and static variants before moving to new topics.",
+                "Match the format to the job: education for saves, authority for trust, and sharper CTA-led posts for action.",
+            ],
+            "post_angles": [
+                f"Turn {base_topic} into a quick myth-vs-fact post.",
+                f"Use {base_topic} as a provider-answer format with one clear next step.",
+                "Repurpose the strongest post into a testimonial, FAQ, and checklist angle.",
+            ],
+            "captions": [
+                "Short caption with a problem-first hook, one useful insight, and a clear CTA.",
+                "Educational caption that answers one specific patient question before inviting the next step.",
+                "Caption variation that uses trust language and a softer conversion prompt.",
+            ],
             "hook_cta_examples": [
                 "Test a stronger first-line hook that names the patient problem immediately.",
                 "Pair the winning content angle with a clearer CTA such as booking, quiz, or consultation.",
                 "Use the highest-performing post format to repeat the strongest hook in a shorter, sharper version.",
             ],
+            "repurposing": [
+                "Turn the best-performing post into a Reel, carousel, and static image variation.",
+                "Reuse the same topic as a short FAQ clip, a provider quote post, and a CTA-focused version.",
+                "Republish the strongest idea with a new hook before creating entirely new themes.",
+            ],
             "variations": variations[:5],
         }
 
-    return None
+    next_steps = []
+    if top_query != "Not available":
+        next_steps.append(f"Prioritize the strongest visible opportunity around {top_query}.")
+    if page_label and page_label != "priority landing page":
+        next_steps.append(f"Use {page_label} as the first page to review and strengthen.")
+    next_steps.extend(
+        [
+            "Match the next action to the highest-signal data source instead of spreading effort broadly.",
+            "Choose one page or channel change to ship first, then measure the response before expanding.",
+        ]
+    )
+
+    return {
+        "type": "general",
+        "button_label": "View strategic next steps",
+        "headline": "Strategic Take Action",
+        "next_steps": next_steps[:4],
+    }
 
 
 def render_take_action_block(payload: dict, unique_key: str) -> None:
@@ -4119,10 +4566,12 @@ def render_take_action_block(payload: dict, unique_key: str) -> None:
     st.markdown('<div class="take-action-panel">', unsafe_allow_html=True)
     icon_map = {
         "seo": "↗",
-        "aeo_geo": "?",
+        "aeo": "?",
+        "geo": "◎",
         "ux_conversion": "UX",
         "content_expansion": "+",
         "social": "✦",
+        "general": "→",
     }
     icon = icon_map.get(str(payload.get("type", "")), "✦")
     st.markdown(
@@ -4181,21 +4630,53 @@ def render_take_action_block(payload: dict, unique_key: str) -> None:
             st.markdown(f'<ul class="take-action-list">{variation_items}</ul>', unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    elif payload.get("type") == "aeo_geo":
+        meta_description_suggestions = payload.get("meta_description_suggestions", [])
+        if meta_description_suggestions:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Meta Description Suggestions</div>', unsafe_allow_html=True)
+            meta_items = "".join(f"<li>{item}</li>" for item in meta_description_suggestions)
+            st.markdown(f'<ul class="take-action-list">{meta_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        internal_links = payload.get("internal_links", [])
+        if internal_links:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Internal Linking Ideas</div>', unsafe_allow_html=True)
+            link_items = "".join(f"<li>{item}</li>" for item in internal_links)
+            st.markdown(f'<ul class="take-action-list">{link_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    elif payload.get("type") == "aeo":
+        faq_ideas = payload.get("faq_ideas", [])
+        if faq_ideas:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">FAQ Ideas</div>', unsafe_allow_html=True)
+            faq_items = "".join(f"<li>{item}</li>" for item in faq_ideas)
+            st.markdown(f'<ul class="take-action-list">{faq_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
         answer_blocks = payload.get("answer_blocks", [])
         if answer_blocks:
             st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
-            st.markdown('<div class="take-action-section-title">Answer Block / FAQ Suggestions</div>', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Answer Block Suggestions</div>', unsafe_allow_html=True)
             answer_items = "".join(f"<li>{item}</li>" for item in answer_blocks)
             st.markdown(f'<ul class="take-action-list">{answer_items}</ul>', unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-        structure_examples = payload.get("structure_examples", [])
-        if structure_examples:
+        heading_ideas = payload.get("heading_ideas", [])
+        if heading_ideas:
             st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
-            st.markdown('<div class="take-action-section-title">AI-Friendly Content Structure</div>', unsafe_allow_html=True)
-            structure_items = "".join(f"<li>{item}</li>" for item in structure_examples)
-            st.markdown(f'<ul class="take-action-list">{structure_items}</ul>', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Question-Based Heading Ideas</div>', unsafe_allow_html=True)
+            heading_items = "".join(f"<li>{item}</li>" for item in heading_ideas)
+            st.markdown(f'<ul class="take-action-list">{heading_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        paragraph_rewrites = payload.get("paragraph_rewrites", [])
+        if paragraph_rewrites:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Answer-First Paragraph Rewrites</div>', unsafe_allow_html=True)
+            rewrite_items = "".join(f"<li>{item}</li>" for item in paragraph_rewrites)
+            st.markdown(f'<ul class="take-action-list">{rewrite_items}</ul>', unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
         schema_recommendations = payload.get("schema_recommendations", [])
@@ -4206,13 +4687,134 @@ def render_take_action_block(payload: dict, unique_key: str) -> None:
             st.markdown(f'<ul class="take-action-list">{schema_items}</ul>', unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
+        structure_examples = payload.get("structure_examples", [])
+        if structure_examples:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Featured Snippet Formatting</div>', unsafe_allow_html=True)
+            structure_items = "".join(f"<li>{item}</li>" for item in structure_examples)
+            st.markdown(f'<ul class="take-action-list">{structure_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        ai_overview_optimizations = payload.get("ai_overview_optimizations", [])
+        if ai_overview_optimizations:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">AI Overview Optimization</div>', unsafe_allow_html=True)
+            overview_items = "".join(f"<li>{item}</li>" for item in ai_overview_optimizations)
+            st.markdown(f'<ul class="take-action-list">{overview_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    elif payload.get("type") == "geo":
+        entity_consistency_checklist = payload.get("entity_consistency_checklist", [])
+        if entity_consistency_checklist:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Entity Consistency Checklist</div>', unsafe_allow_html=True)
+            entity_items = "".join(f"<li>{item}</li>" for item in entity_consistency_checklist)
+            st.markdown(f'<ul class="take-action-list">{entity_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        local_keyword_targets = payload.get("local_keyword_targets", [])
+        if local_keyword_targets:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Local Keyword Targets</div>', unsafe_allow_html=True)
+            keyword_items = "".join(f"<li>{item}</li>" for item in local_keyword_targets)
+            st.markdown(f'<ul class="take-action-list">{keyword_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        city_service_page_opportunities = payload.get("city_service_page_opportunities", [])
+        if city_service_page_opportunities:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">City / Service Page Opportunities</div>', unsafe_allow_html=True)
+            page_items = "".join(f"<li>{item}</li>" for item in city_service_page_opportunities)
+            st.markdown(f'<ul class="take-action-list">{page_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        gbp_improvements = payload.get("gbp_improvements", [])
+        if gbp_improvements:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Google Business Profile Improvements</div>', unsafe_allow_html=True)
+            gbp_items = "".join(f"<li>{item}</li>" for item in gbp_improvements)
+            st.markdown(f'<ul class="take-action-list">{gbp_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        local_trust_signals = payload.get("local_trust_signals", [])
+        if local_trust_signals:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Local Trust Signals</div>', unsafe_allow_html=True)
+            trust_items = "".join(f"<li>{item}</li>" for item in local_trust_signals)
+            st.markdown(f'<ul class="take-action-list">{trust_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        citation_review_recommendations = payload.get("citation_review_recommendations", [])
+        if citation_review_recommendations:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Citation / Review Recommendations</div>', unsafe_allow_html=True)
+            citation_items = "".join(f"<li>{item}</li>" for item in citation_review_recommendations)
+            st.markdown(f'<ul class="take-action-list">{citation_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        quotable_insight_suggestions = payload.get("quotable_insight_suggestions", [])
+        if quotable_insight_suggestions:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Quotable Insight Suggestions</div>', unsafe_allow_html=True)
+            quote_items = "".join(f"<li>{item}</li>" for item in quotable_insight_suggestions)
+            st.markdown(f'<ul class="take-action-list">{quote_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        external_trust_signal_opportunities = payload.get("external_trust_signal_opportunities", [])
+        if external_trust_signal_opportunities:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">External Trust Signal Opportunities</div>', unsafe_allow_html=True)
+            trust_signal_items = "".join(f"<li>{item}</li>" for item in external_trust_signal_opportunities)
+            st.markdown(f'<ul class="take-action-list">{trust_signal_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
     elif payload.get("type") == "ux_conversion":
+        cta_rewrites = payload.get("cta_rewrites", [])
+        if cta_rewrites:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">CTA Rewrites</div>', unsafe_allow_html=True)
+            cta_items = "".join(f"<li>{item}</li>" for item in cta_rewrites)
+            st.markdown(f'<ul class="take-action-list">{cta_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        landing_page_clarity = payload.get("landing_page_clarity", [])
+        if landing_page_clarity:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Landing Page Clarity</div>', unsafe_allow_html=True)
+            clarity_items = "".join(f"<li>{item}</li>" for item in landing_page_clarity)
+            st.markdown(f'<ul class="take-action-list">{clarity_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
         conversion_suggestions = payload.get("conversion_suggestions", [])
         if conversion_suggestions:
             st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
             st.markdown('<div class="take-action-section-title">CTA / Trust / Conversion Suggestions</div>', unsafe_allow_html=True)
             suggestion_items = "".join(f"<li>{item}</li>" for item in conversion_suggestions)
             st.markdown(f'<ul class="take-action-list">{suggestion_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        page_structure_fixes = payload.get("page_structure_fixes", [])
+        if page_structure_fixes:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Page Structure Fixes</div>', unsafe_allow_html=True)
+            structure_items = "".join(f"<li>{item}</li>" for item in page_structure_fixes)
+            st.markdown(f'<ul class="take-action-list">{structure_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        friction_reduction = payload.get("friction_reduction", [])
+        if friction_reduction:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Friction Reduction</div>', unsafe_allow_html=True)
+            friction_items = "".join(f"<li>{item}</li>" for item in friction_reduction)
+            st.markdown(f'<ul class="take-action-list">{friction_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        trust_improvements = payload.get("trust_improvements", [])
+        if trust_improvements:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Trust Improvements</div>', unsafe_allow_html=True)
+            trust_items = "".join(f"<li>{item}</li>" for item in trust_improvements)
+            st.markdown(f'<ul class="take-action-list">{trust_items}</ul>', unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
         checklist = payload.get("checklist", [])
@@ -4257,6 +4859,54 @@ def render_take_action_block(payload: dict, unique_key: str) -> None:
             st.markdown("</div>", unsafe_allow_html=True)
 
     elif payload.get("type") == "social":
+        hook_ideas = payload.get("hook_ideas", [])
+        if hook_ideas:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Hook Ideas</div>', unsafe_allow_html=True)
+            hook_idea_items = "".join(f"<li>{item}</li>" for item in hook_ideas)
+            st.markdown(f'<ul class="take-action-list">{hook_idea_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        engagement_improvements = payload.get("engagement_improvements", [])
+        if engagement_improvements:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Engagement Improvements</div>', unsafe_allow_html=True)
+            engagement_items = "".join(f"<li>{item}</li>" for item in engagement_improvements)
+            st.markdown(f'<ul class="take-action-list">{engagement_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        retention_strategy = payload.get("retention_strategy", [])
+        if retention_strategy:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Retention Strategy</div>', unsafe_allow_html=True)
+            retention_items = "".join(f"<li>{item}</li>" for item in retention_strategy)
+            st.markdown(f'<ul class="take-action-list">{retention_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        format_recommendations = payload.get("format_recommendations", [])
+        if format_recommendations:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Format Recommendations</div>', unsafe_allow_html=True)
+            format_items = "".join(f"<li>{item}</li>" for item in format_recommendations)
+            st.markdown(f'<ul class="take-action-list">{format_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        post_angles = payload.get("post_angles", [])
+        if post_angles:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Post Angles</div>', unsafe_allow_html=True)
+            angle_items = "".join(f"<li>{item}</li>" for item in post_angles)
+            st.markdown(f'<ul class="take-action-list">{angle_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        captions = payload.get("captions", [])
+        if captions:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Caption Ideas</div>', unsafe_allow_html=True)
+            caption_items = "".join(f"<li>{item}</li>" for item in captions)
+            st.markdown(f'<ul class="take-action-list">{caption_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
         top_examples = payload.get("top_examples", [])
         if top_examples:
             st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
@@ -4287,6 +4937,22 @@ def render_take_action_block(payload: dict, unique_key: str) -> None:
             st.markdown('<div class="take-action-section-title">New Variations</div>', unsafe_allow_html=True)
             variation_items = "".join(f"<li>{variation}</li>" for variation in variations)
             st.markdown(f'<ul class="take-action-list">{variation_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        repurposing = payload.get("repurposing", [])
+        if repurposing:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Repurposing Ideas</div>', unsafe_allow_html=True)
+            repurpose_items = "".join(f"<li>{item}</li>" for item in repurposing)
+            st.markdown(f'<ul class="take-action-list">{repurpose_items}</ul>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+    elif payload.get("type") == "general":
+        next_steps = payload.get("next_steps", [])
+        if next_steps:
+            st.markdown('<div class="take-action-section">', unsafe_allow_html=True)
+            st.markdown('<div class="take-action-section-title">Strategic Next Steps</div>', unsafe_allow_html=True)
+            next_step_items = "".join(f"<li>{item}</li>" for item in next_steps)
+            st.markdown(f'<ul class="take-action-list">{next_step_items}</ul>', unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.info("No drill-down action plan is available for this recommendation yet.")
@@ -4321,76 +4987,55 @@ def render_recommendations_page(results: dict) -> None:
         st.info("Run the workflow first on the Data Sources page.")
         return
 
-    strategy = results["strategy"]["strategy"]
-    social_cards = build_social_recommendation_cards(results)
     what_next_cards = build_combined_what_next_cards(results)
     priority_class_map = {
         "High": "priority-high-pill",
         "Medium": "priority-medium-pill",
         "Low": "priority-low-pill",
     }
-    priority_cycle = ["High", "Medium", "Low"]
-    action_index = 0
 
-    st.subheader("Website Recommendations")
-    for category, recommendations in strategy["recommendations"].items():
-        for index, recommendation in enumerate(recommendations):
-            priority = priority_cycle[action_index % len(priority_cycle)]
-            pill_class = priority_class_map[priority]
+    st.subheader("Recommendations")
+    if generated_recommendations:
+        for index, recommendation in enumerate(generated_recommendations):
+            display_priority = str(recommendation.get("priority", "Medium")).strip().title()
+            pill_class = priority_class_map.get(display_priority, "priority-medium-pill")
+            action_type = str(recommendation.get("action_type", "")).strip().lower()
+            opportunity_score = round(to_comparison_number(recommendation.get("opportunity_score")) or 0)
+            business_impact_score = round(to_comparison_number(recommendation.get("business_impact_score")) or 0)
+            confidence_score = round(to_comparison_number(recommendation.get("confidence_score")) or 0)
             recommendation_card = {
-                "category": category,
-                "issue": "",
-                "recommendation": "",
-                "why_it_matters": "",
-                "priority": priority,
+                "category": action_type,
+                "action_type": action_type,
+                "issue": str(recommendation.get("insight", "") or "").strip(),
+                "recommendation": str(recommendation.get("recommendation", "") or "").strip(),
+                "why_it_matters": str(recommendation.get("why_it_matters", "") or "").strip(),
+                "priority": display_priority,
             }
-
-            if isinstance(recommendation, dict):
-                issue = recommendation.get("issue", "").strip()
-                rec_text = recommendation.get("recommendation", "").strip()
-                why = recommendation.get("why_it_matters", "").strip()
-                rec_priority = recommendation.get("priority", "").strip()
-                bp_category = recommendation.get("best_practice_category", "").strip()
-                body_parts = []
-                if issue:
-                    body_parts.append(f"<strong>Issue:</strong> {issue}")
-                if rec_text:
-                    body_parts.append(f"<strong>Recommendation:</strong> {rec_text}")
-                if why:
-                    body_parts.append(f"<strong>Why it matters:</strong> {why}")
-                if bp_category:
-                    body_parts.append(f"<strong>Best Practice Category:</strong> {bp_category}")
-                body_html = "<br><br>".join(body_parts) if body_parts else "No recommendation details available."
-                display_priority = rec_priority or priority
-                recommendation_card.update(
-                    {
-                        "issue": issue,
-                        "recommendation": rec_text,
-                        "why_it_matters": why,
-                        "priority": display_priority,
-                    }
-                )
-            else:
-                body_html = str(recommendation)
-                display_priority = priority
-                recommendation_card.update(
-                    {
-                        "recommendation": str(recommendation),
-                        "priority": display_priority,
-                    }
-                )
-
-            pill_class = priority_class_map.get(display_priority, pill_class)
 
             st.markdown(
                 f"""
                 <div class="recommendation-card">
                     <div class="recommendation-card-top">
-                        <div class="recommendation-category">{format_heading(category)}</div>
+                        <div class="recommendation-category" style="font-size: 1.08rem;">
+                            {recommendation.get("title", "Recommendation")}
+                        </div>
                         <div class="{pill_class}">{display_priority} Priority</div>
                     </div>
                     <div class="recommendation-body">
-                        {body_html}
+                        <strong>Opportunity Score:</strong> {opportunity_score}/100
+                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                        <strong>Business Impact:</strong> {business_impact_score}/100
+                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                        <strong>Confidence:</strong> {confidence_score}/100
+                        <br><br>
+                        <strong>Insight:</strong><br>
+                        {recommendation_card["issue"]}
+                        <br><br>
+                        <strong>Why it matters:</strong><br>
+                        {recommendation_card["why_it_matters"]}
+                        <br><br>
+                        <strong>Recommendation:</strong><br>
+                        {recommendation_card["recommendation"]}
                     </div>
                 </div>
                 """,
@@ -4399,45 +5044,10 @@ def render_recommendations_page(results: dict) -> None:
             render_recommendation_take_action(
                 recommendation_card,
                 results,
-                f"website_{str(category).strip().lower()}_{index}",
-            )
-            action_index += 1
-
-    st.subheader("Social Recommendations")
-    if social_cards:
-        for index, card in enumerate(social_cards):
-            display_priority = str(card.get("priority", "Medium")).strip().title()
-            pill_class = priority_class_map.get(display_priority, "priority-medium-pill")
-            body_parts = []
-            if card.get("issue"):
-                body_parts.append(f"<strong>Issue:</strong> {card['issue']}")
-            if card.get("recommendation"):
-                body_parts.append(f"<strong>Recommendation:</strong> {card['recommendation']}")
-            if card.get("why_it_matters"):
-                body_parts.append(f"<strong>Why it matters:</strong> {card['why_it_matters']}")
-            body_html = "<br><br>".join(body_parts) if body_parts else "No recommendation details available."
-
-            st.markdown(
-                f"""
-                <div class="recommendation-card">
-                    <div class="recommendation-card-top">
-                        <div class="recommendation-category">{format_heading(str(card.get("category", "social")))}</div>
-                        <div class="{pill_class}">{display_priority} Priority</div>
-                    </div>
-                    <div class="recommendation-body">
-                        {body_html}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            render_recommendation_take_action(
-                card,
-                results,
-                f"social_{str(card.get('category', 'social')).strip().lower()}_{index}",
+                f"generated_{action_type or 'rule'}_{index}",
             )
     else:
-        st.info("No social recommendations available yet. Upload a Meta content export and run the workflow.")
+        st.info("No recommendations available based on current data.")
 
     st.subheader("Priority Action Queue")
     render_priority_action_queue(results, priority_class_map)
@@ -4820,12 +5430,49 @@ def render_with_ai_rail(page_renderer, results=None, *args) -> None:
 
 decision_rules_data = load_decision_rules()
 decision_rules = decision_rules_data.get("rules", [])
-query_analysis_data = st.session_state.get("query_analysis", [])
+current_results_for_rules = st.session_state.get("results", {})
+query_analysis_data = (
+    st.session_state.get("query_analysis", [])
+    or current_results_for_rules.get("insight", {}).get("query_analysis", [])
+)
 top_query = query_analysis_data[0] if query_analysis_data else {}
+ga4_page_metrics = (
+    current_results_for_rules
+    .get("data_intake", {})
+    .get("summary", {})
+    .get("ga4_pages", {})
+    .get("key_metrics", {})
+)
+ga4_pages_for_rules = load_saved_ga4_pages_dataframe(st.session_state.get("loaded_run_id", ""))
+
+if not ga4_pages_for_rules.empty:
+    rule_sessions = (
+        to_comparison_number(ga4_pages_for_rules["sessions"].fillna(0).sum())
+        if "sessions" in ga4_pages_for_rules.columns
+        else to_comparison_number(ga4_page_metrics.get("sessions"))
+    )
+    rule_engagement_rate = (
+        to_comparison_number(ga4_pages_for_rules["engagement_rate"].fillna(0).mean())
+        if "engagement_rate" in ga4_pages_for_rules.columns
+        else to_comparison_number(ga4_page_metrics.get("engagement_rate"))
+    )
+    rule_conversions = (
+        to_comparison_number(ga4_pages_for_rules["conversions"].fillna(0).sum())
+        if "conversions" in ga4_pages_for_rules.columns
+        else 0
+    )
+else:
+    rule_sessions = to_comparison_number(ga4_page_metrics.get("sessions"))
+    rule_engagement_rate = to_comparison_number(ga4_page_metrics.get("engagement_rate"))
+    rule_conversions = to_comparison_number(ga4_page_metrics.get("conversions")) or 0
+
 sample_data = {
     "impressions": top_query.get("impressions"),
     "ctr": top_query.get("ctr"),
     "position": top_query.get("position"),
+    "sessions": rule_sessions,
+    "engagement_rate": rule_engagement_rate,
+    "conversions": rule_conversions,
 }
 
 triggered_rules = []
@@ -4862,15 +5509,29 @@ for rule in decision_rules:
 generated_recommendations = []
 
 for rule in triggered_rules:
+    score_bundle = calculate_rule_scores(rule, sample_data)
     rec = {
         "title": rule.get("title"),
         "insight": rule.get("insight"),
         "why_it_matters": rule.get("why_it_matters"),
         "recommendation": rule.get("recommendation"),
         "priority": rule.get("priority"),
-        "action_type": rule.get("action_type")
+        "action_type": rule.get("action_type"),
+        "confidence_score": score_bundle.get("confidence_score"),
+        "opportunity_score": score_bundle.get("opportunity_score"),
+        "business_impact_score": score_bundle.get("business_impact_score"),
     }
     generated_recommendations.append(rec)
+
+generated_recommendations = sorted(
+    generated_recommendations,
+    key=lambda item: (
+        to_comparison_number(item.get("opportunity_score")) or 0,
+        to_comparison_number(item.get("business_impact_score")) or 0,
+        to_comparison_number(item.get("confidence_score")) or 0,
+    ),
+    reverse=True,
+)
 
 
 # Sidebar Navigation
@@ -4963,7 +5624,9 @@ if page == "Data Sources":
             st.error("Please upload at least one file before running the workflow.")
             st.stop()
 
-        ga4_pages_data = parse_uploaded_csv(uploaded["ga4_pages_file"], "GA4_PAGES") if uploaded["ga4_pages_file"] else None
+        ga4_pages_data = normalize_ga4_page_title_dataframe(
+            parse_uploaded_csv(uploaded["ga4_pages_file"], "GA4_PAGES")
+        ) if uploaded["ga4_pages_file"] else None
         ga4_source_data = parse_uploaded_csv(uploaded["ga4_source_file"], "GA4_SOURCE") if uploaded["ga4_source_file"] else None
         gsc_queries_data = parse_uploaded_csv(uploaded["gsc_queries_file"], "GSC_QUERIES") if uploaded["gsc_queries_file"] else None
         semrush_positions_data = parse_semrush_positions_csv(uploaded["semrush_positions_file"]) if uploaded["semrush_positions_file"] else None

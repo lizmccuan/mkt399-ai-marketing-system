@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.3",
   "rules": [
 
     {
@@ -41,18 +41,18 @@
     },
 
     {
-      "id": "high_traffic_low_engagement",
+      "id": "high_traffic_low_engagement_rate",
       "category": "ux_cro",
-      "title": "High traffic but low engagement",
+      "title": "High traffic but low engagement rate",
       "conditions": {
         "all": [
           { "field": "sessions", "operator": ">=", "value": 100 },
-          { "field": "engagement_rate", "operator": "<=", "value": 0.4 }
+          { "field": "engagement_rate", "operator": "<=", "value": 0.45 }
         ]
       },
-      "insight": "Users are visiting the page but not engaging with it.",
-      "why_it_matters": "Traffic without engagement indicates mismatch or poor user experience.",
-      "recommendation": "Improve messaging clarity, layout, and relevance to better match user expectations.",
+      "insight": "This page is attracting traffic, but visitors are not engaging meaningfully.",
+      "why_it_matters": "When traffic is present but engagement is weak, the page may not match expectations or may have UX/content issues.",
+      "recommendation": "Improve the headline, intro, page structure, and next-step clarity to better align with user intent.",
       "priority": "high",
       "impact": "high",
       "effort": "medium",
@@ -60,22 +60,115 @@
     },
 
     {
-      "id": "high_engagement_low_conversion",
+      "id": "high_engagement_rate_low_conversion",
       "category": "ux_cro",
-      "title": "High engagement but low conversion",
+      "title": "High engagement rate but low conversion",
       "conditions": {
         "all": [
-          { "field": "engagement_rate", "operator": ">=", "value": 0.6 },
+          { "field": "engagement_rate", "operator": ">=", "value": 0.60 },
           { "field": "conversions", "operator": "==", "value": 0 }
         ]
       },
-      "insight": "Users are engaging but not converting.",
-      "why_it_matters": "Strong interest is present, but something is blocking conversion.",
-      "recommendation": "Reduce friction in the conversion flow and improve CTA clarity.",
+      "insight": "Visitors are engaging with the page, but they are not converting.",
+      "why_it_matters": "Interest exists, but something in the conversion path is blocking users from taking action.",
+      "recommendation": "Reduce friction, strengthen CTA placement and clarity, and review whether the offer and next step are obvious.",
       "priority": "high",
       "impact": "high",
       "effort": "medium",
       "action_type": "ux_conversion"
+    },
+
+    {
+      "id": "low_engagement_rate_opportunity",
+      "category": "ux_cro",
+      "title": "Below-target engagement rate opportunity",
+      "conditions": {
+        "all": [
+          { "field": "engagement_rate", "operator": "<=", "value": 0.50 }
+        ]
+      },
+      "insight": "This page’s engagement rate is weaker than the desired level.",
+      "why_it_matters": "A weaker engagement rate can indicate that the content, page experience, or next-step pathway is not resonating strongly enough.",
+      "recommendation": "Review the page for content relevance, readability, visual structure, and stronger internal actions or CTAs.",
+      "priority": "medium",
+      "impact": "medium",
+      "effort": "medium",
+      "action_type": "ux_conversion"
+    },
+
+    {
+      "id": "needs_answer_first_structure",
+      "category": "aeo",
+      "title": "Needs answer-first structure",
+      "conditions": {
+        "all": [
+          { "field": "engagement_rate", "operator": "<=", "value": 0.50 }
+        ]
+      },
+      "insight": "The content may be discoverable, but it is not yet structured clearly enough for strong answer extraction.",
+      "why_it_matters": "AEO performance depends on answerability: clear question-based sections, concise direct answers, and structured supporting detail that answer engines can lift confidently.",
+      "recommendation": "Rewrite key sections using Question → Immediate Answer → Supporting Detail → Example → CTA.",
+      "priority": "high",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "aeo"
+    },
+
+    {
+      "id": "needs_faq_schema_support",
+      "category": "aeo",
+      "title": "Needs FAQ and schema support",
+      "conditions": {
+        "all": [
+          { "field": "impressions", "operator": ">=", "value": 100 },
+          { "field": "ctr", "operator": "<=", "value": 0.05 }
+        ]
+      },
+      "insight": "The topic has visibility, but it likely needs clearer FAQ support and answer-engine formatting to improve extraction readiness.",
+      "why_it_matters": "FAQ sections, question-based H2/H3s, concise direct answers, and relevant schema help content become more featured-snippet and AI Overview ready.",
+      "recommendation": "Add FAQ sections, question-based headings, and relevant schema to improve answer extraction.",
+      "priority": "medium",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "aeo"
+    },
+
+    {
+      "id": "entity_consistency_opportunity",
+      "category": "geo",
+      "title": "Entity consistency opportunity",
+      "conditions": {
+        "all": [
+          { "field": "sessions", "operator": ">=", "value": 50 },
+          { "field": "engagement_rate", "operator": "<=", "value": 0.55 }
+        ]
+      },
+      "insight": "Users are reaching the site, but the brand may not yet be reinforced strongly enough as a consistent, trusted entity across the web.",
+      "why_it_matters": "GEO depends on citability and trust: consistent entity descriptions, provider/location signals, GBP alignment, directories, reviews, and brand mentions all improve AI recommendation readiness.",
+      "recommendation": "Standardize brand, service, location, provider, and organization descriptions across website, GBP, directories, and social profiles.",
+      "priority": "medium",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "geo"
+    },
+
+    {
+      "id": "ai_citation_authority_opportunity",
+      "category": "geo",
+      "title": "AI citation authority opportunity",
+      "conditions": {
+        "all": [
+          { "field": "impressions", "operator": ">=", "value": 50 },
+          { "field": "position", "operator": ">", "value": 8 }
+        ]
+      },
+      "insight": "The topic has discoverability, but it may lack the authority and quotable signal strength needed for AI citation and recommendation systems.",
+      "why_it_matters": "GEO is strengthened by brand authority, quotable insights, external citations, reviews, PR, YouTube, Reddit/forums, podcasts, and other third-party trust signals that help AI systems decide what to cite.",
+      "recommendation": "Add quotable insights, expert statements, citations, reviews, and external authority signals to improve AI citation potential.",
+      "priority": "high",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "geo"
     },
 
     {
