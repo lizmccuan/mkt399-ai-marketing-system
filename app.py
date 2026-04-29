@@ -13,7 +13,9 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from components.take_action import render_recommendation_take_action as render_recommendation_take_action_component
 from main import run_workflow
+from services.rule_engine import evaluate_decision_rules, load_decision_rules as load_decision_rules_service
 from utils.parser import parse_csv_file, parse_uploaded_csv
 
 
@@ -5041,10 +5043,13 @@ def render_recommendations_page(results: dict) -> None:
                 """,
                 unsafe_allow_html=True,
             )
-            render_recommendation_take_action(
+            render_recommendation_take_action_component(
                 recommendation_card,
                 results,
                 f"generated_{action_type or 'rule'}_{index}",
+                get_first_value_fn=get_first_value,
+                build_semrush_opportunity_cards_fn=build_semrush_opportunity_cards,
+                humanize_social_topic_fn=humanize_social_topic,
             )
     else:
         st.info("No recommendations available based on current data.")
@@ -5428,7 +5433,7 @@ def render_with_ai_rail(page_renderer, results=None, *args) -> None:
         render_ai_right_rail(results)
 
 
-decision_rules_data = load_decision_rules()
+decision_rules_data = load_decision_rules_service(DISTILLED_DIR)
 decision_rules = decision_rules_data.get("rules", [])
 current_results_for_rules = st.session_state.get("results", {})
 query_analysis_data = (
@@ -5475,63 +5480,7 @@ sample_data = {
     "conversions": rule_conversions,
 }
 
-triggered_rules = []
-
-for rule in decision_rules:
-    conditions = rule.get("conditions", {}).get("all", [])
-    match = True
-
-    for condition in conditions:
-        field = condition["field"]
-        operator = condition["operator"]
-        value = condition["value"]
-
-        if field not in sample_data:
-            match = False
-            break
-
-        data_value = sample_data[field]
-
-        if data_value is None:
-            match = False
-            break
-
-        if operator == ">=" and not (data_value >= value):
-            match = False
-        elif operator == "<=" and not (data_value <= value):
-            match = False
-        elif operator == "==" and not (data_value == value):
-            match = False
-
-    if match:
-        triggered_rules.append(rule)
-
-generated_recommendations = []
-
-for rule in triggered_rules:
-    score_bundle = calculate_rule_scores(rule, sample_data)
-    rec = {
-        "title": rule.get("title"),
-        "insight": rule.get("insight"),
-        "why_it_matters": rule.get("why_it_matters"),
-        "recommendation": rule.get("recommendation"),
-        "priority": rule.get("priority"),
-        "action_type": rule.get("action_type"),
-        "confidence_score": score_bundle.get("confidence_score"),
-        "opportunity_score": score_bundle.get("opportunity_score"),
-        "business_impact_score": score_bundle.get("business_impact_score"),
-    }
-    generated_recommendations.append(rec)
-
-generated_recommendations = sorted(
-    generated_recommendations,
-    key=lambda item: (
-        to_comparison_number(item.get("opportunity_score")) or 0,
-        to_comparison_number(item.get("business_impact_score")) or 0,
-        to_comparison_number(item.get("confidence_score")) or 0,
-    ),
-    reverse=True,
-)
+triggered_rules, generated_recommendations = evaluate_decision_rules(decision_rules, sample_data)
 
 
 # Sidebar Navigation
