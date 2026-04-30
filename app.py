@@ -6259,15 +6259,19 @@ triggered_rules, generated_recommendations = evaluate_decision_rules(decision_ru
 
 # Sidebar Navigation
 with st.sidebar:
-    logo_path = BASE_DIR / "assets" / "insightrx-logo.png"
-    if logo_path.exists():
-        logo_left, logo_center, logo_right = st.columns([1, 4, 1])
-        with logo_center:
-            st.image(str(logo_path), width=160)
-        st.markdown("<div style='margin-bottom: 0.75rem;'></div>", unsafe_allow_html=True)
-    else:
-        st.markdown("## InsightRx")
-        st.caption("AI-Powered Marketing Intelligence")
+    st.markdown(
+        """
+        <div style="text-align: center; margin-bottom: 1rem;">
+            <div style="font-size: 1.8rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em;">
+                <span style="color: #162033;">Insight</span><span style="background: linear-gradient(135deg, #7C3AED 0%, #60A5FA 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;">Rx</span>
+            </div>
+            <div style="margin-top: 0.35rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; color: #667085;">
+                AI-POWERED MARKETING INTELLIGENCE
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     page = st.radio(
         "Navigation",
