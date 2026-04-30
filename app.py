@@ -6259,8 +6259,15 @@ triggered_rules, generated_recommendations = evaluate_decision_rules(decision_ru
 
 # Sidebar Navigation
 with st.sidebar:
-    st.markdown("## AI Marketing")
-    st.caption("Workflow System")
+    logo_path = BASE_DIR / "assets" / "insightrx-logo.png"
+    if logo_path.exists():
+        logo_left, logo_center, logo_right = st.columns([1, 4, 1])
+        with logo_center:
+            st.image(str(logo_path), width=160)
+        st.markdown("<div style='margin-bottom: 0.75rem;'></div>", unsafe_allow_html=True)
+    else:
+        st.markdown("## InsightRx")
+        st.caption("AI-Powered Marketing Intelligence")
 
     page = st.radio(
         "Navigation",
