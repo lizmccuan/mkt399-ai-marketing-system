@@ -253,6 +253,25 @@ st.markdown(
         line-height: 1.35;
         letter-spacing: -0.01em;
     }
+    .panel:empty,
+    .change-card:empty,
+    .mock-block:empty,
+    .recommendation-card:empty,
+    .what-next-card:empty,
+    .ai-rail-panel:empty,
+    .take-action-panel:empty,
+    .chat-message-wrap:empty,
+    .chat-message-card:empty,
+    .ai-chat-response:empty {
+        display: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        min-height: 0 !important;
+        height: 0 !important;
+        box-shadow: none !important;
+        overflow: hidden !important;
+    }
     .change-card {
         background: var(--panel-bg);
         border: 1px solid var(--border-soft);
@@ -376,11 +395,24 @@ st.markdown(
         background: #FFFFFF;
         border: 1px solid var(--border-soft);
         border-radius: 20px;
-        padding: 0.4rem 0.55rem 0.1rem;
+        padding: 0.55rem 0.65rem 0.2rem;
         box-shadow: var(--panel-shadow-soft);
+        margin-bottom: 0.55rem;
     }
     .stPlotlyChart > div {
         border-radius: 16px;
+    }
+    [data-testid="stMetric"] + [data-testid="stMetric"] {
+        margin-top: 0.15rem;
+    }
+    [data-testid="stVerticalBlock"] > [data-testid="element-container"]:has(.panel-title) {
+        margin-bottom: 0.3rem;
+    }
+    [data-testid="stVerticalBlock"] > [data-testid="element-container"]:has(.dashboard-title) {
+        margin-bottom: 0.2rem;
+    }
+    [data-testid="stVerticalBlock"] > [data-testid="element-container"]:has(.dashboard-subtitle) {
+        margin-bottom: 0.9rem;
     }
     .ai-rail-panel {
         background: var(--panel-bg);
@@ -2102,7 +2134,6 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
         st.markdown('<div class="panel">', unsafe_allow_html=True)
         st.markdown("**Status**")
         st.write("Workflow complete")
-        st.write("Profile placeholder")
         st.markdown("</div>", unsafe_allow_html=True)
 
     render_comparison_summary(results, ["ga4", "gsc", "social", "semrush"])
@@ -2299,7 +2330,8 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
             for index, pattern in enumerate(insight["patterns"][:5], start=1):
                 st.markdown(f"**Insight {index}**")
                 st.write(pattern)
-                st.divider()
+                if index < min(len(insight["patterns"]), 5):
+                    st.write("")
             st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown('<div class="panel">', unsafe_allow_html=True)
@@ -2358,7 +2390,7 @@ def render_analysis_page(results: dict) -> None:
         source_chart_df = top_sources_df[["source_medium", "value"]].set_index("source_medium")
         st.bar_chart(source_chart_df)
         st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
-        st.divider()
+        st.write("")
 
     if has_behavior_data:
         st.subheader("User Behavior")
@@ -2377,7 +2409,7 @@ def render_analysis_page(results: dict) -> None:
         with col3:
             st.metric("Engagement Rate", behavior_metrics["Engagement Rate"])
 
-        st.divider()
+        st.write("")
 
     if has_query_data:
         st.markdown('<div class="panel">', unsafe_allow_html=True)
