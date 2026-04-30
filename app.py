@@ -771,6 +771,48 @@ st.markdown(
     [data-testid="stSidebar"] * {
         color: #111827 !important;
     }
+    @media (max-width: 768px) {
+        [data-testid="stHeader"] {
+            height: 3.5rem !important;
+            min-height: 3.5rem !important;
+            background: transparent !important;
+            border-bottom: 0 !important;
+        }
+        .main .block-container {
+            padding-top: 4.25rem;
+        }
+        [data-testid="stSidebarCollapsedControl"] {
+            position: fixed !important;
+            top: 0.9rem !important;
+            left: 0.9rem !important;
+            z-index: 1002 !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] button,
+        button[aria-label*="sidebar"],
+        button[title*="sidebar"] {
+            width: 44px !important;
+            height: 44px !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
+            border-radius: 999px !important;
+            background: #FFFFFF !important;
+            color: #111827 !important;
+            border: 1px solid #E5E7EB !important;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            opacity: 1 !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] button svg,
+        button[aria-label*="sidebar"] svg,
+        button[title*="sidebar"] svg {
+            fill: #111827 !important;
+            color: #111827 !important;
+            width: 20px !important;
+            height: 20px !important;
+        }
+    }
 
     </style>
     """,
