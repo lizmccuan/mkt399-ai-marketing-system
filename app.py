@@ -112,6 +112,8 @@ st.markdown(
     [data-testid="stHeader"] {
         background: rgba(247, 248, 252, 0.92);
         border-bottom: 1px solid rgba(230, 232, 240, 0.75);
+        height: 0 !important;
+        min-height: 0 !important;
     }
     [data-testid="stSidebar"] {
         background: var(--panel-bg);
@@ -276,17 +278,41 @@ st.markdown(
         background: var(--panel-bg);
         border: 1px solid var(--border-soft);
         border-radius: 20px;
-        padding: 1.2rem 1.25rem;
-        margin-bottom: 1rem;
-        box-shadow: var(--panel-shadow-soft);
+        padding: 1.25rem 1.3rem;
+        margin-bottom: 1.05rem;
+        box-shadow: var(--panel-shadow);
+    }
+    .change-card-title {
+        font-size: 1.02rem;
+        font-weight: 760;
+        color: #162033;
+        margin-bottom: 0.85rem;
+        letter-spacing: -0.01em;
+    }
+    .change-card-body {
+        color: #52607A;
+        font-size: 0.95rem;
+        line-height: 1.7;
+    }
+    .change-card-body strong {
+        color: #162033;
+    }
+    .change-comparison-heading {
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #667085;
+        margin-bottom: 0.45rem;
     }
     .mock-block {
-        background: #FAFBFF;
-        border: 1px dashed #D8DCE8;
+        background: #FBFCFE;
+        border: 1px solid #E7EBF3;
         border-radius: 18px;
-        padding: 1.05rem 1.1rem;
+        padding: 1rem 1.05rem;
         margin-top: 0.65rem;
         color: var(--text-muted);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
     }
     .recommendation-card {
         background: var(--panel-bg);
@@ -402,11 +428,41 @@ st.markdown(
     .stPlotlyChart > div {
         border-radius: 16px;
     }
+    .dashboard-card-marker {
+        display: none !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.dashboard-card-marker) {
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 18px;
+        padding: 22px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        height: 100%;
+    }
+    .dashboard-card-helper {
+        color: var(--text-muted);
+        font-size: 0.92rem;
+        line-height: 1.55;
+        margin-top: -0.2rem;
+        margin-bottom: 0.8rem;
+    }
+    .dashboard-section-divider {
+        height: 1px;
+        background: #E5E7EB;
+        margin: 0.35rem 0 1.2rem;
+        border-radius: 999px;
+    }
+    .insight-divider {
+        height: 1px;
+        background: #E9EDF5;
+        margin: 0.85rem 0;
+        border-radius: 999px;
+    }
+    [data-testid="column"] > [data-testid="stVerticalBlock"] {
+        gap: 1rem;
+    }
     [data-testid="stMetric"] + [data-testid="stMetric"] {
         margin-top: 0.15rem;
-    }
-    [data-testid="stVerticalBlock"] > [data-testid="element-container"]:has(.panel-title) {
-        margin-bottom: 0.3rem;
     }
     [data-testid="stVerticalBlock"] > [data-testid="element-container"]:has(.dashboard-title) {
         margin-bottom: 0.2rem;
@@ -552,6 +608,7 @@ st.markdown(
         padding: 1.08rem 1.15rem;
         box-shadow: var(--panel-shadow-soft);
         line-height: 1.65;
+        max-width: 880px;
     }
     .chat-message-user {
         background: #F8FAFC;
@@ -591,6 +648,14 @@ st.markdown(
     .chat-response-text {
         color: #162033;
         line-height: 1.72;
+    }
+    .chat-response-text ul {
+        margin: 0.2rem 0 0;
+        padding-left: 1.15rem;
+    }
+    .chat-response-text li {
+        margin-bottom: 0.36rem;
+        color: #162033;
     }
     .chat-response-next {
         background: #F3EDFF;
@@ -2126,224 +2191,296 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
     )
     has_insight_patterns = bool(insight["patterns"])
 
-    header_left, header_right = st.columns([4, 1.2])
-    with header_left:
-        st.markdown('<div class="dashboard-title">Marketing Intelligence Dashboard</div>', unsafe_allow_html=True)
-        st.markdown('<div class="dashboard-subtitle">Real-time insights and opportunities</div>', unsafe_allow_html=True)
-    with header_right:
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.markdown("**Status**")
-        st.write("Workflow complete")
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('<div class="dashboard-title">Marketing Intelligence Dashboard</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dashboard-subtitle">Real-time insights and opportunities</div>', unsafe_allow_html=True)
 
     render_comparison_summary(results, ["ga4", "gsc", "social", "semrush"])
     render_scorecard(results)
+    st.markdown('<div class="dashboard-section-divider"></div>', unsafe_allow_html=True)
 
-    left_col, right_col = st.columns([2.2, 1])
+    left_col, right_col = st.columns([2.35, 1], vertical_alignment="top")
 
     with left_col:
         if has_query_data:
-            st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
-            query_chart_df = pd.DataFrame(insight["query_analysis"])
-            if {"query", "impressions"}.issubset(query_chart_df.columns):
-                chart_data = (
-                    query_chart_df.sort_values("impressions", ascending=False)[["query", "impressions"]]
-                    .head(5)
-                    .set_index("query")
+            overview_card = st.container()
+            with overview_card:
+                st.markdown('<div class="dashboard-card-marker dashboard-chart-card-marker"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="dashboard-card-helper">Top search queries by impression volume from the loaded run.</div>',
+                    unsafe_allow_html=True,
                 )
-                st.bar_chart(chart_data)
-            st.markdown("</div>", unsafe_allow_html=True)
+                query_chart_df = pd.DataFrame(insight["query_analysis"])
+                if {"query", "impressions"}.issubset(query_chart_df.columns):
+                    chart_data = (
+                        query_chart_df.sort_values("impressions", ascending=False)[["query", "impressions"]]
+                        .head(5)
+                        .copy()
+                    )
+                    performance_fig = px.bar(
+                        chart_data,
+                        x="query",
+                        y="impressions",
+                        color_discrete_sequence=["#8C52FF"],
+                    )
+                    performance_fig.update_layout(
+                        showlegend=False,
+                        plot_bgcolor="#FFFFFF",
+                        paper_bgcolor="#FFFFFF",
+                        margin=dict(l=12, r=12, t=8, b=8),
+                        font=dict(color="#162033"),
+                        xaxis_title="",
+                        yaxis_title="",
+                    )
+                    performance_fig.update_traces(
+                        marker_line_color="#7C3AED",
+                        marker_line_width=0,
+                        hovertemplate="<b>%{x}</b><br>Impressions: %{y}<extra></extra>",
+                    )
+                    performance_fig.update_xaxes(tickfont=dict(color="#111111"))
+                    performance_fig.update_yaxes(tickfont=dict(color="#111111"))
+                    st.plotly_chart(performance_fig, use_container_width=True)
 
         row_b_left, row_b_right = st.columns(2)
 
         with row_b_left:
             if has_query_data:
-                st.markdown('<div class="panel">', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
-                top_queries_df = format_ctr_dataframe(pd.DataFrame(insight["query_analysis"]))
-                st.dataframe(
-                    top_queries_df[["query", "ctr", "impressions", "position"]].head(5),
-                    use_container_width=True,
-                    hide_index=True,
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
+                queries_card = st.container()
+                with queries_card:
+                    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
+                    st.markdown(
+                        '<div class="dashboard-card-helper">Highest-visibility queries from the loaded GSC data.</div>',
+                        unsafe_allow_html=True,
+                    )
+                    top_queries_df = format_ctr_dataframe(pd.DataFrame(insight["query_analysis"]))
+                    st.dataframe(
+                        top_queries_df[["query", "ctr", "impressions", "position"]].head(5),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
 
         with row_b_right:
             if has_page_data:
-                st.markdown('<div class="panel">', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
-                page_rows = []
-                best_source = get_first_value(insight["top_sources"], "source_medium")
-                for item in combined["top_pages"][:5]:
-                    page_rows.append(
-                        {
-                            "page_title": item["page_title"],
-                            "metric": item["metric"],
-                            "value": item["value"],
-                            "traffic_context": best_source,
-                        }
+                pages_card = st.container()
+                with pages_card:
+                    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
+                    st.markdown(
+                        '<div class="dashboard-card-helper">Pages carrying the strongest value signal in the current run.</div>',
+                        unsafe_allow_html=True,
                     )
-                top_pages_df = pd.DataFrame(page_rows)
-                st.dataframe(top_pages_df, use_container_width=True, hide_index=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+                    page_rows = []
+                    best_source = get_first_value(insight["top_sources"], "source_medium")
+                    for item in combined["top_pages"][:5]:
+                        page_rows.append(
+                            {
+                                "page_title": item["page_title"],
+                                "metric": item["metric"],
+                                "value": item["value"],
+                                "traffic_context": best_source,
+                            }
+                        )
+                    top_pages_df = pd.DataFrame(page_rows)
+                    st.dataframe(top_pages_df, use_container_width=True, hide_index=True)
 
         row_c_left, row_c_right = st.columns(2)
 
         with row_c_left:
             if has_source_data:
-                st.markdown('<div class="panel">', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
-                top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
-                source_chart_df = top_sources_df[["source_medium", "value"]].set_index("source_medium")
-                st.bar_chart(source_chart_df)
-                st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+                traffic_card = st.container()
+                with traffic_card:
+                    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
+                    st.markdown(
+                        '<div class="dashboard-card-helper">Acquisition mix based on the loaded GA4 source and medium report.</div>',
+                        unsafe_allow_html=True,
+                    )
+                    top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
+                    traffic_fig = px.bar(
+                        top_sources_df.head(5),
+                        x="source_medium",
+                        y="value",
+                        color_discrete_sequence=["#8C52FF"],
+                    )
+                    traffic_fig.update_layout(
+                        showlegend=False,
+                        plot_bgcolor="#FFFFFF",
+                        paper_bgcolor="#FFFFFF",
+                        margin=dict(l=12, r=12, t=8, b=8),
+                        font=dict(color="#162033"),
+                        xaxis_title="",
+                        yaxis_title="",
+                    )
+                    traffic_fig.update_traces(
+                        marker_line_color="#7C3AED",
+                        marker_line_width=0,
+                        hovertemplate="<b>%{x}</b><br>Value: %{y}<extra></extra>",
+                    )
+                    traffic_fig.update_xaxes(tickfont=dict(color="#111111"))
+                    traffic_fig.update_yaxes(tickfont=dict(color="#111111"))
+                    st.plotly_chart(traffic_fig, use_container_width=True)
+                    st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
 
         with row_c_right:
             if has_behavior_data:
-                st.markdown('<div class="panel">', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">User Behavior Signals</div>', unsafe_allow_html=True)
+                behavior_card = st.container()
+                with behavior_card:
+                    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="panel-title">User Behavior Signals</div>', unsafe_allow_html=True)
+                    st.markdown(
+                        '<div class="dashboard-card-helper">Behavior metrics from the loaded GA4 page and source reports.</div>',
+                        unsafe_allow_html=True,
+                    )
 
-                behavior_metrics = {
-                    "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
-                    "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
-                    "Engagement Rate": format_ga4_engagement_rate_kpi(
-                        data_summary["ga4_pages"]["key_metrics"].get("engagement_rate")
-                    ),
-                    "Source Sessions": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
-                }
+                    behavior_metrics = {
+                        "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
+                        "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
+                        "Engagement Rate": format_ga4_engagement_rate_kpi(
+                            data_summary["ga4_pages"]["key_metrics"].get("engagement_rate")
+                        ),
+                        "Source Sessions": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
+                    }
 
-                for label, value in behavior_metrics.items():
-                    st.metric(label, value)
-
-                st.markdown("</div>", unsafe_allow_html=True)
+                    for label, value in behavior_metrics.items():
+                        st.metric(label, value)
 
         if has_insight_patterns:
-            st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Key Insights</div>', unsafe_allow_html=True)
-            insight_cols = st.columns(3)
-            insight_titles = ["Low CTR Opportunity", "Growth Opportunity", "Traffic Insight"]
-            for index, title in enumerate(insight_titles):
-                with insight_cols[index]:
-                    st.markdown("**" + title + "**")
-                    st.write(insight["patterns"][index] if len(insight["patterns"]) > index else "No insight available.")
-            st.markdown("</div>", unsafe_allow_html=True)
+            insights_summary_card = st.container()
+            with insights_summary_card:
+                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">Key Insights</div>', unsafe_allow_html=True)
+                insight_cols = st.columns(3)
+                insight_titles = ["Low CTR Opportunity", "Growth Opportunity", "Traffic Insight"]
+                for index, title in enumerate(insight_titles):
+                    with insight_cols[index]:
+                        st.markdown("**" + title + "**")
+                        st.write(insight["patterns"][index] if len(insight["patterns"]) > index else "No insight available.")
 
-        st.markdown('<div class="panel" id="recommended-actions">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Recommended Actions</div>', unsafe_allow_html=True)
+        recommended_actions_card = st.container()
+        with recommended_actions_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Recommended Actions</div>', unsafe_allow_html=True)
 
-        priority_cycle = ["High", "Medium", "Low"]
-        priority_class_map = {
-            "High": "priority-high-pill",
-            "Medium": "priority-medium-pill",
-            "Low": "priority-low-pill",
-        }
-        action_index = 0
+            priority_cycle = ["High", "Medium", "Low"]
+            priority_class_map = {
+                "High": "priority-high-pill",
+                "Medium": "priority-medium-pill",
+                "Low": "priority-low-pill",
+            }
+            action_index = 0
 
-        for category, recommendations in strategy["recommendations"].items():
-            for recommendation in recommendations:
-                priority = priority_cycle[action_index % len(priority_cycle)]
-                pill_class = priority_class_map[priority]
+            for category, recommendations in strategy["recommendations"].items():
+                for recommendation in recommendations:
+                    priority = priority_cycle[action_index % len(priority_cycle)]
+                    pill_class = priority_class_map[priority]
 
-                if isinstance(recommendation, dict):
-                    issue = recommendation.get("issue", "").strip()
-                    rec_text = recommendation.get("recommendation", "").strip()
-                    why = recommendation.get("why_it_matters", "").strip()
-                    rec_priority = recommendation.get("priority", "").strip()
-                    bp_category = recommendation.get("best_practice_category", "").strip()
-                    body_parts = []
-                    if issue:
-                        body_parts.append(f"<strong>Issue:</strong> {issue}")
-                    if rec_text:
-                        body_parts.append(f"<strong>Recommendation:</strong> {rec_text}")
-                    if why:
-                        body_parts.append(f"<strong>Why it matters:</strong> {why}")
-                    if bp_category:
-                        body_parts.append(f"<strong>Best Practice Category:</strong> {bp_category}")
-                    body_html = "<br><br>".join(body_parts) if body_parts else "No recommendation details available."
-                    display_priority = rec_priority or priority
-                else:
-                    body_html = str(recommendation)
-                    display_priority = priority
+                    if isinstance(recommendation, dict):
+                        issue = recommendation.get("issue", "").strip()
+                        rec_text = recommendation.get("recommendation", "").strip()
+                        why = recommendation.get("why_it_matters", "").strip()
+                        rec_priority = recommendation.get("priority", "").strip()
+                        bp_category = recommendation.get("best_practice_category", "").strip()
+                        body_parts = []
+                        if issue:
+                            body_parts.append(f"<strong>Issue:</strong> {issue}")
+                        if rec_text:
+                            body_parts.append(f"<strong>Recommendation:</strong> {rec_text}")
+                        if why:
+                            body_parts.append(f"<strong>Why it matters:</strong> {why}")
+                        if bp_category:
+                            body_parts.append(f"<strong>Best Practice Category:</strong> {bp_category}")
+                        body_html = "<br><br>".join(body_parts) if body_parts else "No recommendation details available."
+                        display_priority = rec_priority or priority
+                    else:
+                        body_html = str(recommendation)
+                        display_priority = priority
 
-                pill_class = priority_class_map.get(display_priority, pill_class)
+                    pill_class = priority_class_map.get(display_priority, pill_class)
 
-                st.markdown(
-                    f"""
-                    <div class="recommendation-card">
-                        <div class="recommendation-card-top">
-                            <div class="recommendation-category">{format_heading(category)}</div>
-                            <div class="{pill_class}">{display_priority} Priority</div>
+                    st.markdown(
+                        f"""
+                        <div class="recommendation-card">
+                            <div class="recommendation-card-top">
+                                <div class="recommendation-category">{format_heading(category)}</div>
+                                <div class="{pill_class}">{display_priority} Priority</div>
+                            </div>
+                            <div class="recommendation-body">
+                                {body_html}
+                            </div>
                         </div>
-                        <div class="recommendation-body">
-                            {body_html}
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                action_index += 1
-
-        st.markdown("</div>", unsafe_allow_html=True)
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    action_index += 1
 
         render_priority_action_queue(results, priority_class_map)
 
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">🚀 What To Do Next</div>', unsafe_allow_html=True)
+        what_next_card = st.container()
+        with what_next_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">🚀 What To Do Next</div>', unsafe_allow_html=True)
 
-        priority_actions = strategy.get("priority_actions", [])
-        if priority_actions:
-            for action in priority_actions:
-                action_priority = str(action.get("priority", "Medium")).strip().title()
-                action_pill_class = priority_class_map.get(action_priority, "priority-medium-pill")
+            priority_actions = strategy.get("priority_actions", [])
+            if priority_actions:
+                for action in priority_actions:
+                    action_priority = str(action.get("priority", "Medium")).strip().title()
+                    action_pill_class = priority_class_map.get(action_priority, "priority-medium-pill")
 
-                st.markdown(
-                    f"""
-                    <div class="what-next-card">
-                        <div class="recommendation-card-top">
-                            <div class="what-next-title">{action.get("title", "Opportunity")}</div>
-                            <div class="{action_pill_class}">{action_priority} Priority</div>
+                    st.markdown(
+                        f"""
+                        <div class="what-next-card">
+                            <div class="recommendation-card-top">
+                                <div class="what-next-title">{action.get("title", "Opportunity")}</div>
+                                <div class="{action_pill_class}">{action_priority} Priority</div>
+                            </div>
+                            <div class="recommendation-body">
+                                <span class="what-next-label">What to do:</span><br>
+                                {action.get("action", "")}
+                                <br><br>
+                                <span class="what-next-label">Why it matters:</span><br>
+                                {action.get("reason", "")}
+                            </div>
                         </div>
-                        <div class="recommendation-body">
-                            <span class="what-next-label">What to do:</span><br>
-                            {action.get("action", "")}
-                            <br><br>
-                            <span class="what-next-label">Why it matters:</span><br>
-                            {action.get("reason", "")}
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-        else:
-            st.info("No prioritized actions available yet. Connect strategy agent output.")
-
-        st.markdown("</div>", unsafe_allow_html=True)
+                        """,
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.info("No prioritized actions available yet. Connect strategy agent output.")
 
         render_suggested_changes_section(results)
 
     with right_col:
         if has_insight_patterns:
-            st.markdown('<div class="panel">', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">AI Insights Feed</div>', unsafe_allow_html=True)
-            for index, pattern in enumerate(insight["patterns"][:5], start=1):
-                st.markdown(f"**Insight {index}**")
-                st.write(pattern)
-                if index < min(len(insight["patterns"]), 5):
-                    st.write("")
-            st.markdown("</div>", unsafe_allow_html=True)
+            insights_card = st.container()
+            with insights_card:
+                st.markdown('<div class="dashboard-card-marker dashboard-insights-card-marker"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">AI Insights Feed</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="dashboard-card-helper">A quick strategist read on the strongest patterns in the current run.</div>',
+                    unsafe_allow_html=True,
+                )
+                for index, pattern in enumerate(insight["patterns"][:3], start=1):
+                    st.markdown(f"**Insight {index}**")
+                    st.write(pattern)
+                    if index < min(len(insight["patterns"]), 3):
+                        st.markdown('<div class="insight-divider"></div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Primary CTA</div>', unsafe_allow_html=True)
-        st.write("Use the recommendations below to move from insight to action.")
-        st.button("View Recommendations", key="view_recommendations_button")
-        st.markdown("</div>", unsafe_allow_html=True)
+        cta_card = st.container()
+        with cta_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Primary CTA</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dashboard-card-helper">Use the recommendations below to move from insight to action.</div>',
+                unsafe_allow_html=True,
+            )
+            st.button("View Recommendations", key="view_recommendations_button")
 
-    st.markdown('<div class="panel">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">Export Options</div>', unsafe_allow_html=True)
-    render_export_section(results, inside_panel=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    export_card = st.container()
+    with export_card:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Export Options</div>', unsafe_allow_html=True)
+        render_export_section(results, inside_panel=True)
 
     if show_debug:
         with st.expander("Workflow Debug Data", expanded=False):
@@ -2675,26 +2812,34 @@ def render_suggested_changes_section(results: dict) -> None:
     st.markdown('<div class="panel-title">Suggested Changes with Examples</div>', unsafe_allow_html=True)
 
     for card in build_suggested_change_cards(results)[:3]:
-        st.markdown('<div class="change-card">', unsafe_allow_html=True)
-        st.markdown(f"**{card['page_or_asset_name']}**")
-        st.write(f"**Issue:** {card['issue']}")
-        st.write(f"**Why it matters:** {card['why_it_matters']}")
-        st.write(f"**Recommended change:** {card['recommended_change']}")
-        st.write(f"**Example headline or CTA:** {card['example_headline_or_cta']}")
+        before_state_html = str(card["before_state"]).replace("\n", "<br>")
+        suggested_change_html = str(card["example_layout_content_improvement"]).replace("\n", "<br>")
+        change_body_html = (
+            f"<div class='change-card-title'>{card['page_or_asset_name']}</div>"
+            f"<div class='change-card-body'>"
+            f"<strong>Issue:</strong><br>{card['issue']}"
+            f"<br><br><strong>Why it matters:</strong><br>{card['why_it_matters']}"
+            f"<br><br><strong>Recommended change:</strong><br>{card['recommended_change']}"
+            f"<br><br><strong>Example headline or CTA:</strong><br>{card['example_headline_or_cta']}"
+            f"</div>"
+        )
+        st.markdown(f"<div class='change-card'>{change_body_html}</div>", unsafe_allow_html=True)
 
         before_col, after_col = st.columns(2)
         with before_col:
-            st.markdown("**Before**")
-            st.markdown('<div class="mock-block">', unsafe_allow_html=True)
-            st.write(card["before_state"])
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('<div class="change-comparison-heading">Before</div>', unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='mock-block'>{before_state_html}</div>",
+                unsafe_allow_html=True,
+            )
         with after_col:
-            st.markdown("**Suggested Change**")
-            st.markdown('<div class="mock-block">', unsafe_allow_html=True)
-            st.write(card["example_layout_content_improvement"])
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('<div class="change-comparison-heading">Suggested Change</div>', unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='mock-block'>{suggested_change_html}</div>",
+                unsafe_allow_html=True,
+            )
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.write("")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -4082,6 +4227,43 @@ def user_asked_for_more_ideas(user_message: str) -> bool:
     return any(trigger in message_lower for trigger in triggers)
 
 
+def condense_chat_text(text: str, max_sentences: int = 2) -> str:
+    """Trim chat copy into a short presentation-friendly summary."""
+    normalized = str(text or "").replace(" | ", ". ").replace("\n", " ").strip()
+    if not normalized:
+        return "Not enough grounded data is available yet."
+
+    sentence_parts = [
+        part.strip(" -")
+        for part in re.split(r"(?<=[.!?])\s+", normalized)
+        if part.strip(" -")
+    ]
+    if sentence_parts:
+        return " ".join(sentence_parts[:max_sentences]).strip()
+
+    comma_parts = [part.strip() for part in normalized.split(",") if part.strip()]
+    if comma_parts:
+        return ". ".join(comma_parts[:max_sentences]).strip() + "."
+
+    return normalized
+
+
+def build_chat_next_actions(*items: str, max_items: int = 3) -> str:
+    """Create a short bullet list for the chat Next Action section."""
+    cleaned_items = []
+    for item in items:
+        cleaned = str(item or "").strip().lstrip("-").strip()
+        if cleaned:
+            cleaned_items.append(cleaned)
+        if len(cleaned_items) == max_items:
+            break
+
+    if not cleaned_items:
+        cleaned_items = ["Ask a more specific follow-up so I can recommend the next move with more precision."]
+
+    return "\n".join(f"- {item}" for item in cleaned_items[:max_items])
+
+
 def generate_ai_chat_response(user_message: str, results: dict | None) -> str:
     """Generate a structured strategist response using loaded run data."""
     if not results:
@@ -4131,41 +4313,61 @@ def generate_ai_chat_response(user_message: str, results: dict | None) -> str:
             insight_text = "Meta social data is not loaded in the current run."
             why_text = "Without Meta post-level performance, I cannot diagnose what is driving reach, saves, follows, or weak engagement."
             recommendation_text = "Upload a Meta content export so the strategy can connect content format, topic, and conversion behavior."
-            next_action_text = "Go to Data Sources, upload the Meta Content Export CSV, and rerun the workflow."
+            next_action_text = build_chat_next_actions(
+                "Go to Data Sources.",
+                "Upload the Meta Content Export CSV.",
+                "Rerun the workflow, then ask the same question again.",
+            )
         elif "conversion" in message_lower and "low" in message_lower:
             issue = social_balance_problems[0] if social_balance_problems else "The current social funnel is not converting as strongly as engagement suggests."
-            insight_text = issue
-            why_text = "Your loaded social data suggests interest exists, but the path from attention to follow, quiz, or booking action is still too weak."
-            recommendation_text = "Strengthen conversion prompts on the formats and topics already earning attention, especially by adding clearer next-step guidance, quiz prompts, or booking language."
-            next_action_text = "Start with the best-performing format and add one direct CTA variant to the next 3 posts."
+            insight_text = condense_chat_text(issue)
+            why_text = condense_chat_text("Your loaded social data suggests interest exists, but the path from attention to follow, quiz, or booking action is still too weak.")
+            recommendation_text = condense_chat_text("Strengthen conversion prompts on the formats and topics already earning attention, especially by adding clearer next-step guidance, quiz prompts, or booking language.")
+            next_action_text = build_chat_next_actions(
+                "Start with the best-performing format.",
+                "Add one direct CTA variant to the next 3 posts.",
+                "Track whether follows or conversions improve after the CTA change.",
+            )
             additional_ideas = [
                 "Turn save-worthy content into CTA-led variants with a clearer follow or booking prompt.",
                 "Use the strongest follow-driving hook again, but change the close so it pushes one clear next step.",
             ]
         elif "engagement" in message_lower and "low" in message_lower:
             issue = next((item for item in social_balance_problems if "low engagement" in item.lower()), "")
-            insight_text = issue or f"{social_worst_format} is the weakest current social format."
-            why_text = "Low engagement usually means the post is getting seen but the opening, framing, or payoff is not strong enough to hold attention."
-            recommendation_text = "Improve the first frame and hook on the weakest format before increasing volume."
-            next_action_text = "Rewrite the next 3 low-performing posts so the first line or first frame creates a sharper problem-solution payoff."
+            insight_text = condense_chat_text(issue or f"{social_worst_format} is the weakest current social format.")
+            why_text = condense_chat_text("Low engagement usually means the post is getting seen but the opening, framing, or payoff is not strong enough to hold attention.")
+            recommendation_text = condense_chat_text("Improve the first frame and hook on the weakest format before increasing volume.")
+            next_action_text = build_chat_next_actions(
+                "Rewrite the next 3 low-performing posts.",
+                "Make the first line or first frame create a sharper problem-solution payoff.",
+                "Retest the same topic before replacing it.",
+            )
             additional_ideas = [
                 f"Test the strongest topic, {social_top_topic}, in a more attention-grabbing format.",
                 "Repurpose a post that already drove saves into a shorter, stronger opening sequence.",
             ]
         elif any(term in message_lower for term in ["what should i post", "content works best", "what content works best"]):
-            insight_text = f"{social_best_format} is the strongest current social format, and {social_top_topic} is the strongest topic theme in the loaded run."
-            why_text = "The fastest social growth usually comes from scaling what is already producing saves, follows, or strong engagement, not from inventing a new content direction from scratch."
-            recommendation_text = f"Create more {social_best_format} content around {social_top_topic}, using the same style of hook that is already driving saves or follows."
-            next_action_text = "Build a 3-post content series this week using your strongest topic and strongest format."
+            insight_text = condense_chat_text(f"{social_best_format} is the strongest current social format, and {social_top_topic} is the strongest topic theme in the loaded run.")
+            why_text = condense_chat_text("The fastest social growth usually comes from scaling what is already producing saves, follows, or strong engagement, not from inventing a new content direction from scratch.")
+            recommendation_text = condense_chat_text(f"Create more {social_best_format} content around {social_top_topic}, using the same style of hook that is already driving saves or follows.")
+            next_action_text = build_chat_next_actions(
+                "Build a 3-post content series this week.",
+                "Use your strongest topic and strongest format.",
+                "Keep the CTA consistent so performance is easier to compare.",
+            )
             additional_ideas = [
                 "Create one educational variation, one trust-building variation, and one CTA-led variation of the same topic.",
                 "Turn the top save-driving pattern into a Reel and a Carousel to test format expansion.",
             ]
         else:
-            insight_text = f"Your current social signals point to {social_best_format} as the strongest format and {social_top_topic} as the strongest topic, while {social_weak_topic} is lagging."
-            why_text = "That gives a clear performance split between what should be scaled and what should be fixed or reduced."
-            recommendation_text = "Scale the strongest format-topic combination first instead of spreading effort evenly across all content types."
-            next_action_text = "Use the next content cycle to prioritize one winning format and one winning topic."
+            insight_text = condense_chat_text(f"Your current social signals point to {social_best_format} as the strongest format and {social_top_topic} as the strongest topic, while {social_weak_topic} is lagging.")
+            why_text = condense_chat_text("That gives a clear performance split between what should be scaled and what should be fixed or reduced.")
+            recommendation_text = condense_chat_text("Scale the strongest format-topic combination first instead of spreading effort evenly across all content types.")
+            next_action_text = build_chat_next_actions(
+                "Use the next content cycle to prioritize one winning format.",
+                "Build around one winning topic.",
+                "Pause or reframe the weakest topic until the stronger pattern is established.",
+            )
             additional_ideas = [
                 "Reduce effort on the weakest topic until a stronger hook or format test is ready.",
                 "Replicate the strongest follow-driving pattern with a sharper patient-acquisition CTA.",
@@ -4175,21 +4377,23 @@ def generate_ai_chat_response(user_message: str, results: dict | None) -> str:
             insight_text = "Website and SEO data is missing from the current run."
             why_text = "Without GA4, GSC, or SEMrush inputs, I cannot identify the highest-leverage website opportunity."
             recommendation_text = "Load a run with website data so the recommendation can be tied to actual search and traffic performance."
-            next_action_text = "Upload GA4, GSC, or SEMrush data and rerun the workflow."
+            next_action_text = build_chat_next_actions("Upload GA4, GSC, or SEMrush data and rerun the workflow.")
         else:
             top_action = priority_actions[0] if priority_actions else {}
-            insight_text = (
+            insight_text = condense_chat_text(
                 f"The clearest website opportunity is {top_query}, with {primary_page} as the primary page to optimize first."
             )
-            why_text = (
+            why_text = condense_chat_text(
                 f"The loaded run shows existing visibility around {top_query} and a clear page-level focus, which means you can improve growth faster by concentrating effort instead of spreading it across multiple pages."
             )
             recommendation_text = (
                 top_action.get("action")
                 or f"Optimize {primary_page} first around {top_query}, tightening page structure, SERP messaging, and conversion guidance."
             )
-            next_action_text = (
-                f"Start with {primary_page}, then align the title, H1, FAQ content, and CTA flow to the demand showing up in {top_query}."
+            next_action_text = build_chat_next_actions(
+                f"Start with {primary_page}.",
+                f"Align the title, H1, and FAQ content to {top_query}.",
+                "Tighten the CTA flow before expanding to secondary pages.",
             )
             additional_ideas = [
                 f"Use {top_source} landing-page traffic as a second optimization layer so the page converts better once rankings improve.",
@@ -4200,39 +4404,51 @@ def generate_ai_chat_response(user_message: str, results: dict | None) -> str:
         social_recommendations = build_social_recommendation_cards(results)
         top_social = social_recommendations[0] if social_recommendations else {}
 
-        insight_text = (
+        insight_text = condense_chat_text(
             f"Your loaded run shows a split opportunity: website growth is centered on {top_query}, while social momentum is strongest in {social_best_format} content."
         )
-        why_text = (
+        why_text = condense_chat_text(
             "That means your next move should not be generic marketing activity. It should be one website action and one content action that both map to the strongest available signals."
         )
         recommendation_text = (
             website_action.get("action")
             or f"Optimize {primary_page} first for {top_query}, then align social content to reinforce the same patient questions and conversion themes."
         )
-        next_action_text = (
+        next_action_text = build_chat_next_actions(
+            f"Optimize {primary_page} first for {top_query}.",
             top_social.get("recommendation")
-            or "Use the strongest website topic as the basis for the next social content series so both channels reinforce the same growth priority."
+            or "Use the strongest website topic as the basis for the next social content series.",
+            "Review the shared message and CTA across both channels after the next publishing cycle.",
         )
         additional_ideas = [
             "Turn the primary SEO question into a short-form social series that warms up the same patient audience.",
             "Use social save-driving content as a clue for which FAQs should move higher on the main website page.",
         ]
     else:
-        insight_text = context_summary
-        why_text = "The loaded run gives enough context to identify one immediate growth move, but your question is broad enough that I need to anchor the response to the strongest currently visible signal."
+        insight_text = condense_chat_text(
+            f"The strongest current signal is search demand around {top_query}, with {primary_page} as the clearest page to improve first. Social momentum is strongest in {social_best_format} content."
+        )
+        why_text = condense_chat_text(
+            "The loaded run gives enough context to identify one immediate growth move, but broad questions work best when anchored to the clearest visible signal."
+        )
         recommendation_text = (
             priority_actions[0].get("action")
             if priority_actions
             else "Start with the clearest loaded website or social signal rather than spreading effort across every channel."
         )
-        next_action_text = (
-            "Ask a more specific question about SEO, social, conversions, content, or optimization priority if you want a tighter strategist answer."
+        next_action_text = build_chat_next_actions(
+            "Choose one channel priority first: SEO, social, or conversion.",
+            "Ask which page or content type should be optimized first.",
+            "Use the next follow-up to narrow the recommendation into an execution plan.",
         )
         additional_ideas = [
             "Ask which page to optimize first.",
             "Ask what social content format to scale next.",
         ]
+
+    insight_text = condense_chat_text(insight_text)
+    why_text = condense_chat_text(why_text)
+    recommendation_text = condense_chat_text(recommendation_text)
 
     response = (
         f"INSIGHT\n{insight_text}\n\n"
@@ -5370,11 +5586,24 @@ def render_ai_chat_page(results: dict | None) -> None:
                 body_class = "chat-response-text"
                 if section == "NEXT ACTION":
                     body_class = "chat-response-text chat-response-next"
+                section_body = sections[section]
+                if section == "NEXT ACTION":
+                    bullet_lines = [
+                        line.strip()[2:].strip()
+                        for line in section_body.splitlines()
+                        if line.strip().startswith("- ")
+                    ]
+                    if bullet_lines:
+                        section_body = "<ul>" + "".join(f"<li>{item}</li>" for item in bullet_lines[:3]) + "</ul>"
+                    else:
+                        section_body = f"<ul><li>{section_body.strip()}</li></ul>"
+                else:
+                    section_body = section_body.replace("\n", "<br>")
                 html_sections.append(
                     f"""
                     <div class="{section_class}">
                         <div class="chat-response-title">{section}</div>
-                        <div class="{body_class}">{sections[section]}</div>
+                        <div class="{body_class}">{section_body}</div>
                     </div>
                     """
                 )
