@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import textwrap
+import html
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -4358,7 +4359,72 @@ def build_chat_next_actions(*items: str, max_items: int = 3) -> str:
     return "\n".join(f"- {item}" for item in cleaned_items[:max_items])
 
 
-def generate_ai_chat_response(user_message: str, results: dict | None) -> str:
+def strip_html_tags(text: str) -> str:
+    """Remove HTML tags from chat content before rendering."""
+    return re.sub(r"<[^>]+>", "", str(text or "")).strip()
+
+
+def build_conversation_context_block(conversation_history: list[dict] | None, current_user_question: str) -> dict[str, str]:
+    """Build a short conversation context summary from recent chat history."""
+    history = conversation_history or []
+    recent_messages = history[-5:]
+    previous_user_question = ""
+    previous_agent_recommendation = ""
+
+    for message in reversed(recent_messages):
+        role = str(message.get("role", "")).strip().lower()
+        content = strip_html_tags(message.get("content", ""))
+        if not previous_user_question and role == "user":
+            previous_user_question = content
+        if not previous_agent_recommendation and role == "assistant":
+            recommendation_match = re.search(
+                r"RECOMMENDATION\s*\n?(.*?)(?:\n\n[A-Z ][A-Z ]+|\Z)",
+                content,
+                flags=re.DOTALL,
+            )
+            previous_agent_recommendation = strip_html_tags(
+                recommendation_match.group(1).strip() if recommendation_match else content
+            )
+        if previous_user_question and previous_agent_recommendation:
+            break
+
+    return {
+        "previous_user_question": previous_user_question,
+        "previous_agent_recommendation": previous_agent_recommendation,
+        "current_user_question": strip_html_tags(current_user_question),
+    }
+
+
+def is_follow_up_question(user_message: str, conversation_context: dict[str, str]) -> bool:
+    """Detect whether the current message is a vague follow-up to the last answer."""
+    message_lower = strip_html_tags(user_message).lower()
+    follow_up_triggers = [
+        "how would i do that",
+        "how would i tighten",
+        "how do i do that",
+        "what do you mean",
+        "explain more",
+        "tighten the cta",
+        "how would i tighten the cta",
+        "tell me more",
+        "can you explain",
+        "what would that look like",
+        "show me an example",
+    ]
+    has_prior_recommendation = bool(conversation_context.get("previous_agent_recommendation"))
+    return has_prior_recommendation and any(trigger in message_lower for trigger in follow_up_triggers)
+
+
+def sanitize_chat_render_text(text: str) -> str:
+    """Strip tags and escape chat content before injecting into HTML-rendered cards."""
+    return html.escape(strip_html_tags(text)).replace("\n", "<br>")
+
+
+def generate_ai_chat_response(
+    user_message: str,
+    results: dict | None,
+    conversation_history: list[dict] | None = None,
+) -> str:
     """Generate a structured strategist response using loaded run data."""
     if not results:
         return (
@@ -4377,6 +4443,7 @@ def generate_ai_chat_response(user_message: str, results: dict | None) -> str:
     strategy = results.get("strategy", {}).get("strategy", {})
     social_insights = results.get("social_insights", {})
     context_summary = build_chat_context_summary(results)
+    conversation_context = build_conversation_context_block(conversation_history, user_message)
 
     top_query = get_first_value(insight.get("high_impression_low_click", []), "query")
     top_source = get_first_value(insight.get("top_sources", []), "source_medium")
@@ -4401,6 +4468,42 @@ def generate_ai_chat_response(user_message: str, results: dict | None) -> str:
     recommendation_text = ""
     next_action_text = ""
     additional_ideas: list[str] = []
+
+    if is_follow_up_question(user_message, conversation_context):
+        previous_recommendation = conversation_context.get("previous_agent_recommendation", "")
+        current_question = conversation_context.get("current_user_question", user_message)
+        question_lower = current_question.lower()
+
+        if "cta" in question_lower or "button" in question_lower or "tighten" in question_lower:
+            direct_answer = (
+                f"Tightening the CTA means making the next step on {primary_page} clearer, more specific, and easier to act on."
+            )
+            example = (
+                f"Use button text like 'Book Your Migraine Evaluation' or 'See If This Treatment Is Right For You,' place one CTA above the fold, repeat it after the FAQ block, and add one support line such as 'Talk with a specialist about cost, savings, and next steps.'"
+            )
+            next_steps = build_chat_next_actions(
+                f"Replace one generic CTA on {primary_page} with a more specific booking-oriented button.",
+                "Move the main CTA higher on the page and repeat it after the strongest reassurance or FAQ section.",
+                "Add one short line under the button that explains what happens after the click.",
+            )
+        else:
+            direct_answer = (
+                f"That follow-up refers to the last recommendation: {condense_chat_text(previous_recommendation, max_sentences=1)}"
+            )
+            example = (
+                f"For example, apply the change first on {primary_page} so the recommendation turns into one visible on-page improvement instead of a broad sitewide rewrite."
+            )
+            next_steps = build_chat_next_actions(
+                "Start with the page or asset named in the last recommendation.",
+                "Make one concrete revision first so you can evaluate the impact cleanly.",
+                "Ask me for a headline, CTA, FAQ, or layout example if you want a more specific implementation draft.",
+            )
+
+        return (
+            f"DIRECT ANSWER\n{condense_chat_text(direct_answer)}\n\n"
+            f"EXAMPLE\n{condense_chat_text(example, max_sentences=2)}\n\n"
+            f"NEXT STEPS\n{next_steps}"
+        )
 
     if any(term in message_lower for term in ["reel", "reels", "engagement", "post", "social", "instagram", "facebook"]):
         if not social_insights:
@@ -4685,6 +4788,21 @@ def render_opportunities_page(results: dict) -> None:
         for card in social_cards:
             card_priority = str(card.get("priority", "Medium")).strip().title()
             pill_class = priority_class_map.get(card_priority, "priority-medium-pill")
+            content_focus_value = (
+                str(card.get("target", "")).strip()
+                or str(card.get("topic", "")).strip()
+                or str(card.get("social_category", "")).strip()
+                or str(card.get("platform_focus", "")).strip()
+            )
+            content_focus_html = ""
+            if content_focus_value and content_focus_value.lower() != "not available":
+                opportunity_type = str(card.get("opportunity_type", "")).lower()
+                content_focus_label = "Content Focus"
+                if "topic" in opportunity_type:
+                    content_focus_label = "Topic"
+                elif "growth" in opportunity_type or "conversion" in opportunity_type:
+                    content_focus_label = "Social Category"
+                content_focus_html = f"<strong>{content_focus_label}:</strong> {content_focus_value}<br><br>"
 
             st.markdown(
                 f"""
@@ -4694,7 +4812,7 @@ def render_opportunities_page(results: dict) -> None:
                         <div class="{pill_class}">{card_priority} Priority</div>
                     </div>
                     <div class="recommendation-body">
-                        <strong>Area:</strong> {card.get("area", "Not available")}<br><br>
+                        {content_focus_html}
                         <strong>Supporting Data:</strong> {card.get("supporting_data", "Not available")}<br><br>
                         <strong>Why it matters:</strong> {card.get("why_it_matters", "")}<br><br>
                         <strong>Recommended action:</strong> {card.get("recommended_action", "")}
@@ -5667,15 +5785,21 @@ def render_ai_chat_page(results: dict | None) -> None:
             return
 
         st.session_state["ai_chat_messages"].append({"role": "user", "content": prompt})
-        assistant_response = generate_ai_chat_response(prompt, results)
+        recent_history = st.session_state["ai_chat_messages"][-6:-1]
+        assistant_response = generate_ai_chat_response(prompt, results, conversation_history=recent_history)
         st.session_state["ai_chat_messages"].append({"role": "assistant", "content": assistant_response})
 
     def format_assistant_response(content: str) -> str:
         section_order = ["INSIGHT", "WHY IT MATTERS", "RECOMMENDATION", "NEXT ACTION"]
-        normalized_content = str(content).replace("\r\n", "\n")
+        follow_up_order = ["DIRECT ANSWER", "EXAMPLE", "NEXT STEPS"]
+        normalized_content = strip_html_tags(content).replace("\r\n", "\n")
         sections: dict[str, str] = {}
+        active_section_order = section_order
 
-        for index, section in enumerate(section_order):
+        if "DIRECT ANSWER" in normalized_content or "NEXT STEPS" in normalized_content:
+            active_section_order = follow_up_order
+
+        for index, section in enumerate(active_section_order):
             marker = section
             start = normalized_content.find(marker)
             if start == -1:
@@ -5684,7 +5808,7 @@ def render_ai_chat_page(results: dict | None) -> None:
             body_start = start + len(marker)
             next_positions = [
                 normalized_content.find(next_section, body_start)
-                for next_section in section_order[index + 1 :]
+                for next_section in active_section_order[index + 1 :]
                 if normalized_content.find(next_section, body_start) != -1
             ]
             end = min(next_positions) if next_positions else len(normalized_content)
@@ -5693,26 +5817,26 @@ def render_ai_chat_page(results: dict | None) -> None:
 
         if sections:
             html_sections = []
-            for section in section_order:
+            for section in active_section_order:
                 if section not in sections:
                     continue
                 section_class = "chat-response-section"
                 body_class = "chat-response-text"
-                if section == "NEXT ACTION":
+                if section in {"NEXT ACTION", "NEXT STEPS"}:
                     body_class = "chat-response-text chat-response-next"
                 section_body = sections[section]
-                if section == "NEXT ACTION":
+                if section in {"NEXT ACTION", "NEXT STEPS"}:
                     bullet_lines = [
                         line.strip()[2:].strip()
                         for line in section_body.splitlines()
                         if line.strip().startswith("- ")
                     ]
                     if bullet_lines:
-                        section_body = "<ul>" + "".join(f"<li>{item}</li>" for item in bullet_lines[:3]) + "</ul>"
+                        section_body = "<ul>" + "".join(f"<li>{html.escape(item)}</li>" for item in bullet_lines[:3]) + "</ul>"
                     else:
-                        section_body = f"<ul><li>{section_body.strip()}</li></ul>"
+                        section_body = f"<ul><li>{html.escape(section_body.strip())}</li></ul>"
                 else:
-                    section_body = section_body.replace("\n", "<br>")
+                    section_body = sanitize_chat_render_text(section_body)
                 html_sections.append(
                     f"""
                     <div class="{section_class}">
@@ -5723,7 +5847,7 @@ def render_ai_chat_page(results: dict | None) -> None:
                 )
             return "".join(html_sections)
 
-        return f'<div class="chat-message-body">{content}</div>'
+        return f'<div class="chat-message-body">{sanitize_chat_render_text(content)}</div>'
 
     prompt_columns = st.columns(2)
     for index, prompt in enumerate(suggested_prompts):
@@ -5755,7 +5879,7 @@ def render_ai_chat_page(results: dict | None) -> None:
                     <div class="chat-message-wrap">
                         <div class="chat-message-card chat-message-user">
                             <div class="chat-message-label">You</div>
-                            <div class="chat-message-body">{message["content"]}</div>
+                            <div class="chat-message-body">{sanitize_chat_render_text(str(message["content"]))}</div>
                         </div>
                     </div>
                     """,
