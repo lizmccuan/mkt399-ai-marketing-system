@@ -1550,6 +1550,7 @@ def list_saved_runs() -> list[dict]:
             with metadata_path.open("r", encoding="utf-8") as metadata_file:
                 metadata = json.load(metadata_file)
                 metadata["run_version"] = infer_saved_run_version(metadata)
+                metadata["display_label"] = build_saved_run_display_label(metadata)
                 saved_runs.append(metadata)
         except (json.JSONDecodeError, OSError):
             continue
@@ -1570,9 +1571,55 @@ def get_saved_run_metadata(run_id: str) -> dict | None:
         with metadata_path.open("r", encoding="utf-8") as metadata_file:
             metadata = json.load(metadata_file)
             metadata["run_version"] = infer_saved_run_version(metadata)
+            metadata["display_label"] = build_saved_run_display_label(metadata)
             return metadata
     except (json.JSONDecodeError, OSError):
         return None
+
+
+def build_saved_run_display_label(metadata: dict | None) -> str:
+    """Build a polished saved-run label for dropdown UI without changing run ids."""
+    metadata = metadata or {}
+    run_id = str(metadata.get("run_id", "")).strip()
+    created_at = str(metadata.get("created_at", "")).strip()
+
+    label_date = ""
+    if created_at:
+        try:
+            label_date = datetime.fromisoformat(created_at).strftime("%m-%d-%Y")
+        except ValueError:
+            label_date = ""
+
+    if not label_date and run_id:
+        try:
+            label_date = datetime.strptime(run_id, "%Y-%m-%d_%H%M%S").strftime("%m-%d-%Y")
+        except ValueError:
+            label_date = run_id
+
+    included_files = metadata.get("included_files", [])
+    if not isinstance(included_files, list):
+        included_files = []
+
+    source_order = [
+        ("GA4", {"ga4_pages.csv", "ga4_source.csv"}),
+        ("GSC", {"gsc_queries.csv"}),
+        ("Meta", {"meta_posts.csv"}),
+        ("SEMrush", {"semrush_positions.csv", "semrush_pages.csv", "semrush_topics.csv"}),
+    ]
+    included_set = {str(filename).strip() for filename in included_files if str(filename).strip()}
+    source_labels = [
+        label
+        for label, filenames in source_order
+        if included_set.intersection(filenames)
+    ]
+
+    if label_date and source_labels:
+        return f"{label_date} ({', '.join(source_labels)})"
+    if label_date:
+        return label_date
+    if source_labels:
+        return f"{run_id or 'Saved Run'} ({', '.join(source_labels)})"
+    return run_id or "Saved Run"
 
 
 def build_saved_run_date_label(run_id: str) -> str:
