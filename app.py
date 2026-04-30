@@ -314,6 +314,43 @@ st.markdown(
         color: var(--text-muted);
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
     }
+    .social-mini-card {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-soft);
+        border-radius: 18px;
+        padding: 1rem 1.05rem;
+        box-shadow: var(--panel-shadow-soft);
+        height: 100%;
+    }
+    .social-mini-title {
+        font-size: 0.95rem;
+        font-weight: 760;
+        color: #162033;
+        margin-bottom: 0.6rem;
+        letter-spacing: -0.01em;
+    }
+    .social-label-row {
+        font-size: 0.93rem;
+        line-height: 1.7;
+        color: #52607A;
+    }
+    .social-label-row strong {
+        color: #162033;
+    }
+    .social-balance-card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-soft);
+        border-left: 4px solid #8C52FF;
+        border-radius: 18px;
+        padding: 0.95rem 1rem;
+        box-shadow: var(--panel-shadow-soft);
+        color: #52607A;
+        line-height: 1.6;
+        margin-bottom: 0.75rem;
+    }
+    .social-balance-card strong {
+        color: #162033;
+    }
     .recommendation-card {
         background: var(--panel-bg);
         border: 1px solid var(--border-soft);
@@ -2763,63 +2800,97 @@ def render_social_analysis_page(results: dict) -> None:
         st.metric("Top Topic", top_topic)
     with metric_cols[3]:
         st.metric("Weak Topic", weak_topic)
+    st.markdown('<div class="dashboard-section-divider"></div>', unsafe_allow_html=True)
 
-    st.subheader("Top Performing Content")
     top_performing_content = social_insights.get("top_performing_content", [])
-    if top_performing_content:
-        top_performing_df = pd.DataFrame(top_performing_content)
-        visible_columns = [
-            column
-            for column in ["Hook", "Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"]
-            if column in top_performing_df.columns
-        ]
-        st.dataframe(top_performing_df[visible_columns], use_container_width=True, hide_index=True)
-    else:
-        st.info("No top performing social content available yet.")
+    top_content_card = st.container()
+    with top_content_card:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Top Performing Content</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="dashboard-card-helper">The strongest-performing Meta content from the current loaded run.</div>',
+            unsafe_allow_html=True,
+        )
+        if top_performing_content:
+            top_performing_df = pd.DataFrame(top_performing_content)
+            visible_columns = [
+                column
+                for column in ["Hook", "Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"]
+                if column in top_performing_df.columns
+            ]
+            st.dataframe(top_performing_df[visible_columns], use_container_width=True, hide_index=True)
+        else:
+            st.info("No top performing social content available yet.")
 
-    st.subheader("Conversion Content")
     conversion_content = social_insights.get("conversion_content", [])
-    if conversion_content:
-        conversion_df = pd.DataFrame(conversion_content)
-        visible_columns = [
-            column
-            for column in ["Hook", "Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"]
-            if column in conversion_df.columns
-        ]
-        st.dataframe(conversion_df[visible_columns], use_container_width=True, hide_index=True)
-    else:
-        st.info("No conversion-oriented social content available yet.")
+    conversion_card = st.container()
+    with conversion_card:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Conversion Content</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="dashboard-card-helper">Posts most likely to support stronger next-step or conversion behavior.</div>',
+            unsafe_allow_html=True,
+        )
+        if conversion_content:
+            conversion_df = pd.DataFrame(conversion_content)
+            visible_columns = [
+                column
+                for column in ["Hook", "Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"]
+                if column in conversion_df.columns
+            ]
+            st.dataframe(conversion_df[visible_columns], use_container_width=True, hide_index=True)
+        else:
+            st.info("No conversion-oriented social content available yet.")
 
-    st.subheader("Topic Insights")
+    st.markdown("### Topic Insights")
     topic_left_col, topic_right_col = st.columns(2)
 
     with topic_left_col:
-        st.markdown("**Top Topics**")
-        if top_topics:
-            for topic in top_topics:
-                st.write(f"- {humanize_social_topic(topic)}")
-        else:
-            st.write("No top topics available yet.")
+        top_topics_card = st.container()
+        with top_topics_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="social-mini-title">Top Topics</div>', unsafe_allow_html=True)
+            if top_topics:
+                for topic in top_topics:
+                    st.write(f"- {humanize_social_topic(topic)}")
+            else:
+                st.write("No top topics available yet.")
 
     with topic_right_col:
-        st.markdown("**Weak Topics**")
-        if weak_topics:
-            for topic in weak_topics:
-                st.write(f"- {humanize_social_topic(topic)}")
-        else:
-            st.write("No weak topics available yet.")
+        weak_topics_card = st.container()
+        with weak_topics_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="social-mini-title">Weak Topics</div>', unsafe_allow_html=True)
+            if weak_topics:
+                for topic in weak_topics:
+                    st.write(f"- {humanize_social_topic(topic)}")
+            else:
+                st.write("No weak topics available yet.")
 
-    st.subheader("What Drives Performance")
-    st.write(f"**What Drives Saves:** {social_insights.get('what_drives_saves', 'Not available')}")
-    st.write(f"**What Drives Follows:** {social_insights.get('what_drives_follows', 'Not available')}")
+    performance_card = st.container()
+    with performance_card:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">What Drives Performance</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="dashboard-card-helper">Short strategist signals from the strongest save-driving and follow-driving patterns.</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"""
+            <div class="social-label-row"><strong>What drives saves:</strong> {social_insights.get('what_drives_saves', 'Not available')}</div>
+            <br>
+            <div class="social-label-row"><strong>What drives follows:</strong> {social_insights.get('what_drives_follows', 'Not available')}</div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    st.subheader("Balance Problems")
+    st.markdown("### Balance Problems")
     balance_problems = social_insights.get("balance_problems", [])
     if balance_problems:
         for issue in balance_problems:
             st.markdown(
                 f"""
-                <div class="panel">
+                <div class="social-balance-card">
                     <strong>Issue:</strong> {issue}
                 </div>
                 """,
