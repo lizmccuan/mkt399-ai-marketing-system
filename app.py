@@ -2198,283 +2198,254 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
     render_scorecard(results)
     st.markdown('<div class="dashboard-section-divider"></div>', unsafe_allow_html=True)
 
-    left_col, right_col = st.columns([2.35, 1], vertical_alignment="top")
-
-    with left_col:
-        if has_query_data:
-            overview_card = st.container()
-            with overview_card:
-                st.markdown('<div class="dashboard-card-marker dashboard-chart-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
-                st.markdown(
-                    '<div class="dashboard-card-helper">Top search queries by impression volume from the loaded run.</div>',
-                    unsafe_allow_html=True,
-                )
-                query_chart_df = pd.DataFrame(insight["query_analysis"])
-                if {"query", "impressions"}.issubset(query_chart_df.columns):
-                    chart_data = (
-                        query_chart_df.sort_values("impressions", ascending=False)[["query", "impressions"]]
-                        .head(5)
-                        .copy()
-                    )
-                    performance_fig = px.bar(
-                        chart_data,
-                        x="query",
-                        y="impressions",
-                        color_discrete_sequence=["#8C52FF"],
-                    )
-                    performance_fig.update_layout(
-                        showlegend=False,
-                        plot_bgcolor="#FFFFFF",
-                        paper_bgcolor="#FFFFFF",
-                        margin=dict(l=12, r=12, t=8, b=8),
-                        font=dict(color="#162033"),
-                        xaxis_title="",
-                        yaxis_title="",
-                    )
-                    performance_fig.update_traces(
-                        marker_line_color="#7C3AED",
-                        marker_line_width=0,
-                        hovertemplate="<b>%{x}</b><br>Impressions: %{y}<extra></extra>",
-                    )
-                    performance_fig.update_xaxes(tickfont=dict(color="#111111"))
-                    performance_fig.update_yaxes(tickfont=dict(color="#111111"))
-                    st.plotly_chart(performance_fig, use_container_width=True)
-
-        row_b_left, row_b_right = st.columns(2)
-
-        with row_b_left:
-            if has_query_data:
-                queries_card = st.container()
-                with queries_card:
-                    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                    st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
-                    st.markdown(
-                        '<div class="dashboard-card-helper">Highest-visibility queries from the loaded GSC data.</div>',
-                        unsafe_allow_html=True,
-                    )
-                    top_queries_df = format_ctr_dataframe(pd.DataFrame(insight["query_analysis"]))
-                    st.dataframe(
-                        top_queries_df[["query", "ctr", "impressions", "position"]].head(5),
-                        use_container_width=True,
-                        hide_index=True,
-                    )
-
-        with row_b_right:
-            if has_page_data:
-                pages_card = st.container()
-                with pages_card:
-                    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                    st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
-                    st.markdown(
-                        '<div class="dashboard-card-helper">Pages carrying the strongest value signal in the current run.</div>',
-                        unsafe_allow_html=True,
-                    )
-                    page_rows = []
-                    best_source = get_first_value(insight["top_sources"], "source_medium")
-                    for item in combined["top_pages"][:5]:
-                        page_rows.append(
-                            {
-                                "page_title": item["page_title"],
-                                "metric": item["metric"],
-                                "value": item["value"],
-                                "traffic_context": best_source,
-                            }
-                        )
-                    top_pages_df = pd.DataFrame(page_rows)
-                    st.dataframe(top_pages_df, use_container_width=True, hide_index=True)
-
-        row_c_left, row_c_right = st.columns(2)
-
-        with row_c_left:
-            if has_source_data:
-                traffic_card = st.container()
-                with traffic_card:
-                    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                    st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
-                    st.markdown(
-                        '<div class="dashboard-card-helper">Acquisition mix based on the loaded GA4 source and medium report.</div>',
-                        unsafe_allow_html=True,
-                    )
-                    top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
-                    traffic_fig = px.bar(
-                        top_sources_df.head(5),
-                        x="source_medium",
-                        y="value",
-                        color_discrete_sequence=["#8C52FF"],
-                    )
-                    traffic_fig.update_layout(
-                        showlegend=False,
-                        plot_bgcolor="#FFFFFF",
-                        paper_bgcolor="#FFFFFF",
-                        margin=dict(l=12, r=12, t=8, b=8),
-                        font=dict(color="#162033"),
-                        xaxis_title="",
-                        yaxis_title="",
-                    )
-                    traffic_fig.update_traces(
-                        marker_line_color="#7C3AED",
-                        marker_line_width=0,
-                        hovertemplate="<b>%{x}</b><br>Value: %{y}<extra></extra>",
-                    )
-                    traffic_fig.update_xaxes(tickfont=dict(color="#111111"))
-                    traffic_fig.update_yaxes(tickfont=dict(color="#111111"))
-                    st.plotly_chart(traffic_fig, use_container_width=True)
-                    st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
-
-        with row_c_right:
-            if has_behavior_data:
-                behavior_card = st.container()
-                with behavior_card:
-                    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                    st.markdown('<div class="panel-title">User Behavior Signals</div>', unsafe_allow_html=True)
-                    st.markdown(
-                        '<div class="dashboard-card-helper">Behavior metrics from the loaded GA4 page and source reports.</div>',
-                        unsafe_allow_html=True,
-                    )
-
-                    behavior_metrics = {
-                        "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
-                        "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
-                        "Engagement Rate": format_ga4_engagement_rate_kpi(
-                            data_summary["ga4_pages"]["key_metrics"].get("engagement_rate")
-                        ),
-                        "Source Sessions": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
-                    }
-
-                    for label, value in behavior_metrics.items():
-                        st.metric(label, value)
-
-        if has_insight_patterns:
-            insights_summary_card = st.container()
-            with insights_summary_card:
-                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">Key Insights</div>', unsafe_allow_html=True)
-                insight_cols = st.columns(3)
-                insight_titles = ["Low CTR Opportunity", "Growth Opportunity", "Traffic Insight"]
-                for index, title in enumerate(insight_titles):
-                    with insight_cols[index]:
-                        st.markdown("**" + title + "**")
-                        st.write(insight["patterns"][index] if len(insight["patterns"]) > index else "No insight available.")
-
-        recommended_actions_card = st.container()
-        with recommended_actions_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Recommended Actions</div>', unsafe_allow_html=True)
-
-            priority_cycle = ["High", "Medium", "Low"]
-            priority_class_map = {
-                "High": "priority-high-pill",
-                "Medium": "priority-medium-pill",
-                "Low": "priority-low-pill",
-            }
-            action_index = 0
-
-            for category, recommendations in strategy["recommendations"].items():
-                for recommendation in recommendations:
-                    priority = priority_cycle[action_index % len(priority_cycle)]
-                    pill_class = priority_class_map[priority]
-
-                    if isinstance(recommendation, dict):
-                        issue = recommendation.get("issue", "").strip()
-                        rec_text = recommendation.get("recommendation", "").strip()
-                        why = recommendation.get("why_it_matters", "").strip()
-                        rec_priority = recommendation.get("priority", "").strip()
-                        bp_category = recommendation.get("best_practice_category", "").strip()
-                        body_parts = []
-                        if issue:
-                            body_parts.append(f"<strong>Issue:</strong> {issue}")
-                        if rec_text:
-                            body_parts.append(f"<strong>Recommendation:</strong> {rec_text}")
-                        if why:
-                            body_parts.append(f"<strong>Why it matters:</strong> {why}")
-                        if bp_category:
-                            body_parts.append(f"<strong>Best Practice Category:</strong> {bp_category}")
-                        body_html = "<br><br>".join(body_parts) if body_parts else "No recommendation details available."
-                        display_priority = rec_priority or priority
-                    else:
-                        body_html = str(recommendation)
-                        display_priority = priority
-
-                    pill_class = priority_class_map.get(display_priority, pill_class)
-
-                    st.markdown(
-                        f"""
-                        <div class="recommendation-card">
-                            <div class="recommendation-card-top">
-                                <div class="recommendation-category">{format_heading(category)}</div>
-                                <div class="{pill_class}">{display_priority} Priority</div>
-                            </div>
-                            <div class="recommendation-body">
-                                {body_html}
-                            </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                    action_index += 1
-
-        render_priority_action_queue(results, priority_class_map)
-
-        what_next_card = st.container()
-        with what_next_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">🚀 What To Do Next</div>', unsafe_allow_html=True)
-
-            priority_actions = strategy.get("priority_actions", [])
-            if priority_actions:
-                for action in priority_actions:
-                    action_priority = str(action.get("priority", "Medium")).strip().title()
-                    action_pill_class = priority_class_map.get(action_priority, "priority-medium-pill")
-
-                    st.markdown(
-                        f"""
-                        <div class="what-next-card">
-                            <div class="recommendation-card-top">
-                                <div class="what-next-title">{action.get("title", "Opportunity")}</div>
-                                <div class="{action_pill_class}">{action_priority} Priority</div>
-                            </div>
-                            <div class="recommendation-body">
-                                <span class="what-next-label">What to do:</span><br>
-                                {action.get("action", "")}
-                                <br><br>
-                                <span class="what-next-label">Why it matters:</span><br>
-                                {action.get("reason", "")}
-                            </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-            else:
-                st.info("No prioritized actions available yet. Connect strategy agent output.")
-
-        render_suggested_changes_section(results)
-
-    with right_col:
-        if has_insight_patterns:
-            insights_card = st.container()
-            with insights_card:
-                st.markdown('<div class="dashboard-card-marker dashboard-insights-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">AI Insights Feed</div>', unsafe_allow_html=True)
-                st.markdown(
-                    '<div class="dashboard-card-helper">A quick strategist read on the strongest patterns in the current run.</div>',
-                    unsafe_allow_html=True,
-                )
-                for index, pattern in enumerate(insight["patterns"][:3], start=1):
-                    st.markdown(f"**Insight {index}**")
-                    st.write(pattern)
-                    if index < min(len(insight["patterns"]), 3):
-                        st.markdown('<div class="insight-divider"></div>', unsafe_allow_html=True)
-
-        cta_card = st.container()
-        with cta_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Primary CTA</div>', unsafe_allow_html=True)
+    if has_query_data:
+        overview_card = st.container()
+        with overview_card:
+            st.markdown('<div class="dashboard-card-marker dashboard-chart-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
             st.markdown(
-                '<div class="dashboard-card-helper">Use the recommendations below to move from insight to action.</div>',
+                '<div class="dashboard-card-helper">Top search queries by impression volume from the loaded run.</div>',
                 unsafe_allow_html=True,
             )
-            st.button("View Recommendations", key="view_recommendations_button")
+            query_chart_df = pd.DataFrame(insight["query_analysis"])
+            if {"query", "impressions"}.issubset(query_chart_df.columns):
+                chart_data = (
+                    query_chart_df.sort_values("impressions", ascending=False)[["query", "impressions"]]
+                    .head(5)
+                    .copy()
+                )
+                performance_fig = px.bar(
+                    chart_data,
+                    x="query",
+                    y="impressions",
+                    color_discrete_sequence=["#8C52FF"],
+                )
+                performance_fig.update_layout(
+                    showlegend=False,
+                    plot_bgcolor="#FFFFFF",
+                    paper_bgcolor="#FFFFFF",
+                    margin=dict(l=12, r=12, t=8, b=8),
+                    font=dict(color="#162033"),
+                    xaxis_title="",
+                    yaxis_title="",
+                )
+                performance_fig.update_traces(
+                    marker_line_color="#7C3AED",
+                    marker_line_width=0,
+                    hovertemplate="<b>%{x}</b><br>Impressions: %{y}<extra></extra>",
+                )
+                performance_fig.update_xaxes(tickfont=dict(color="#111111"))
+                performance_fig.update_yaxes(tickfont=dict(color="#111111"))
+                st.plotly_chart(performance_fig, use_container_width=True)
+
+    row_b_left, row_b_right = st.columns(2)
+
+    with row_b_left:
+        if has_query_data:
+            queries_card = st.container()
+            with queries_card:
+                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="dashboard-card-helper">Highest-visibility queries from the loaded GSC data.</div>',
+                    unsafe_allow_html=True,
+                )
+                top_queries_df = format_ctr_dataframe(pd.DataFrame(insight["query_analysis"]))
+                st.dataframe(
+                    top_queries_df[["query", "ctr", "impressions", "position"]].head(5),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+    with row_b_right:
+        if has_page_data:
+            pages_card = st.container()
+            with pages_card:
+                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="dashboard-card-helper">Pages carrying the strongest value signal in the current run.</div>',
+                    unsafe_allow_html=True,
+                )
+                page_rows = []
+                best_source = get_first_value(insight["top_sources"], "source_medium")
+                for item in combined["top_pages"][:5]:
+                    page_rows.append(
+                        {
+                            "page_title": item["page_title"],
+                            "metric": item["metric"],
+                            "value": item["value"],
+                            "traffic_context": best_source,
+                        }
+                    )
+                top_pages_df = pd.DataFrame(page_rows)
+                st.dataframe(top_pages_df, use_container_width=True, hide_index=True)
+
+    row_c_left, row_c_right = st.columns(2)
+
+    with row_c_left:
+        if has_source_data:
+            traffic_card = st.container()
+            with traffic_card:
+                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="dashboard-card-helper">Acquisition mix based on the loaded GA4 source and medium report.</div>',
+                    unsafe_allow_html=True,
+                )
+                top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
+                traffic_fig = px.bar(
+                    top_sources_df.head(5),
+                    x="source_medium",
+                    y="value",
+                    color_discrete_sequence=["#8C52FF"],
+                )
+                traffic_fig.update_layout(
+                    showlegend=False,
+                    plot_bgcolor="#FFFFFF",
+                    paper_bgcolor="#FFFFFF",
+                    margin=dict(l=12, r=12, t=8, b=8),
+                    font=dict(color="#162033"),
+                    xaxis_title="",
+                    yaxis_title="",
+                )
+                traffic_fig.update_traces(
+                    marker_line_color="#7C3AED",
+                    marker_line_width=0,
+                    hovertemplate="<b>%{x}</b><br>Value: %{y}<extra></extra>",
+                )
+                traffic_fig.update_xaxes(tickfont=dict(color="#111111"))
+                traffic_fig.update_yaxes(tickfont=dict(color="#111111"))
+                st.plotly_chart(traffic_fig, use_container_width=True)
+                st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
+
+    with row_c_right:
+        if has_behavior_data:
+            behavior_card = st.container()
+            with behavior_card:
+                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">User Behavior Signals</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="dashboard-card-helper">Behavior metrics from the loaded GA4 page and source reports.</div>',
+                    unsafe_allow_html=True,
+                )
+
+                behavior_metrics = {
+                    "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
+                    "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
+                    "Engagement Rate": format_ga4_engagement_rate_kpi(
+                        data_summary["ga4_pages"]["key_metrics"].get("engagement_rate")
+                    ),
+                    "Source Sessions": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
+                }
+
+                for label, value in behavior_metrics.items():
+                    st.metric(label, value)
+
+    if has_insight_patterns:
+        insights_summary_card = st.container()
+        with insights_summary_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Key Insights</div>', unsafe_allow_html=True)
+            insight_cols = st.columns(3)
+            insight_titles = ["Low CTR Opportunity", "Growth Opportunity", "Traffic Insight"]
+            for index, title in enumerate(insight_titles):
+                with insight_cols[index]:
+                    st.markdown("**" + title + "**")
+                    st.write(insight["patterns"][index] if len(insight["patterns"]) > index else "No insight available.")
+
+    recommended_actions_card = st.container()
+    with recommended_actions_card:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Recommended Actions</div>', unsafe_allow_html=True)
+
+        priority_cycle = ["High", "Medium", "Low"]
+        priority_class_map = {
+            "High": "priority-high-pill",
+            "Medium": "priority-medium-pill",
+            "Low": "priority-low-pill",
+        }
+        action_index = 0
+
+        for category, recommendations in strategy["recommendations"].items():
+            for recommendation in recommendations:
+                priority = priority_cycle[action_index % len(priority_cycle)]
+                pill_class = priority_class_map[priority]
+
+                if isinstance(recommendation, dict):
+                    issue = recommendation.get("issue", "").strip()
+                    rec_text = recommendation.get("recommendation", "").strip()
+                    why = recommendation.get("why_it_matters", "").strip()
+                    rec_priority = recommendation.get("priority", "").strip()
+                    bp_category = recommendation.get("best_practice_category", "").strip()
+                    body_parts = []
+                    if issue:
+                        body_parts.append(f"<strong>Issue:</strong> {issue}")
+                    if rec_text:
+                        body_parts.append(f"<strong>Recommendation:</strong> {rec_text}")
+                    if why:
+                        body_parts.append(f"<strong>Why it matters:</strong> {why}")
+                    if bp_category:
+                        body_parts.append(f"<strong>Best Practice Category:</strong> {bp_category}")
+                    body_html = "<br><br>".join(body_parts) if body_parts else "No recommendation details available."
+                    display_priority = rec_priority or priority
+                else:
+                    body_html = str(recommendation)
+                    display_priority = priority
+
+                pill_class = priority_class_map.get(display_priority, pill_class)
+
+                st.markdown(
+                    f"""
+                    <div class="recommendation-card">
+                        <div class="recommendation-card-top">
+                            <div class="recommendation-category">{format_heading(category)}</div>
+                            <div class="{pill_class}">{display_priority} Priority</div>
+                        </div>
+                        <div class="recommendation-body">
+                            {body_html}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                action_index += 1
+
+    render_priority_action_queue(results, priority_class_map)
+
+    what_next_card = st.container()
+    with what_next_card:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">🚀 What To Do Next</div>', unsafe_allow_html=True)
+
+        priority_actions = strategy.get("priority_actions", [])
+        if priority_actions:
+            for action in priority_actions:
+                action_priority = str(action.get("priority", "Medium")).strip().title()
+                action_pill_class = priority_class_map.get(action_priority, "priority-medium-pill")
+
+                st.markdown(
+                    f"""
+                    <div class="what-next-card">
+                        <div class="recommendation-card-top">
+                            <div class="what-next-title">{action.get("title", "Opportunity")}</div>
+                            <div class="{action_pill_class}">{action_priority} Priority</div>
+                        </div>
+                        <div class="recommendation-body">
+                            <span class="what-next-label">What to do:</span><br>
+                            {action.get("action", "")}
+                            <br><br>
+                            <span class="what-next-label">Why it matters:</span><br>
+                            {action.get("reason", "")}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("No prioritized actions available yet. Connect strategy agent output.")
+
+    render_suggested_changes_section(results)
 
     export_card = st.container()
     with export_card:
@@ -5587,6 +5558,26 @@ def render_ai_chat_page(results: dict | None) -> None:
     st.title("Chat with AI Agent")
     st.caption("Ask your AI Marketing Strategist about your loaded website, SEO, and social data.")
     st.write("Choose a suggested prompt or type your own question.")
+
+    insight_patterns = []
+    if results:
+        insight_patterns = results.get("insight", {}).get("patterns", [])[:3]
+
+    if insight_patterns:
+        insights_feed_card = st.container()
+        with insights_feed_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">AI Insights Feed</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dashboard-card-helper">A quick strategist read on the strongest patterns in the current run.</div>',
+                unsafe_allow_html=True,
+            )
+            for index, pattern in enumerate(insight_patterns, start=1):
+                st.markdown(f"**Insight {index}**")
+                st.write(pattern)
+                if index < len(insight_patterns):
+                    st.markdown('<div class="insight-divider"></div>', unsafe_allow_html=True)
+        st.write("")
 
     suggested_prompts = [
         "What are my biggest SEO opportunities?",
