@@ -2229,7 +2229,7 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
     )
     has_insight_patterns = bool(insight["patterns"])
 
-    st.markdown('<div class="dashboard-title">Marketing Intelligence Dashboard</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dashboard-title">📊 Marketing Intelligence Dashboard</div>', unsafe_allow_html=True)
     st.markdown('<div class="dashboard-subtitle">Real-time insights and opportunities</div>', unsafe_allow_html=True)
 
     render_comparison_summary(results, ["ga4", "gsc", "social", "semrush"])
@@ -2240,7 +2240,7 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
         overview_card = st.container()
         with overview_card:
             st.markdown('<div class="dashboard-card-marker dashboard-chart-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">📊 Performance Overview</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="dashboard-card-helper">Top search queries by impression volume from the loaded run.</div>',
                 unsafe_allow_html=True,
@@ -2283,7 +2283,7 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
             queries_card = st.container()
             with queries_card:
                 st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">🔍 Top Queries</div>', unsafe_allow_html=True)
                 st.markdown(
                     '<div class="dashboard-card-helper">Highest-visibility queries from the loaded GSC data.</div>',
                     unsafe_allow_html=True,
@@ -2300,7 +2300,7 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
             pages_card = st.container()
             with pages_card:
                 st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">🌐 Top Pages</div>', unsafe_allow_html=True)
                 st.markdown(
                     '<div class="dashboard-card-helper">Pages carrying the strongest value signal in the current run.</div>',
                     unsafe_allow_html=True,
@@ -2326,7 +2326,7 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
             traffic_card = st.container()
             with traffic_card:
                 st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">🚦 Traffic Distribution</div>', unsafe_allow_html=True)
                 st.markdown(
                     '<div class="dashboard-card-helper">Acquisition mix based on the loaded GA4 source and medium report.</div>',
                     unsafe_allow_html=True,
@@ -2362,7 +2362,7 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
             behavior_card = st.container()
             with behavior_card:
                 st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">User Behavior Signals</div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">👥 User Behavior Signals</div>', unsafe_allow_html=True)
                 st.markdown(
                     '<div class="dashboard-card-helper">Behavior metrics from the loaded GA4 page and source reports.</div>',
                     unsafe_allow_html=True,
@@ -2510,7 +2510,7 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
 
 def render_analysis_page(results: dict) -> None:
     """Render the Analysis page (Traffic, Behavior, Queries, Pages)."""
-    st.title("Analysis")
+    st.title("📈 Analysis")
     st.caption("Performance data from GA4 + GSC")
 
     if not results:
@@ -2537,7 +2537,7 @@ def render_analysis_page(results: dict) -> None:
         traffic_card = st.container()
         with traffic_card:
             st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">🚦 Traffic Distribution</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="dashboard-card-helper">Acquisition mix from the loaded GA4 source and medium report.</div>',
                 unsafe_allow_html=True,
@@ -2573,7 +2573,7 @@ def render_analysis_page(results: dict) -> None:
         behavior_card = st.container()
         with behavior_card:
             st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">User Behavior</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">👥 User Behavior</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="dashboard-card-helper">Behavior metrics from the loaded GA4 page-title report.</div>',
                 unsafe_allow_html=True,
@@ -2603,7 +2603,7 @@ def render_analysis_page(results: dict) -> None:
         queries_card = st.container()
         with queries_card:
             st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">🔍 Top Queries</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="dashboard-card-helper">Search queries with the highest impression volume from the loaded GSC data.</div>',
                 unsafe_allow_html=True,
@@ -2683,7 +2683,7 @@ def render_analysis_page(results: dict) -> None:
         pages_card = st.container()
         with pages_card:
             st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">🌐 Top Pages</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="dashboard-card-helper">Highest-value pages from the loaded GA4 page-title report.</div>',
                 unsafe_allow_html=True,
@@ -2769,7 +2769,7 @@ def render_analysis_page(results: dict) -> None:
 
 def render_social_analysis_page(results: dict) -> None:
     """Render the Social Analysis page using Meta social insights."""
-    st.title("Social Analysis")
+    st.title("📱 Social Analysis")
     st.caption("Instagram + Facebook performance insights")
 
     if not results:
@@ -2807,7 +2807,7 @@ def render_social_analysis_page(results: dict) -> None:
     top_content_card = st.container()
     with top_content_card:
         st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Top Performing Content</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">📱 Top Performing Content</div>', unsafe_allow_html=True)
         st.markdown(
             '<div class="dashboard-card-helper">The strongest-performing Meta content from the current loaded run.</div>',
             unsafe_allow_html=True,
@@ -2827,7 +2827,7 @@ def render_social_analysis_page(results: dict) -> None:
     conversion_card = st.container()
     with conversion_card:
         st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Conversion Content</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">🎯 Conversion Content</div>', unsafe_allow_html=True)
         st.markdown(
             '<div class="dashboard-card-helper">Posts most likely to support stronger next-step or conversion behavior.</div>',
             unsafe_allow_html=True,
@@ -2843,14 +2843,14 @@ def render_social_analysis_page(results: dict) -> None:
         else:
             st.info("No conversion-oriented social content available yet.")
 
-    st.markdown("### Topic Insights")
+    st.markdown("### 🧩 Topic Insights")
     topic_left_col, topic_right_col = st.columns(2)
 
     with topic_left_col:
         top_topics_card = st.container()
         with top_topics_card:
             st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="social-mini-title">Top Topics</div>', unsafe_allow_html=True)
+            st.markdown('<div class="social-mini-title">🔥 Top Topics</div>', unsafe_allow_html=True)
             if top_topics:
                 for topic in top_topics:
                     st.write(f"- {humanize_social_topic(topic)}")
@@ -2861,7 +2861,7 @@ def render_social_analysis_page(results: dict) -> None:
         weak_topics_card = st.container()
         with weak_topics_card:
             st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="social-mini-title">Weak Topics</div>', unsafe_allow_html=True)
+            st.markdown('<div class="social-mini-title">⚠️ Weak Topics</div>', unsafe_allow_html=True)
             if weak_topics:
                 for topic in weak_topics:
                     st.write(f"- {humanize_social_topic(topic)}")
@@ -2871,7 +2871,7 @@ def render_social_analysis_page(results: dict) -> None:
     performance_card = st.container()
     with performance_card:
         st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">What Drives Performance</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">🔥 What Drives Performance</div>', unsafe_allow_html=True)
         st.markdown(
             '<div class="dashboard-card-helper">Short strategist signals from the strongest save-driving and follow-driving patterns.</div>',
             unsafe_allow_html=True,
@@ -2885,7 +2885,7 @@ def render_social_analysis_page(results: dict) -> None:
             unsafe_allow_html=True,
         )
 
-    st.markdown("### Balance Problems")
+    st.markdown("### ⚠️ Balance Problems")
     balance_problems = social_insights.get("balance_problems", [])
     if balance_problems:
         for issue in balance_problems:
@@ -3511,25 +3511,29 @@ def render_priority_action_queue(results: dict, priority_class_map: dict[str, st
     queue = build_priority_action_queue(results)
 
     st.markdown('<div class="panel">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">Priority Action Queue</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">🎯 Priority Action Queue</div>', unsafe_allow_html=True)
 
     if queue:
         for item in queue:
             action_priority = str(item.get("priority", "Medium")).strip().title()
             action_pill_class = priority_class_map.get(action_priority, "priority-medium-pill")
+            cleaned_supporting_data = clean_supporting_data_text(item.get("supporting_data", ""))
+            supporting_data_html = ""
+            if cleaned_supporting_data:
+                supporting_data_html = f"<strong>Supporting Data:</strong> {cleaned_supporting_data}<br><br>"
 
             st.markdown(
                 f"""
                 <div class="recommendation-card">
                     <div class="recommendation-card-top">
                         <div class="recommendation-category">{item.get("title", "Action")}</div>
-                        <div class="{action_pill_class}">{action_priority} Priority</div>
+                        <div class="{action_pill_class}">{'🔴' if action_priority == 'High' else '🟠' if action_priority == 'Medium' else '🟢'} {action_priority} Priority</div>
                     </div>
                     <div class="recommendation-body">
                         <strong>Data Source:</strong> {item.get("data_source", "Not available")}<br><br>
-                        <strong>Supporting Data:</strong> {item.get("supporting_data", "Not available")}<br><br>
-                        <strong>Why it matters:</strong> {item.get("why_it_matters", "")}<br><br>
-                        <strong>Recommended action:</strong> {item.get("recommended_action", "")}
+                        {supporting_data_html}
+                        <strong>📌 Why it matters:</strong> {item.get("why_it_matters", "")}<br><br>
+                        <strong>✅ Next Action:</strong> {item.get("recommended_action", "")}
                     </div>
                 </div>
                 """,
@@ -3548,6 +3552,53 @@ def first_matching_column(dataframe: pd.DataFrame, candidates: list[str]) -> str
         if candidate in normalized_columns:
             return normalized_columns[candidate]
     return None
+
+
+def is_meaningful_supporting_value(value, hide_zero: bool = False) -> bool:
+    """Return True when a card-supporting value is present enough to display."""
+    if value is None:
+        return False
+    if isinstance(value, float) and pd.isna(value):
+        return False
+
+    text = str(value).strip()
+    if not text:
+        return False
+    if text.lower() in {"not available", "none", "nan", "-"}:
+        return False
+
+    if hide_zero:
+        normalized_text = text.replace(",", "")
+        if normalized_text in {"0", "0.0", "0.00"}:
+            return False
+
+    return True
+
+
+def clean_supporting_data_text(value: str) -> str:
+    """Remove empty or presentation-breaking supporting-data fragments from cards."""
+    if not is_meaningful_supporting_value(value):
+        return ""
+
+    cleaned_parts = []
+    for part in str(value).split("|"):
+        piece = part.strip()
+        if not piece:
+            continue
+
+        label, separator, raw_value = piece.partition(":")
+        if separator:
+            label_text = label.strip().lower()
+            value_text = raw_value.strip()
+            hide_zero = label_text == "volume"
+            if not is_meaningful_supporting_value(value_text, hide_zero=hide_zero):
+                continue
+        elif not is_meaningful_supporting_value(piece):
+            continue
+
+        cleaned_parts.append(piece)
+
+    return " | ".join(cleaned_parts)
 
 
 def build_export_dataframe(results: dict) -> pd.DataFrame:
@@ -3799,7 +3850,7 @@ def render_export_section(results: dict, inside_panel: bool = False) -> None:
 
 def render_data_sources() -> dict[str, object]:
     """Render uploaders and workflow trigger on the Data Sources page."""
-    st.title("Data Sources")
+    st.title("📂 Data Sources")
     st.write("Upload and manage your marketing data inputs")
     saved_runs = list_saved_runs()
 
@@ -3815,7 +3866,7 @@ def render_data_sources() -> dict[str, object]:
         )
         load_saved_run_button = st.button("Load One Saved Run")
 
-        st.subheader("Compare Saved Runs")
+        st.subheader("📊 Compare Saved Runs")
         comparison_options = [run["run_id"] for run in saved_runs]
         loaded_run_id = st.session_state.get("loaded_run_id")
         current_run_index = (
@@ -3848,7 +3899,7 @@ def render_data_sources() -> dict[str, object]:
         selected_comparison_run_id = None
         compare_saved_runs_button = False
 
-    st.subheader("Upload CSV files")
+    st.subheader("📂 Upload CSV Files")
     st.write("GA4 Page Title Report: page-level behavior such as top pages, sessions, and engagement.")
     ga4_pages_file = st.file_uploader("Upload GA4 Page Title Report CSV", type="csv")
 
@@ -3870,7 +3921,7 @@ def render_data_sources() -> dict[str, object]:
     st.write("Meta Content Export: Instagram / Facebook post-level performance export from Meta Business Suite.")
     meta_posts_file = st.file_uploader("Upload Meta Content Export CSV", type="csv")
 
-    st.subheader("Run the workflow")
+    st.subheader("🚀 Run the Workflow")
     run_button = st.button("Run Workflow")
 
     return {
@@ -4682,13 +4733,14 @@ def render_opportunity_card(title: str, data: dict[str, str]) -> None:
     supporting_parts = []
     if data.get("position"):
         supporting_parts.append(f"Position: {data.get('position', '-')}")
-    if data.get("volume") and data.get("volume") != "Not available":
+    if is_meaningful_supporting_value(data.get("volume"), hide_zero=True):
         supporting_parts.append(f"Volume: {data.get('volume', '-')}")
     if data.get("metric_line"):
         supporting_parts.append(str(data.get("metric_line", "-")))
-    if data.get("supporting_data"):
-        supporting_parts.append(str(data.get("supporting_data", "-")))
-    if data.get("url") and data.get("url") != "Not available":
+    cleaned_supporting_data = clean_supporting_data_text(str(data.get("supporting_data", "")))
+    if cleaned_supporting_data:
+        supporting_parts.append(cleaned_supporting_data)
+    if is_meaningful_supporting_value(data.get("url")):
         url = str(data.get("url", "#"))
         supporting_parts.append(f'URL: <a href="{url}" target="_blank">{url}</a>')
 
@@ -4700,12 +4752,13 @@ def render_opportunity_card(title: str, data: dict[str, str]) -> None:
         f"<strong>Opportunity Type:</strong> {data.get('opportunity_type', title)}",
         f"<strong>Target:</strong> {target_value}",
     ]
-    if supporting_parts:
-        body_parts.append(f"<strong>Supporting Data:</strong> {' | '.join(supporting_parts)}")
-    body_parts.append(f"<strong>Why this is an opportunity:</strong> {data.get('why_it_matters', data.get('reason', ''))}")
-    body_parts.append(f"<strong>Best Recommendation:</strong> {data.get('recommended_action', data.get('action', ''))}")
+    cleaned_supporting_parts = [part for part in supporting_parts if is_meaningful_supporting_value(part)]
+    if cleaned_supporting_parts:
+        body_parts.append(f"<strong>Supporting Data:</strong> {' | '.join(cleaned_supporting_parts)}")
+    body_parts.append(f"<strong>📌 Why this is an opportunity:</strong> {data.get('why_it_matters', data.get('reason', ''))}")
+    body_parts.append(f"<strong>💡 Best Recommendation:</strong> {data.get('recommended_action', data.get('action', ''))}")
     if data.get("why_recommendation_works"):
-        body_parts.append(f"<strong>Why it should work:</strong> {data.get('why_recommendation_works', '')}")
+        body_parts.append(f"<strong>✅ Why it should work:</strong> {data.get('why_recommendation_works', '')}")
 
     body_html = "<br><br>".join(body_parts)
 
@@ -4714,7 +4767,7 @@ def render_opportunity_card(title: str, data: dict[str, str]) -> None:
         <div class="recommendation-card">
             <div class="recommendation-card-top">
                 <div class="recommendation-category">{title}</div>
-                <div class="{pill_class}">{priority} Priority</div>
+                <div class="{pill_class}">{'🔴' if priority == 'High' else '🟠' if priority == 'Medium' else '🟢'} {priority} Priority</div>
             </div>
             <div class="recommendation-body">
                 {body_html}
@@ -4726,7 +4779,7 @@ def render_opportunity_card(title: str, data: dict[str, str]) -> None:
 
 def render_opportunities_page(results: dict) -> None:
     """Render the Opportunities page."""
-    st.title("Opportunities")
+    st.title("🚀 Opportunities")
     st.caption("Combined website + social growth opportunities")
 
     if not results:
@@ -4739,7 +4792,7 @@ def render_opportunities_page(results: dict) -> None:
     strategy = results["strategy"]["strategy"]
     social_cards = build_social_opportunity_cards(results)
 
-    st.subheader("Website Opportunities")
+    st.subheader("🌐 Website Opportunities")
 
     if semrush_positions_data is not None and not semrush_positions_data.empty:
         st.markdown("**Keyword Opportunities**")
@@ -4777,7 +4830,7 @@ def render_opportunities_page(results: dict) -> None:
     else:
         st.info("No SEMrush Topic Opportunities data uploaded yet.")
 
-    st.subheader("Social Opportunities")
+    st.subheader("📱 Social Opportunities")
     if social_cards:
         priority_class_map = {
             "High": "priority-high-pill",
@@ -4804,18 +4857,23 @@ def render_opportunities_page(results: dict) -> None:
                     content_focus_label = "Social Category"
                 content_focus_html = f"<strong>{content_focus_label}:</strong> {content_focus_value}<br><br>"
 
+            cleaned_supporting_data = clean_supporting_data_text(card.get("supporting_data", ""))
+            supporting_data_html = ""
+            if cleaned_supporting_data:
+                supporting_data_html = f"<strong>Supporting Data:</strong> {cleaned_supporting_data}<br><br>"
+
             st.markdown(
                 f"""
                 <div class="recommendation-card">
                     <div class="recommendation-card-top">
                         <div class="recommendation-category">{card.get("title", "Social Opportunity")}</div>
-                        <div class="{pill_class}">{card_priority} Priority</div>
+                        <div class="{pill_class}">{'🔴' if card_priority == 'High' else '🟠' if card_priority == 'Medium' else '🟢'} {card_priority} Priority</div>
                     </div>
                     <div class="recommendation-body">
                         {content_focus_html}
-                        <strong>Supporting Data:</strong> {card.get("supporting_data", "Not available")}<br><br>
-                        <strong>Why it matters:</strong> {card.get("why_it_matters", "")}<br><br>
-                        <strong>Recommended action:</strong> {card.get("recommended_action", "")}
+                        {supporting_data_html}
+                        <strong>📌 Why it matters:</strong> {card.get("why_it_matters", "")}<br><br>
+                        <strong>💡 Recommended action:</strong> {card.get("recommended_action", "")}
                     </div>
                 </div>
                 """,
@@ -5612,7 +5670,7 @@ def render_recommendation_take_action(card: dict, results: dict, unique_key: str
 
 def render_recommendations_page(results: dict) -> None:
     """Render the Recommendations page."""
-    st.title("Recommendations")
+    st.title("🎯 Recommendations")
     st.caption("Combined website + social action plan")
 
     if not results:
@@ -5626,7 +5684,7 @@ def render_recommendations_page(results: dict) -> None:
         "Low": "priority-low-pill",
     }
 
-    st.subheader("Recommendations")
+    st.subheader("🎯 Recommendations")
     if generated_recommendations:
         for index, recommendation in enumerate(generated_recommendations):
             display_priority = str(recommendation.get("priority", "Medium")).strip().title()
@@ -5651,7 +5709,7 @@ def render_recommendations_page(results: dict) -> None:
                         <div class="recommendation-category" style="font-size: 1.08rem;">
                             {recommendation.get("title", "Recommendation")}
                         </div>
-                        <div class="{pill_class}">{display_priority} Priority</div>
+                        <div class="{pill_class}">{'🔴' if display_priority == 'High' else '🟠' if display_priority == 'Medium' else '🟢'} {display_priority} Priority</div>
                     </div>
                     <div class="recommendation-body">
                         <strong>Opportunity Score:</strong> {opportunity_score}/100
@@ -5660,13 +5718,13 @@ def render_recommendations_page(results: dict) -> None:
                         &nbsp;&nbsp;|&nbsp;&nbsp;
                         <strong>Confidence:</strong> {confidence_score}/100
                         <br><br>
-                        <strong>Insight:</strong><br>
+                        <strong>⚠️ Insight:</strong><br>
                         {recommendation_card["issue"]}
                         <br><br>
-                        <strong>Why it matters:</strong><br>
+                        <strong>📌 Why it matters:</strong><br>
                         {recommendation_card["why_it_matters"]}
                         <br><br>
-                        <strong>Recommendation:</strong><br>
+                        <strong>💡 Recommendation:</strong><br>
                         {recommendation_card["recommendation"]}
                     </div>
                 </div>
@@ -5684,7 +5742,7 @@ def render_recommendations_page(results: dict) -> None:
     else:
         st.info("No recommendations available based on current data.")
 
-    st.subheader("Priority Action Queue")
+    st.subheader("🎯 Priority Action Queue")
     render_priority_action_queue(results, priority_class_map)
 
     st.markdown("### 🚀 What To Do Next")
@@ -5698,13 +5756,13 @@ def render_recommendations_page(results: dict) -> None:
                 <div class="what-next-card">
                     <div class="recommendation-card-top">
                         <div class="what-next-title">{action.get("title", "Opportunity")}</div>
-                        <div class="{action_pill_class}">{action_priority} Priority</div>
+                        <div class="{action_pill_class}">{'🔴' if action_priority == 'High' else '🟠' if action_priority == 'Medium' else '🟢'} {action_priority} Priority</div>
                     </div>
                     <div class="recommendation-body">
-                        <span class="what-next-label">What to do:</span><br>
+                        <span class="what-next-label">✅ Next Action:</span><br>
                         {action.get("action", "")}
                         <br><br>
-                        <span class="what-next-label">Why it matters:</span><br>
+                        <span class="what-next-label">📌 Why it matters:</span><br>
                         {action.get("reason", "")}
                     </div>
                 </div>
@@ -5719,7 +5777,7 @@ def render_recommendations_page(results: dict) -> None:
 
 def render_reports_page(results: dict) -> None:
     """Render the Reports page."""
-    st.title("Reports")
+    st.title("📄 Reports")
     st.caption("Export and client-ready report views")
 
     if not results:
@@ -5744,7 +5802,7 @@ def render_ai_chat_page(results: dict | None) -> None:
             }
         ]
 
-    st.title("Chat with AI Agent")
+    st.title("🤖 Chat with AI Agent")
     st.caption("Ask your AI Marketing Strategist about your loaded website, SEO, and social data.")
     st.write("Choose a suggested prompt or type your own question.")
 
@@ -5756,7 +5814,7 @@ def render_ai_chat_page(results: dict | None) -> None:
         insights_feed_card = st.container()
         with insights_feed_card:
             st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">AI Insights Feed</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">🧠 AI Insights Feed</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="dashboard-card-helper">A quick strategist read on the strongest patterns in the current run.</div>',
                 unsafe_allow_html=True,
@@ -6160,14 +6218,14 @@ with st.sidebar:
     page = st.radio(
         "Navigation",
         [
-            "Data Sources",
-            "Dashboard",
-            "Analysis",
-            "Social Analysis",
-            "Opportunities",
-            "Recommendations",
-            "Reports",
-            "Chat with AI Agent",
+            "📂 Data Sources",
+            "📊 Dashboard",
+            "📈 Analysis",
+            "📱 Social Analysis",
+            "🚀 Opportunities",
+            "🎯 Recommendations",
+            "📄 Reports",
+            "🤖 Chat with AI Agent",
         ],
     )
 
@@ -6184,7 +6242,7 @@ with st.sidebar:
 results = None
 ga4_debug_titles: list[str] = []
 
-if page == "Data Sources":
+if page == "📂 Data Sources":
     current_results = st.session_state.get("results")
     uploaded = render_data_sources()
 
@@ -6292,31 +6350,31 @@ if page == "Data Sources":
 
         st.success("Workflow complete. Results were saved and can now be loaded from Saved Runs.")
 
-elif page == "Dashboard":
+elif page == "📊 Dashboard":
     results = st.session_state.get("results")
     ga4_debug_titles = st.session_state.get("ga4_debug_titles", [])
     render_dashboard_page(results, ga4_debug_titles, show_debug)
 
-elif page == "Analysis":
+elif page == "📈 Analysis":
     results = st.session_state.get("results")
     render_analysis_page(results)
 
-elif page == "Social Analysis":
+elif page == "📱 Social Analysis":
     results = st.session_state.get("results")
     render_social_analysis_page(results)
 
-elif page == "Opportunities":
+elif page == "🚀 Opportunities":
     results = st.session_state.get("results")
     render_opportunities_page(results)
 
-elif page == "Recommendations":
+elif page == "🎯 Recommendations":
     results = st.session_state.get("results")
     render_recommendations_page(results)
 
-elif page == "Reports":
+elif page == "📄 Reports":
     results = st.session_state.get("results")
     render_reports_page(results)
 
-elif page == "Chat with AI Agent":
+elif page == "🤖 Chat with AI Agent":
     results = st.session_state.get("results")
     render_ai_chat_page(results)
