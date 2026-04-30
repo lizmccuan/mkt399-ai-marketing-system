@@ -2521,189 +2521,241 @@ def render_analysis_page(results: dict) -> None:
         data_summary["ga4_pages"]["rows"] > 0 or data_summary["ga4_sources"]["rows"] > 0
     )
 
+    if has_source_data or has_behavior_data:
+        st.markdown("### Overview")
+
     if has_source_data:
-        st.subheader("Traffic Distribution")
-        top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
-        source_chart_df = top_sources_df[["source_medium", "value"]].set_index("source_medium")
-        st.bar_chart(source_chart_df)
-        st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
-        st.write("")
+        traffic_card = st.container()
+        with traffic_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Traffic Distribution</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dashboard-card-helper">Acquisition mix from the loaded GA4 source and medium report.</div>',
+                unsafe_allow_html=True,
+            )
+            top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
+            traffic_fig = px.bar(
+                top_sources_df.head(5),
+                x="source_medium",
+                y="value",
+                color_discrete_sequence=["#8C52FF"],
+            )
+            traffic_fig.update_layout(
+                showlegend=False,
+                plot_bgcolor="#FFFFFF",
+                paper_bgcolor="#FFFFFF",
+                margin=dict(l=12, r=12, t=8, b=8),
+                font=dict(color="#162033"),
+                xaxis_title="",
+                yaxis_title="",
+                height=320,
+            )
+            traffic_fig.update_traces(
+                marker_line_color="#7C3AED",
+                marker_line_width=0,
+                hovertemplate="<b>%{x}</b><br>Value: %{y}<extra></extra>",
+            )
+            traffic_fig.update_xaxes(tickfont=dict(color="#111111"))
+            traffic_fig.update_yaxes(tickfont=dict(color="#111111"))
+            st.plotly_chart(traffic_fig, use_container_width=True)
+            st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
 
     if has_behavior_data:
-        st.subheader("User Behavior")
-        col1, col2, col3 = st.columns(3)
+        behavior_card = st.container()
+        with behavior_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">User Behavior</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dashboard-card-helper">Behavior metrics from the loaded GA4 page-title report.</div>',
+                unsafe_allow_html=True,
+            )
+            col1, col2, col3 = st.columns(3)
 
-        behavior_metrics = {
-            "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "—"),
-            "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "—"),
-            "Engagement Rate": calculate_analysis_engagement_rate_kpi(),
-        }
+            behavior_metrics = {
+                "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "—"),
+                "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "—"),
+                "Engagement Rate": calculate_analysis_engagement_rate_kpi(),
+            }
 
-        with col1:
-            st.metric("Sessions", behavior_metrics["Sessions"])
-        with col2:
-            st.metric("Users", behavior_metrics["Active Users"])
-        with col3:
-            st.metric("Engagement Rate", behavior_metrics["Engagement Rate"])
+            with col1:
+                st.metric("Sessions", behavior_metrics["Sessions"])
+            with col2:
+                st.metric("Users", behavior_metrics["Active Users"])
+            with col3:
+                st.metric("Engagement Rate", behavior_metrics["Engagement Rate"])
 
-        st.write("")
+    if has_source_data or has_behavior_data:
+        st.markdown('<div class="dashboard-section-divider"></div>', unsafe_allow_html=True)
 
     if has_query_data:
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
-        st.caption("Search queries with the highest impression volume from the loaded GSC data.")
+        st.markdown("### Search Behavior")
 
-        top_queries_chart_df = pd.DataFrame(insight["query_analysis"]).copy()
-        top_queries_chart_df["impressions"] = pd.to_numeric(
-            top_queries_chart_df["impressions"],
-            errors="coerce",
-        ).fillna(0)
-        top_queries_chart_df["position"] = pd.to_numeric(
-            top_queries_chart_df["position"],
-            errors="coerce",
-        ).fillna(0)
-        top_queries_chart_df["ctr_display"] = top_queries_chart_df["ctr"].apply(format_ctr_value)
-        top_queries_chart_df = top_queries_chart_df.sort_values("impressions", ascending=False).head(5)
-
-        query_fig = px.bar(
-            top_queries_chart_df,
-            x="impressions",
-            y="query",
-            orientation="h",
-            hover_data={
-                "query": True,
-                "impressions": ":,.0f",
-                "ctr_display": True,
-                "position": ":.2f",
-            },
-            labels={
-                "query": "",
-                "impressions": "Impressions",
-                "ctr_display": "CTR",
-                "position": "Position",
-            },
-            color_discrete_sequence=["#8C52FF"],
-        )
-        query_fig.update_yaxes(
-            autorange="reversed",
-            title="",
-            tickfont={"color": "#111111", "size": 12},
-            title_font={"color": "#111111"},
-        )
-        query_fig.update_xaxes(
-            title="Impressions",
-            gridcolor="#E6E8F0",
-            zeroline=False,
-            tickfont={"color": "#111111", "size": 12},
-            title_font={"color": "#111111"},
-        )
-        query_fig.update_layout(
-            plot_bgcolor="#FFFFFF",
-            paper_bgcolor="#FFFFFF",
-            font={"color": "#111111", "size": 12},
-            title_font={"color": "#111111"},
-            hoverlabel={
-                "bgcolor": "#FFFFFF",
-                "bordercolor": "#E6E8F0",
-                "font": {"color": "#111111"},
-            },
-            margin={"l": 8, "r": 12, "t": 12, "b": 24},
-            height=320,
-            showlegend=False,
-        )
-        st.plotly_chart(query_fig, use_container_width=True)
-
-        top_queries_df = format_ctr_dataframe(top_queries_chart_df.copy())
-        st.dataframe(
-            top_queries_df[["query", "ctr", "impressions", "position"]],
-            use_container_width=True,
-            hide_index=True,
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
-
-    if has_page_data:
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
-        st.caption("Highest-value pages from the loaded GA4 page-title report.")
-
-        page_rows = []
-        best_source = get_first_value(insight["top_sources"], "source_medium")
-
-        for item in combined["top_pages"][:10]:
-            page_rows.append(
-                {
-                    "page_title": item["page_title"],
-                    "metric": item["metric"],
-                    "value": item["value"],
-                    "traffic_context": best_source,
-                }
+    if has_query_data:
+        queries_card = st.container()
+        with queries_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Top Queries</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dashboard-card-helper">Search queries with the highest impression volume from the loaded GSC data.</div>',
+                unsafe_allow_html=True,
             )
 
-        top_pages_df = pd.DataFrame(page_rows)
-        top_pages_chart_df = top_pages_df.copy()
-        top_pages_chart_df["value"] = pd.to_numeric(top_pages_chart_df["value"], errors="coerce").fillna(0)
-        top_pages_chart_df = top_pages_chart_df.sort_values("value", ascending=False).head(5)
-        top_pages_chart_df["page_title_display"] = top_pages_chart_df["page_title"].apply(
-            lambda title: str(title) if len(str(title)) <= 58 else f"{str(title)[:55]}..."
-        )
+            top_queries_chart_df = pd.DataFrame(insight["query_analysis"]).copy()
+            top_queries_chart_df["impressions"] = pd.to_numeric(
+                top_queries_chart_df["impressions"],
+                errors="coerce",
+            ).fillna(0)
+            top_queries_chart_df["position"] = pd.to_numeric(
+                top_queries_chart_df["position"],
+                errors="coerce",
+            ).fillna(0)
+            top_queries_chart_df["ctr_display"] = top_queries_chart_df["ctr"].apply(format_ctr_value)
+            top_queries_chart_df = top_queries_chart_df.sort_values("impressions", ascending=False).head(5)
 
-        pages_fig = px.bar(
-            top_pages_chart_df,
-            x="value",
-            y="page_title_display",
-            orientation="h",
-            hover_data={
-                "page_title": True,
-                "page_title_display": False,
-                "value": ":,.0f",
-                "metric": True,
-                "traffic_context": True,
-            },
-            labels={
-                "page_title_display": "",
-                "value": "Value",
-                "page_title": "Page Title",
-                "metric": "Metric",
-                "traffic_context": "Traffic Context",
-            },
-            color_discrete_sequence=["#7CB3FF"],
-        )
-        pages_fig.update_yaxes(
-            autorange="reversed",
-            title="",
-            tickfont={"color": "#111111", "size": 12},
-            title_font={"color": "#111111"},
-        )
-        pages_fig.update_xaxes(
-            title="Value",
-            gridcolor="#E6E8F0",
-            zeroline=False,
-            tickfont={"color": "#111111", "size": 12},
-            title_font={"color": "#111111"},
-        )
-        pages_fig.update_layout(
-            plot_bgcolor="#FFFFFF",
-            paper_bgcolor="#FFFFFF",
-            font={"color": "#111111", "size": 12},
-            title_font={"color": "#111111"},
-            hoverlabel={
-                "bgcolor": "#FFFFFF",
-                "bordercolor": "#E6E8F0",
-                "font": {"color": "#111111"},
-            },
-            margin={"l": 8, "r": 12, "t": 12, "b": 24},
-            height=340,
-            showlegend=False,
-        )
-        st.plotly_chart(pages_fig, use_container_width=True)
+            query_fig = px.bar(
+                top_queries_chart_df,
+                x="impressions",
+                y="query",
+                orientation="h",
+                hover_data={
+                    "query": True,
+                    "impressions": ":,.0f",
+                    "ctr_display": True,
+                    "position": ":.2f",
+                },
+                labels={
+                    "query": "",
+                    "impressions": "Impressions",
+                    "ctr_display": "CTR",
+                    "position": "Position",
+                },
+                color_discrete_sequence=["#8C52FF"],
+            )
+            query_fig.update_yaxes(
+                autorange="reversed",
+                title="",
+                tickfont={"color": "#111111", "size": 12},
+                title_font={"color": "#111111"},
+            )
+            query_fig.update_xaxes(
+                title="Impressions",
+                gridcolor="#E6E8F0",
+                zeroline=False,
+                tickfont={"color": "#111111", "size": 12},
+                title_font={"color": "#111111"},
+            )
+            query_fig.update_layout(
+                plot_bgcolor="#FFFFFF",
+                paper_bgcolor="#FFFFFF",
+                font={"color": "#111111", "size": 12},
+                title_font={"color": "#111111"},
+                hoverlabel={
+                    "bgcolor": "#FFFFFF",
+                    "bordercolor": "#E6E8F0",
+                    "font": {"color": "#111111"},
+                },
+                margin={"l": 8, "r": 12, "t": 12, "b": 24},
+                height=320,
+                showlegend=False,
+            )
+            st.plotly_chart(query_fig, use_container_width=True)
 
-        st.dataframe(
-            top_pages_chart_df[["page_title", "metric", "value", "traffic_context"]],
-            use_container_width=True,
-            hide_index=True,
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
+            top_queries_df = format_ctr_dataframe(top_queries_chart_df.copy())
+            st.dataframe(
+                top_queries_df[["query", "ctr", "impressions", "position"]],
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    if has_page_data:
+        st.markdown("### Page Performance")
+
+    if has_page_data:
+        pages_card = st.container()
+        with pages_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Top Pages</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dashboard-card-helper">Highest-value pages from the loaded GA4 page-title report.</div>',
+                unsafe_allow_html=True,
+            )
+
+            page_rows = []
+            best_source = get_first_value(insight["top_sources"], "source_medium")
+
+            for item in combined["top_pages"][:10]:
+                page_rows.append(
+                    {
+                        "page_title": item["page_title"],
+                        "metric": item["metric"],
+                        "value": item["value"],
+                        "traffic_context": best_source,
+                    }
+                )
+
+            top_pages_df = pd.DataFrame(page_rows)
+            top_pages_chart_df = top_pages_df.copy()
+            top_pages_chart_df["value"] = pd.to_numeric(top_pages_chart_df["value"], errors="coerce").fillna(0)
+            top_pages_chart_df = top_pages_chart_df.sort_values("value", ascending=False).head(5)
+            top_pages_chart_df["page_title_display"] = top_pages_chart_df["page_title"].apply(
+                lambda title: str(title) if len(str(title)) <= 58 else f"{str(title)[:55]}..."
+            )
+
+            pages_fig = px.bar(
+                top_pages_chart_df,
+                x="value",
+                y="page_title_display",
+                orientation="h",
+                hover_data={
+                    "page_title": True,
+                    "page_title_display": False,
+                    "value": ":,.0f",
+                    "metric": True,
+                    "traffic_context": True,
+                },
+                labels={
+                    "page_title_display": "",
+                    "value": "Value",
+                    "page_title": "Page Title",
+                    "metric": "Metric",
+                    "traffic_context": "Traffic Context",
+                },
+                color_discrete_sequence=["#8C52FF"],
+            )
+            pages_fig.update_yaxes(
+                autorange="reversed",
+                title="",
+                tickfont={"color": "#111111", "size": 12},
+                title_font={"color": "#111111"},
+            )
+            pages_fig.update_xaxes(
+                title="Value",
+                gridcolor="#E6E8F0",
+                zeroline=False,
+                tickfont={"color": "#111111", "size": 12},
+                title_font={"color": "#111111"},
+            )
+            pages_fig.update_layout(
+                plot_bgcolor="#FFFFFF",
+                paper_bgcolor="#FFFFFF",
+                font={"color": "#111111", "size": 12},
+                title_font={"color": "#111111"},
+                hoverlabel={
+                    "bgcolor": "#FFFFFF",
+                    "bordercolor": "#E6E8F0",
+                    "font": {"color": "#111111"},
+                },
+                margin={"l": 8, "r": 12, "t": 12, "b": 24},
+                height=340,
+                showlegend=False,
+            )
+            st.plotly_chart(pages_fig, use_container_width=True)
+
+            st.dataframe(
+                top_pages_chart_df[["page_title", "metric", "value", "traffic_context"]],
+                use_container_width=True,
+                hide_index=True,
+            )
 
 
 def render_social_analysis_page(results: dict) -> None:
