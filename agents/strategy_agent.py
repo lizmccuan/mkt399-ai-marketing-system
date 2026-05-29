@@ -173,6 +173,15 @@ def run_strategy_agent(
         primary_query, primary_page, secondary_query, semrush_intelligence
     )
     rule_grounded_priorities = build_rule_grounded_priorities(rule_matches)
+    priority_actions = merge_rule_grounded_priority_actions(priority_actions, rule_grounded_priorities)
+    recommended_actions_summary = merge_rule_grounded_action_summaries(
+        recommended_actions_summary,
+        rule_grounded_priorities,
+    )
+    what_to_do_this_week = merge_rule_grounded_weekly_actions(
+        what_to_do_this_week,
+        rule_grounded_priorities,
+    )
 
     print(f"[Strategy Agent] Primary non-branded query: {primary_query['query']}")
     print(f"[Strategy Agent] Page selected for refresh: {primary_page}")
@@ -238,6 +247,107 @@ def build_rule_grounded_priorities(rule_matches: dict[str, Any] | None) -> list[
         )
 
     return priorities
+
+
+def merge_rule_grounded_priority_actions(
+    existing_actions: list[dict[str, str]],
+    rule_grounded_priorities: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    """Blend the strongest rule-grounded priorities into strategy actions without removing existing logic."""
+    merged_actions = list(existing_actions)
+    existing_keys = {
+        normalize_strategy_text(
+            f"{action.get('issue', '')} {action.get('recommendation', '')} {action.get('action', '')}"
+        )
+        for action in existing_actions
+    }
+
+    for rule_item in select_top_rule_grounded_priorities(rule_grounded_priorities):
+        dedupe_key = normalize_strategy_text(
+            f"{rule_item.get('issue', '')} {rule_item.get('recommendation', '')}"
+        )
+        if not dedupe_key or dedupe_key in existing_keys:
+            continue
+
+        merged_actions.insert(
+            len(merged_actions[:0]),
+            {
+                "title": f"Rule Priority: {format_action_type_label(rule_item.get('action_type', 'strategy'))}",
+                "action": rule_item.get("recommendation", ""),
+                "reason": rule_item.get("why_it_matters", ""),
+                "priority": rule_item.get("priority", "Medium"),
+                "issue": rule_item.get("issue", ""),
+                "why_it_matters": rule_item.get("why_it_matters", ""),
+                "recommendation": rule_item.get("recommendation", ""),
+                "action_type": rule_item.get("action_type", ""),
+                "rule_id": rule_item.get("rule_id", ""),
+            },
+        )
+        existing_keys.add(dedupe_key)
+
+    return merged_actions[:8]
+
+
+def merge_rule_grounded_action_summaries(
+    existing_summaries: list[str],
+    rule_grounded_priorities: list[dict[str, str]],
+) -> list[str]:
+    """Add concise rule-grounded actions into the strategy summary list."""
+    merged_summaries = list(existing_summaries)
+    existing_keys = {normalize_strategy_text(item) for item in existing_summaries}
+
+    for rule_item in select_top_rule_grounded_priorities(rule_grounded_priorities):
+        summary_text = (
+            f"{format_action_type_label(rule_item.get('action_type', 'strategy'))}: "
+            f"{rule_item.get('recommendation', '')}"
+        ).strip()
+        dedupe_key = normalize_strategy_text(summary_text)
+        if not dedupe_key or dedupe_key in existing_keys:
+            continue
+        merged_summaries.append(summary_text)
+        existing_keys.add(dedupe_key)
+
+    return merged_summaries
+
+
+def merge_rule_grounded_weekly_actions(
+    existing_actions: list[str],
+    rule_grounded_priorities: list[dict[str, str]],
+) -> list[str]:
+    """Add the strongest rule-grounded actions into the weekly execution list."""
+    merged_actions = list(existing_actions)
+    existing_keys = {normalize_strategy_text(item) for item in existing_actions}
+
+    for rule_item in select_top_rule_grounded_priorities(rule_grounded_priorities):
+        weekly_text = str(rule_item.get("recommendation", "")).strip()
+        dedupe_key = normalize_strategy_text(weekly_text)
+        if not dedupe_key or dedupe_key in existing_keys:
+            continue
+        merged_actions.append(weekly_text)
+        existing_keys.add(dedupe_key)
+
+    return merged_actions
+
+
+def select_top_rule_grounded_priorities(rule_grounded_priorities: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Select up to three highest-priority rule-grounded items while preserving original order within priority."""
+    priority_rank = {"high": 3, "medium": 2, "low": 1}
+    ranked_items = sorted(
+        enumerate(rule_grounded_priorities),
+        key=lambda item: (priority_rank.get(str(item[1].get("priority", "")).strip().lower(), 0), -item[0]),
+        reverse=True,
+    )
+    return [item for _, item in ranked_items[:3]]
+
+
+def normalize_strategy_text(value: str) -> str:
+    """Normalize strategy text for lightweight deduplication."""
+    return " ".join(str(value).strip().lower().split())
+
+
+def format_action_type_label(action_type: str) -> str:
+    """Convert an action type into a cleaner short label."""
+    return str(action_type).replace("_", " ").strip().title() or "Strategy"
 
 
 def build_executive_summary(
