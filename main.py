@@ -15,10 +15,12 @@ from agents.evaluation_agent import run_evaluation_agent
 from agents.execution_agent import run_execution_agent
 from agents.insight_agent import run_insight_agent
 from agents.strategy_agent import run_strategy_agent
+from services.rule_engine import evaluate_workflow_rule_matches, load_decision_rules
 from utils.parser import parse_csv_file
 
 
 LOG_FILE = Path("logs/workflow_runs.csv")
+DISTILLED_DIR = Path("reference_docs") / "distilled"
 LOG_HEADERS = [
     "run_id",
     "timestamp",
@@ -98,7 +100,19 @@ def run_workflow(
     insights = run_insight_agent(data)
     print("Insight Agent Complete\n")
 
-    # Step 3: turn the findings into a starter strategy.
+    # Step 3: evaluate workflow-level decision rules from structured marketing signals.
+    decision_rules_data = load_decision_rules(DISTILLED_DIR)
+    rule_matches = evaluate_workflow_rule_matches(
+        decision_rules_data.get("rules", []),
+        data,
+        insights,
+        semrush_positions_data=semrush_positions_data,
+        semrush_pages_data=semrush_pages_data,
+        semrush_topics_data=semrush_topics_data,
+    )
+    print(f"Decision Rules Complete ({rule_matches['match_count']} matches)\n")
+
+    # Step 4: turn the findings into a starter strategy.
     strategy = run_strategy_agent(
         insights,
         semrush_positions_data=semrush_positions_data,
@@ -107,11 +121,11 @@ def run_workflow(
     )
     print("Strategy Agent Complete\n")
 
-    # Step 4: turn the strategy into sample marketing deliverables.
+    # Step 5: turn the strategy into sample marketing deliverables.
     execution = run_execution_agent(strategy)
     print("Execution Agent Complete\n")
 
-    # Step 5: score and summarize the workflow output.
+    # Step 6: score and summarize the workflow output.
     evaluation = run_evaluation_agent(execution)
     print("Evaluation Agent Complete\n")
 
@@ -120,6 +134,7 @@ def run_workflow(
         "timestamp": datetime.now().isoformat(timespec="seconds"),
         "data_intake": data,
         "insight": insights,
+        "rule_matches": rule_matches,
         "strategy": strategy,
         "execution": execution,
         "evaluation": evaluation,
