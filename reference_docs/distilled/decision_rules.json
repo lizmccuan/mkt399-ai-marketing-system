@@ -1,5 +1,5 @@
 {
-  "version": "1.3",
+  "version": "1.4",
   "rules": [
 
     {
@@ -169,6 +169,138 @@
       "impact": "high",
       "effort": "medium",
       "action_type": "geo"
+    },
+
+    {
+      "id": "non_branded_search_opportunity",
+      "category": "seo",
+      "title": "Non-branded search opportunity",
+      "conditions": {
+        "all": [
+          { "field": "non_branded_impressions", "operator": ">=", "value": 500 },
+          { "field": "non_branded_ctr", "operator": "<=", "value": 0.05 }
+        ]
+      },
+      "insight": "Non-branded search demand exists, but the site is not converting enough of that visibility into clicks.",
+      "why_it_matters": "Non-branded queries are one of the clearest ways to grow net-new discovery beyond people who already know the brand.",
+      "recommendation": "Prioritize non-branded titles, supporting copy, and page sections that better match patient search intent and improve click appeal.",
+      "priority": "high",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "seo"
+    },
+
+    {
+      "id": "position_6_15_quick_win",
+      "category": "seo",
+      "title": "Position 6-15 quick-win opportunity",
+      "conditions": {
+        "all": [
+          { "field": "position", "operator": ">=", "value": 6 },
+          { "field": "position", "operator": "<=", "value": 15 },
+          { "field": "impressions", "operator": ">=", "value": 100 }
+        ]
+      },
+      "insight": "The page or query is close enough to page-one visibility that a focused optimization pass could move rankings meaningfully.",
+      "why_it_matters": "Queries ranking between positions 6 and 15 are often the fastest SEO gains because they already have relevance and baseline visibility.",
+      "recommendation": "Refresh the title tag, H1, intro copy, FAQ coverage, and internal links to push the query closer to top-page placement.",
+      "priority": "high",
+      "impact": "high",
+      "effort": "low",
+      "action_type": "seo"
+    },
+
+    {
+      "id": "top_page_authority_opportunity",
+      "category": "geo",
+      "title": "Top-page authority opportunity",
+      "conditions": {
+        "all": [
+          { "field": "sessions", "operator": ">=", "value": 150 },
+          { "field": "engagement_rate", "operator": ">=", "value": 0.45 }
+        ]
+      },
+      "insight": "A top-performing page already has audience attention, which makes it a strong candidate for deeper authority and trust reinforcement.",
+      "why_it_matters": "Pages with traffic and engagement can become stronger recommendation assets when they include more expert depth, citations, and entity signals.",
+      "recommendation": "Expand expert proof, provider context, supporting citations, and quotable insights so the page can function as a stronger authority asset.",
+      "priority": "medium",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "geo"
+    },
+
+    {
+      "id": "weak_page_refresh_opportunity",
+      "category": "ux_cro",
+      "title": "Weak page refresh opportunity",
+      "conditions": {
+        "all": [
+          { "field": "sessions", "operator": ">=", "value": 50 },
+          { "field": "engagement_rate", "operator": "<=", "value": 0.40 }
+        ]
+      },
+      "insight": "The page is still attracting visits, but the content and on-page experience appear too weak to hold attention or move visitors forward.",
+      "why_it_matters": "Refreshing underperforming pages is often faster than building new ones because the page already has some visibility and user intent.",
+      "recommendation": "Refresh the headline, intro, page structure, CTA flow, and supporting proof so the page better matches visitor expectations and next-step intent.",
+      "priority": "high",
+      "impact": "medium",
+      "effort": "medium",
+      "action_type": "ux_conversion"
+    },
+
+    {
+      "id": "traffic_source_concentration_opportunity",
+      "category": "analytics",
+      "title": "Traffic-source concentration opportunity",
+      "conditions": {
+        "all": [
+          { "field": "top_source_share", "operator": ">=", "value": 0.60 },
+          { "field": "sessions", "operator": ">=", "value": 100 }
+        ]
+      },
+      "insight": "A large share of traffic is concentrated in one acquisition source, which creates growth and resilience risk.",
+      "why_it_matters": "Over-reliance on one channel makes performance more fragile and can hide whitespace in SEO, referral, email, social, or local acquisition.",
+      "recommendation": "Diversify acquisition by building a secondary growth channel and using channel-specific landing pages, reporting, and conversion tracking.",
+      "priority": "medium",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "analytics"
+    },
+
+    {
+      "id": "keyword_gap_opportunity",
+      "category": "seo",
+      "title": "Keyword-gap opportunity",
+      "conditions": {
+        "all": [
+          { "field": "keyword_gap_count", "operator": ">=", "value": 5 }
+        ]
+      },
+      "insight": "There are multiple relevant keyword opportunities where the site lacks sufficient coverage or visibility.",
+      "why_it_matters": "Keyword gaps point to missed demand that can often be captured through page refreshes, new sections, or supporting content assets.",
+      "recommendation": "Map the biggest keyword gaps to priority pages, add missing subtopics, and create supporting content for the highest-intent uncovered queries.",
+      "priority": "high",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "seo"
+    },
+
+    {
+      "id": "topic_opportunity_expansion",
+      "category": "seo",
+      "title": "Topic-opportunity expansion",
+      "conditions": {
+        "all": [
+          { "field": "topic_opportunity_count", "operator": ">=", "value": 3 }
+        ]
+      },
+      "insight": "The current dataset suggests there are adjacent topic clusters with enough relevance to justify expansion.",
+      "why_it_matters": "Topic opportunities help grow topical authority, strengthen internal linking, and capture more long-tail demand around the same patient journey.",
+      "recommendation": "Build a focused topic cluster around the strongest opportunity themes with new pages, FAQs, supporting articles, and stronger internal links.",
+      "priority": "medium",
+      "impact": "high",
+      "effort": "medium",
+      "action_type": "seo"
     },
 
     {
