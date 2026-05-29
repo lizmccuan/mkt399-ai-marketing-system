@@ -10,6 +10,7 @@ from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -224,6 +225,10 @@ st.markdown(
         border-radius: 18px;
         border: 1px solid var(--border-soft);
         box-shadow: var(--panel-shadow-soft);
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
     .dashboard-title {
         font-size: 2.55rem;
@@ -455,16 +460,35 @@ st.markdown(
         font-weight: 750;
         color: #162033;
     }
-    .stPlotlyChart {
+    .stPlotlyChart,
+    [data-testid="stVegaLiteChart"] {
         background: #FFFFFF;
         border: 1px solid var(--border-soft);
         border-radius: 20px;
-        padding: 0.55rem 0.65rem 0.2rem;
+        padding: 0.8rem 0.9rem 0.45rem;
         box-shadow: var(--panel-shadow-soft);
         margin-bottom: 0.55rem;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
     }
-    .stPlotlyChart > div {
+    .stPlotlyChart > div,
+    [data-testid="stVegaLiteChart"] > div {
         border-radius: 16px;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+    .stPlotlyChart iframe,
+    .stPlotlyChart canvas,
+    .stPlotlyChart svg,
+    [data-testid="stVegaLiteChart"] iframe,
+    [data-testid="stVegaLiteChart"] canvas,
+    [data-testid="stVegaLiteChart"] svg {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
     .dashboard-card-marker {
         display: none !important;
@@ -476,6 +500,14 @@ st.markdown(
         padding: 22px;
         box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
         height: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+    [data-testid="stVerticalBlock"]:has(.dashboard-card-marker) > [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlock"]:has(.dashboard-card-marker) > [data-testid="element-container"] {
+        max-width: 100%;
+        box-sizing: border-box;
     }
     .dashboard-card-helper {
         color: var(--text-muted);
@@ -743,12 +775,16 @@ st.markdown(
     [data-testid="stDataFrame"] {
         background: white !important;
         border-radius: 16px;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
         border: 1px solid var(--border-soft);
         box-shadow: var(--panel-shadow-soft);
+        max-width: 100%;
+        box-sizing: border-box;
     }
     [data-testid="stDataFrame"] * {
         color: #111827 !important;
+        box-sizing: border-box;
     }
     thead tr th {
         background: #F8FAFC !important;
@@ -2317,6 +2353,63 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
         data_summary["ga4_pages"]["rows"] > 0 or data_summary["ga4_sources"]["rows"] > 0
     )
     has_insight_patterns = bool(insight["patterns"])
+    raw_query_chart_df = pd.DataFrame(insight.get("query_analysis", [])).copy()
+    query_chart_df = raw_query_chart_df.copy()
+    query_chart_debug_payload = {
+        "gsc_query_data_exists": has_query_data,
+        "chart_dataframe_shape": list(query_chart_df.shape),
+        "chart_dataframe_columns": [str(column) for column in query_chart_df.columns],
+        "chart_first_rows": [],
+    }
+
+    if not query_chart_df.empty:
+        query_chart_df.columns = [
+            str(column).strip().lower().replace(" ", "_")
+            for column in query_chart_df.columns
+        ]
+
+        rename_map = {}
+        if "search_query" in query_chart_df.columns and "query" not in query_chart_df.columns:
+            rename_map["search_query"] = "query"
+        if rename_map:
+            query_chart_df = query_chart_df.rename(columns=rename_map)
+
+        for column_name in ["impressions", "clicks", "ctr", "position"]:
+            if column_name in query_chart_df.columns:
+                query_chart_df[column_name] = pd.to_numeric(
+                    query_chart_df[column_name],
+                    errors="coerce",
+                )
+
+        if "query" in query_chart_df.columns:
+            query_chart_df["query"] = query_chart_df["query"].fillna("").astype(str).str.strip()
+
+        required_chart_columns = {"query", "impressions"}
+        if required_chart_columns.issubset(query_chart_df.columns):
+            query_chart_df = query_chart_df.dropna(subset=["impressions"])
+            query_chart_df = query_chart_df[query_chart_df["query"] != ""]
+            query_chart_df = query_chart_df.sort_values("impressions", ascending=False).head(5).copy()
+            query_chart_df["query_display"] = query_chart_df["query"].apply(
+                lambda value: value if len(value) <= 42 else f"{value[:39].rstrip()}..."
+            )
+            if "ctr" in query_chart_df.columns:
+                query_chart_df["ctr_display"] = query_chart_df["ctr"].apply(format_ctr_value)
+            else:
+                query_chart_df["ctr_display"] = "Not available"
+            if "position" in query_chart_df.columns:
+                query_chart_df["position_display"] = query_chart_df["position"].apply(
+                    lambda value: "-" if pd.isna(value) else f"{value:.2f}".rstrip("0").rstrip(".")
+                )
+            else:
+                query_chart_df["position_display"] = "Not available"
+        else:
+            query_chart_df = pd.DataFrame()
+    else:
+        query_chart_df = pd.DataFrame()
+
+    query_chart_debug_payload["chart_dataframe_shape"] = list(query_chart_df.shape)
+    query_chart_debug_payload["chart_dataframe_columns"] = [str(column) for column in query_chart_df.columns]
+    query_chart_debug_payload["chart_first_rows"] = make_json_safe(query_chart_df.head(5))
 
     st.markdown('<div class="dashboard-title">📊 Marketing Intelligence Dashboard</div>', unsafe_allow_html=True)
     st.markdown('<div class="dashboard-subtitle">Real-time insights and opportunities</div>', unsafe_allow_html=True)
@@ -2334,36 +2427,34 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
                 '<div class="dashboard-card-helper">Top search queries by impression volume from the loaded run.</div>',
                 unsafe_allow_html=True,
             )
-            query_chart_df = pd.DataFrame(insight["query_analysis"])
-            if {"query", "impressions"}.issubset(query_chart_df.columns):
-                chart_data = (
-                    query_chart_df.sort_values("impressions", ascending=False)[["query", "impressions"]]
-                    .head(5)
-                    .copy()
+            if not query_chart_df.empty:
+                chart_data = query_chart_df[["query_display", "impressions"]].copy()
+                fig, ax = plt.subplots(figsize=(7, 2.6))
+                fig.patch.set_facecolor("#FFFFFF")
+                ax.set_facecolor("#FFFFFF")
+                ax.barh(
+                    chart_data["query_display"],
+                    chart_data["impressions"],
+                    color="#8C52FF",
+                    height=0.5,
                 )
-                performance_fig = px.bar(
-                    chart_data,
-                    x="query",
-                    y="impressions",
-                    color_discrete_sequence=["#8C52FF"],
-                )
-                performance_fig.update_layout(
-                    showlegend=False,
-                    plot_bgcolor="#FFFFFF",
-                    paper_bgcolor="#FFFFFF",
-                    margin=dict(l=12, r=12, t=8, b=8),
-                    font=dict(color="#162033"),
-                    xaxis_title="",
-                    yaxis_title="",
-                )
-                performance_fig.update_traces(
-                    marker_line_color="#7C3AED",
-                    marker_line_width=0,
-                    hovertemplate="<b>%{x}</b><br>Impressions: %{y}<extra></extra>",
-                )
-                performance_fig.update_xaxes(tickfont=dict(color="#111111"))
-                performance_fig.update_yaxes(tickfont=dict(color="#111111"))
-                st.plotly_chart(performance_fig, use_container_width=True)
+                ax.invert_yaxis()
+                ax.tick_params(axis="x", colors="#111111", labelsize=8)
+                ax.tick_params(axis="y", colors="#111111", labelsize=8, length=0, pad=8)
+                ax.spines["top"].set_visible(False)
+                ax.spines["right"].set_visible(False)
+                ax.spines["bottom"].set_color("#D1D5DB")
+                ax.spines["left"].set_color("#D1D5DB")
+                ax.grid(axis="x", color="#E5E7EB", linewidth=0.8)
+                ax.set_axisbelow(True)
+                ax.set_xlabel("Impressions", color="#111111", fontsize=8, labelpad=10)
+                ax.set_ylabel("")
+                ax.margins(x=0.1, y=0.18)
+                plt.tight_layout(pad=1.35)
+                st.pyplot(fig, use_container_width=False)
+                plt.close(fig)
+            else:
+                st.info("No GSC query data available for the Performance Overview chart.")
 
     row_b_left, row_b_right = st.columns(2)
 
@@ -2587,6 +2678,15 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
                 st.write(ga4_debug_titles)
             else:
                 st.write("No GA4 page titles were detected.")
+
+            st.subheader("Performance Overview Debug")
+            st.write("GSC query data exists:", query_chart_debug_payload["gsc_query_data_exists"])
+            st.write("Chart dataframe shape:", query_chart_debug_payload["chart_dataframe_shape"])
+            st.write("Chart dataframe columns:", query_chart_debug_payload["chart_dataframe_columns"])
+            st.write("First 5 chart rows:")
+            st.write(query_chart_debug_payload["chart_first_rows"])
+            if not query_chart_df.empty:
+                st.dataframe(query_chart_df, use_container_width=True, hide_index=True)
 
             st.subheader("Combined Summary")
             st.json(results["data_intake"]["summary"]["combined"])
@@ -6355,8 +6455,8 @@ if page == "📂 Data Sources":
             st.session_state["loaded_run_version"] = loaded_run.get("run_version", "legacy")
             st.session_state["comparison_results"] = None
             st.session_state["comparison_mode"] = False
-            st.session_state["comparison_current_run_id"] = None
-            st.session_state["comparison_run_id"] = None
+            st.session_state["selected_current_run_id"] = None
+            st.session_state["selected_previous_run_id"] = None
             current_results = loaded_run["results"]
             st.success(f"Loaded saved run: {loaded_run['run_id']}")
         else:
@@ -6380,8 +6480,8 @@ if page == "📂 Data Sources":
                 st.session_state["loaded_run_version"] = loaded_run.get("run_version", "legacy")
                 st.session_state["comparison_results"] = comparison_results
                 st.session_state["comparison_mode"] = True
-                st.session_state["comparison_current_run_id"] = current_run_id
-                st.session_state["comparison_run_id"] = comparison_run_id
+                st.session_state["selected_current_run_id"] = current_run_id
+                st.session_state["selected_previous_run_id"] = comparison_run_id
                 current_results = loaded_run["results"]
                 st.success(f"Comparison ready: {current_run_id} vs {comparison_run_id}")
             else:
@@ -6444,8 +6544,8 @@ if page == "📂 Data Sources":
         st.session_state["loaded_run_version"] = "v2"
         st.session_state["comparison_results"] = None
         st.session_state["comparison_mode"] = False
-        st.session_state["comparison_current_run_id"] = None
-        st.session_state["comparison_run_id"] = None
+        st.session_state["selected_current_run_id"] = None
+        st.session_state["selected_previous_run_id"] = None
         current_results = results
 
         st.success("Workflow complete. Results were saved and can now be loaded from Saved Runs.")
