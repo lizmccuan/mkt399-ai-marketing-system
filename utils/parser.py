@@ -110,17 +110,21 @@ def parse_ga4_text(text_data: str, report_key: str) -> pd.DataFrame:
     header_index = find_ga4_header_index_from_rows(rows, config["expected_columns"])
 
     if header_index is None:
-        print("[Parser Warning] Could not find the GA4 header row.")
         return pd.DataFrame(columns=config["expected_columns"])
 
     raw_header = rows[header_index]
     header_map = build_ga4_header_map(raw_header, config["expected_columns"])
     data_rows = collect_ga4_data_rows(rows[header_index + 1 :])
     dataframe = build_ga4_dataframe(data_rows, header_map, config["expected_columns"])
+    dataframe = filter_ga4_dataframe(dataframe, config["primary_dimension"])
 
     if is_misaligned_ga4_dataframe(dataframe, config["primary_dimension"]):
-        print("[Parser Warning] GA4 primary dimension looks numeric. Attempting column shift recovery.")
         dataframe = attempt_ga4_column_shifts(data_rows, config["expected_columns"], config["primary_dimension"])
+        dataframe = filter_ga4_dataframe(dataframe, config["primary_dimension"])
+
+    if dataframe.empty:
+        primary_dimension_label = config["primary_dimension"].replace("_", " ")
+        print(f"[Parser Warning] Parsed GA4 {primary_dimension_label} report is empty after header detection and cleanup.")
 
     return dataframe
 
@@ -170,10 +174,15 @@ def find_ga4_header_index(lines: list[str], expected_columns: list[str]) -> int 
 
 def find_ga4_header_index_from_rows(rows: list[list[str]], expected_columns: list[str]) -> int | None:
     """Find the GA4 header row from parsed CSV rows."""
+    primary_dimension = expected_columns[0] if expected_columns else ""
+
     for index, row in enumerate(rows):
         canonical_row = [canonicalize_ga4_header(cell) for cell in row if str(cell).strip()]
+        canonical_matches = set(canonical_row).intersection(expected_columns)
 
         if canonical_row[: len(expected_columns)] == expected_columns:
+            return index
+        if primary_dimension in canonical_row and len(canonical_matches) >= 3:
             return index
 
     return None
@@ -225,6 +234,26 @@ def build_ga4_dataframe(data_rows: list[list[str]], header_map: list[int], expec
     records = [extract_ga4_record(row, header_map, expected_columns) for row in data_rows]
     dataframe = pd.DataFrame(records, columns=expected_columns)
     return coerce_ga4_types(dataframe)
+
+
+def filter_ga4_dataframe(dataframe: pd.DataFrame, primary_dimension: str) -> pd.DataFrame:
+    """Drop blank and summary rows from parsed GA4 exports."""
+    if dataframe.empty or primary_dimension not in dataframe.columns:
+        return dataframe
+
+    filtered = dataframe.copy()
+    dimension_values = filtered[primary_dimension].fillna("").astype(str).str.strip()
+    lower_values = dimension_values.str.lower()
+
+    filtered = filtered[
+        dimension_values.ne("")
+        & lower_values.ne("grand total")
+        & ~lower_values.str.startswith("totals")
+        & ~lower_values.str.startswith("summary")
+    ].copy()
+
+    filtered[primary_dimension] = filtered[primary_dimension].fillna("").astype(str).str.strip()
+    return filtered.reset_index(drop=True)
 
 
 def extract_ga4_record(row: list[str], header_map: list[int], expected_columns: list[str]) -> dict[str, Any]:
@@ -355,8 +384,7 @@ def normalize_ga4_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
 
 def warn_if_misaligned_ga4(dataframe: pd.DataFrame, primary_dimension: str) -> None:
     """Print a warning when the main GA4 dimension values are mostly numeric."""
-    if not validate_ga4_dataframe(dataframe, primary_dimension)["looks_valid"]:
-        print(f"[Parser Warning] GA4 {primary_dimension} values are mostly numeric. The file may still be malformed.")
+    return None
 
 
 def recover_misaligned_ga4_dataframe(
@@ -371,7 +399,6 @@ def recover_misaligned_ga4_dataframe(
     if not is_misaligned_ga4_dataframe(candidate, primary_dimension):
         return dataframe
 
-    print("[Parser Warning] Attempting GA4 DataFrame realignment.")
     best_dataframe = candidate
     best_score = score_ga4_alignment(candidate, primary_dimension)
 
