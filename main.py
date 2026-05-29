@@ -118,6 +118,7 @@ def run_workflow(
         semrush_positions_data=semrush_positions_data,
         semrush_pages_data=semrush_pages_data,
         semrush_topics_data=semrush_topics_data,
+        rule_matches=rule_matches,
     )
     print("Strategy Agent Complete\n")
 

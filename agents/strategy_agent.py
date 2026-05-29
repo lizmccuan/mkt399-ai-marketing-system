@@ -21,6 +21,7 @@ def run_strategy_agent(
     semrush_positions_data: Any | None = None,
     semrush_pages_data: Any | None = None,
     semrush_topics_data: Any | None = None,
+    rule_matches: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Turn insight patterns into more specific marketing strategy."""
     primary_query = pick_primary_query(insights)
@@ -171,10 +172,12 @@ def run_strategy_agent(
     recommended_actions_summary = build_recommended_actions_summary(
         primary_query, primary_page, secondary_query, semrush_intelligence
     )
+    rule_grounded_priorities = build_rule_grounded_priorities(rule_matches)
 
     print(f"[Strategy Agent] Primary non-branded query: {primary_query['query']}")
     print(f"[Strategy Agent] Page selected for refresh: {primary_page}")
     print(f"[Strategy Agent] SEMrush quick wins: {len(semrush_intelligence['quick_wins'])}")
+    print(f"[Strategy Agent] Rule-grounded priorities: {len(rule_grounded_priorities)}")
 
     return {
         "agent": "strategy",
@@ -182,6 +185,7 @@ def run_strategy_agent(
         "prompt_reference": prompt_reference,
         "best_practice_categories_used": list(BEST_PRACTICES.keys()),
         "based_on_insights": insights["insights"] + observed_patterns,
+        "rule_match_count": int((rule_matches or {}).get("match_count", 0)) if isinstance(rule_matches, dict) else 0,
         "strategy": {
             "goal": "Increase non-branded organic visibility and convert high-intent search demand into appointments.",
             "primary_query": primary_query,
@@ -196,6 +200,7 @@ def run_strategy_agent(
             "priority_page_opportunity": semrush_intelligence["priority_page"],
             "next_best_content_topic": semrush_intelligence["priority_topic"],
             "recommended_actions_summary": recommended_actions_summary,
+            "rule_grounded_priorities": rule_grounded_priorities,
             "recommendations": {
                 "seo": seo_recommendations,
                 "aeo_geo": aeo_geo_recommendations,
@@ -209,8 +214,30 @@ def run_strategy_agent(
         "notes": [
             "The Strategy Agent prioritizes non-branded, high-intent demand over branded terms.",
             "Recommendations are grounded in performance data and mapped to best-practice categories.",
+            "Rule matches are accepted as optional input and exposed as strategy metadata.",
         ],
     }
+
+
+def build_rule_grounded_priorities(rule_matches: dict[str, Any] | None) -> list[dict[str, str]]:
+    """Convert workflow-level rule matches into a small strategy-friendly priority list."""
+    if not rule_matches or not isinstance(rule_matches, dict):
+        return []
+
+    priorities = []
+    for match in (rule_matches.get("all_matches") or [])[:5]:
+        priorities.append(
+            {
+                "rule_id": str(match.get("rule_id", "")),
+                "issue": str(match.get("insight", "")),
+                "why_it_matters": str(match.get("why_it_matters", "")),
+                "recommendation": str(match.get("recommendation", "")),
+                "priority": str(match.get("priority", "")),
+                "action_type": str(match.get("action_type", "")),
+            }
+        )
+
+    return priorities
 
 
 def build_executive_summary(
