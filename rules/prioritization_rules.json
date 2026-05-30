@@ -1,0 +1,125 @@
+{
+  "version": "1.0",
+  "rules": [
+    {
+      "id": "high_impact_low_effort",
+      "category": "general_prioritization",
+      "priority_level": "High",
+      "impact": "High",
+      "effort": "Low",
+      "urgency": "High",
+      "confidence_guidance": "Use when the signal is clear, the fix is straightforward, and the likely upside is immediate.",
+      "when_to_use": "Use for opportunities where a focused update to an existing page, CTA, title, or content block can drive meaningful gains quickly.",
+      "why_it_matters": "These are usually the fastest and safest wins because they improve performance without requiring major buildout.",
+      "suggested_next_step": "Move this into the current sprint and assign an owner for immediate implementation."
+    },
+    {
+      "id": "high_impact_medium_effort",
+      "category": "general_prioritization",
+      "priority_level": "High",
+      "impact": "High",
+      "effort": "Medium",
+      "urgency": "Medium",
+      "confidence_guidance": "Use when upside is strong but execution requires multiple coordinated improvements or a more substantial content refresh.",
+      "when_to_use": "Use for larger page refreshes, topic expansion, FAQ buildouts, authority enhancements, or conversion improvements with strong business upside.",
+      "why_it_matters": "These opportunities often drive meaningful growth, but they need planning and execution discipline to realize the upside.",
+      "suggested_next_step": "Brief the work clearly, scope dependencies, and schedule it as a near-term strategic priority."
+    },
+    {
+      "id": "urgent_tracking_issue",
+      "category": "measurement",
+      "priority_level": "High",
+      "impact": "High",
+      "effort": "Low",
+      "urgency": "Critical",
+      "confidence_guidance": "Use when measurement gaps prevent reliable interpretation of traffic, engagement, or conversion behavior.",
+      "when_to_use": "Use when key analytics, conversion events, source data, or platform exports are missing, broken, or clearly incomplete.",
+      "why_it_matters": "If tracking is wrong, strategy decisions become weaker and performance can be misread across the workflow.",
+      "suggested_next_step": "Fix the tracking or reporting gap before overcommitting to downstream optimization decisions."
+    },
+    {
+      "id": "strong_visibility_low_ctr",
+      "category": "seo",
+      "priority_level": "High",
+      "impact": "High",
+      "effort": "Low",
+      "urgency": "High",
+      "confidence_guidance": "Use when impressions are strong and ranking visibility exists, but CTR is weak enough to indicate missed traffic capture.",
+      "when_to_use": "Use for queries or pages with strong search impressions and underperforming snippets, titles, or intent alignment.",
+      "why_it_matters": "This is one of the clearest SEO upside signals because demand already exists and traffic is being left on the table.",
+      "suggested_next_step": "Prioritize title tag, meta description, and on-page intent alignment updates first."
+    },
+    {
+      "id": "ranking_quick_win",
+      "category": "seo",
+      "priority_level": "High",
+      "impact": "High",
+      "effort": "Low",
+      "urgency": "High",
+      "confidence_guidance": "Use when rankings are already within striking distance of stronger page-one positions.",
+      "when_to_use": "Use for keywords ranking in the roughly 6-15 range with visible demand and clear page relevance.",
+      "why_it_matters": "These are often the most efficient SEO gains because the site already has relevance and only needs stronger optimization or support.",
+      "suggested_next_step": "Refresh the target page’s title, H1, intro, FAQ coverage, and internal linking around the keyword."
+    },
+    {
+      "id": "high_traffic_weak_engagement",
+      "category": "ux_conversion",
+      "priority_level": "High",
+      "impact": "Medium",
+      "effort": "Medium",
+      "urgency": "High",
+      "confidence_guidance": "Use when sessions are meaningful but engagement signals are weak enough to suggest page mismatch or friction.",
+      "when_to_use": "Use for high-traffic pages where users arrive but do not stay engaged, explore, or move toward the next step.",
+      "why_it_matters": "Traffic without engagement means the page is underperforming against its current acquisition opportunity.",
+      "suggested_next_step": "Audit the page for message match, structure, CTA visibility, and trust cues before driving more traffic."
+    },
+    {
+      "id": "local_seo_opportunity",
+      "category": "geo",
+      "priority_level": "Medium",
+      "impact": "High",
+      "effort": "Medium",
+      "urgency": "Medium",
+      "confidence_guidance": "Use when local-intent demand or local relevance signals exist but location trust or local landing-page support is weak.",
+      "when_to_use": "Use for service areas, near-me behavior, city/service pages, or cases where local proof and geographic context are underdeveloped.",
+      "why_it_matters": "Local visibility depends on entity clarity, service-area relevance, and trust signals that help the brand compete in local search and AI discovery.",
+      "suggested_next_step": "Strengthen local page language, GBP consistency, reviews, and provider/location proof."
+    },
+    {
+      "id": "healthcare_trust_compliance_opportunity",
+      "category": "trust_compliance",
+      "priority_level": "High",
+      "impact": "High",
+      "effort": "Medium",
+      "urgency": "High",
+      "confidence_guidance": "Use when healthcare claims, trust language, provider expertise, or proof structure are weak or potentially risky.",
+      "when_to_use": "Use for medical or healthcare marketing outputs that need stronger credibility, clearer disclaimers, or safer wording.",
+      "why_it_matters": "In healthcare marketing, trust and compliance risks can damage both performance and brand safety if they are not handled carefully.",
+      "suggested_next_step": "Review the page or asset for overpromising, unsupported treatment claims, missing provider proof, and missing trust language."
+    },
+    {
+      "id": "social_growth_opportunity",
+      "category": "social",
+      "priority_level": "Medium",
+      "impact": "Medium",
+      "effort": "Low",
+      "urgency": "Medium",
+      "confidence_guidance": "Use when a format, topic, or hook is clearly outperforming for reach, follows, saves, or engagement.",
+      "when_to_use": "Use for strong post patterns that can be scaled through new variations, stronger hooks, or clearer CTA adaptation.",
+      "why_it_matters": "Once a social pattern is visibly working, repetition and structured variation can grow performance faster than constant reinvention.",
+      "suggested_next_step": "Replicate the strongest content pattern with a small set of new hooks, angles, or CTA variants."
+    },
+    {
+      "id": "missing_conversion_data_caution",
+      "category": "measurement",
+      "priority_level": "Medium",
+      "impact": "High",
+      "effort": "Low",
+      "urgency": "High",
+      "confidence_guidance": "Use when traffic and engagement data exist but conversion tracking is missing, incomplete, or untrustworthy.",
+      "when_to_use": "Use when outputs suggest opportunity but the workflow cannot confirm whether user actions translate into business outcomes.",
+      "why_it_matters": "Without usable conversion data, prioritization becomes less certain and high-traffic pages may be misclassified.",
+      "suggested_next_step": "Treat performance conclusions as directional until conversion tracking is clarified or repaired."
+    }
+  ]
+}
