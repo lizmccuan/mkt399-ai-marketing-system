@@ -1,0 +1,266 @@
+{
+  "version": "1.0",
+  "metrics": [
+    {
+      "metric": "sessions",
+      "source": "GA4",
+      "meaning": "The number of sessions started on the site within the measured time period.",
+      "high_signal": "Shows strong traffic volume or rising demand entering the site.",
+      "low_signal": "Suggests weaker acquisition volume, limited visibility, or tracking gaps.",
+      "decision_use": "Use for traffic trend analysis, channel prioritization, and landing-page opportunity sizing.",
+      "caution": "Sessions alone do not show quality; pair with engagement, conversions, and source context."
+    },
+    {
+      "metric": "active_users",
+      "source": "GA4",
+      "meaning": "The number of distinct users who engaged with the site during the reporting period.",
+      "high_signal": "Indicates broader audience reach and stronger unique-user activity.",
+      "low_signal": "Can point to weak audience acquisition, weak retention, or audience concentration.",
+      "decision_use": "Use to evaluate audience scale, compare channel quality, and size page-level opportunity.",
+      "caution": "A high user count can still underperform if those users do not engage or convert."
+    },
+    {
+      "metric": "new_users",
+      "source": "GA4",
+      "meaning": "The number of first-time users who visited the site during the reporting period.",
+      "high_signal": "Shows strong new-audience acquisition and top-of-funnel growth.",
+      "low_signal": "Can indicate weak discovery, weak acquisition, or over-reliance on existing audiences.",
+      "decision_use": "Use for acquisition analysis, channel growth planning, and top-of-funnel performance reviews.",
+      "caution": "New users should be evaluated alongside engagement and conversion behavior to judge quality."
+    },
+    {
+      "metric": "returning_users",
+      "source": "GA4",
+      "meaning": "The number of users who came back to the site after a prior visit.",
+      "high_signal": "Suggests repeat interest, stronger recall, or ongoing evaluation behavior.",
+      "low_signal": "May indicate weak retention, low brand recall, or poor follow-up engagement.",
+      "decision_use": "Use for retention analysis, nurture strategy, and repeat-visit behavior assessment.",
+      "caution": "High returning-user volume is not automatically positive if users still do not convert."
+    },
+    {
+      "metric": "engagement_rate",
+      "source": "GA4",
+      "meaning": "The percentage of sessions that meet Google’s engaged-session criteria.",
+      "high_signal": "Indicates stronger page usefulness, better message match, or stronger on-site relevance.",
+      "low_signal": "Often signals poor page match, weak content structure, low UX clarity, or thin relevance.",
+      "decision_use": "Use to identify weak pages, refine UX/CRO opportunities, and prioritize page refreshes.",
+      "caution": "Engagement rate is directional; pair it with session volume and conversion signals for better decisions."
+    },
+    {
+      "metric": "average_engagement_time",
+      "source": "GA4",
+      "meaning": "The average amount of time users were actively engaged with the site or page.",
+      "high_signal": "Suggests deeper attention, stronger content consumption, or greater decision-stage interest.",
+      "low_signal": "Can indicate weak content relevance, fast abandonment, or insufficient page depth.",
+      "decision_use": "Use to assess content depth, page consumption quality, and whether users stay long enough to absorb the message.",
+      "caution": "Longer time is not always better; some high-performing pages solve the need quickly."
+    },
+    {
+      "metric": "conversions",
+      "source": "GA4",
+      "meaning": "The number of tracked conversion actions completed by users.",
+      "high_signal": "Shows the site or page is successfully turning traffic into meaningful business actions.",
+      "low_signal": "Indicates friction, weak offers, poor CTA clarity, or traffic that does not match intent.",
+      "decision_use": "Use to prioritize high-impact pages, diagnose weak conversion paths, and validate marketing effectiveness.",
+      "caution": "Conversion counts depend heavily on clean event setup and meaningful tracking definitions."
+    },
+    {
+      "metric": "session_conversion_rate",
+      "source": "GA4",
+      "meaning": "The percentage of sessions that resulted in a tracked conversion.",
+      "high_signal": "Suggests the traffic and landing experience are aligned with business goals.",
+      "low_signal": "Often points to conversion friction, weak intent match, or poor CTA pathways.",
+      "decision_use": "Use to evaluate landing-page quality, campaign intent alignment, and CRO priority.",
+      "caution": "Rates can be unstable on low session counts; review alongside raw conversion volume."
+    },
+    {
+      "metric": "entrances",
+      "source": "GA4",
+      "meaning": "The number of times a page served as the first page in a session.",
+      "high_signal": "Shows strong landing-page visibility or campaign entry relevance.",
+      "low_signal": "May suggest a page is not being discovered as an entry point.",
+      "decision_use": "Use to identify key landing pages and decide where to improve first-impression messaging.",
+      "caution": "A page with many entrances can still underperform if it has weak engagement or conversion rates."
+    },
+    {
+      "metric": "exits",
+      "source": "GA4",
+      "meaning": "The number of times a page was the final page in a session.",
+      "high_signal": "Can reveal friction, dead ends, or a natural completion point depending on context.",
+      "low_signal": "May indicate the page is not often a stopping point, but that is not automatically good or bad.",
+      "decision_use": "Use to identify possible drop-off pages and review whether the page is losing users before the next step.",
+      "caution": "High exits are not always negative; some pages are meant to conclude the journey."
+    },
+    {
+      "metric": "clicks",
+      "source": "Google Search Console",
+      "meaning": "The number of clicks from Google Search results to the site.",
+      "high_signal": "Shows the result is compelling enough to win traffic from search impressions.",
+      "low_signal": "May indicate weak search visibility, weak CTR, or poor alignment with user intent.",
+      "decision_use": "Use to assess search traffic capture and prioritize page/query improvements.",
+      "caution": "Clicks should be interpreted alongside impressions and CTR, not in isolation."
+    },
+    {
+      "metric": "impressions",
+      "source": "Google Search Console",
+      "meaning": "The number of times a site result was shown in Google Search.",
+      "high_signal": "Shows visible search demand and existing discoverability for a query or page.",
+      "low_signal": "Suggests limited visibility, weak rankings, or low demand.",
+      "decision_use": "Use to size SEO opportunity, identify visibility gaps, and prioritize query/page optimization.",
+      "caution": "High impressions with low clicks can indicate opportunity, not success."
+    },
+    {
+      "metric": "ctr",
+      "source": "Google Search Console",
+      "meaning": "Click-through rate from impressions to clicks in Google Search.",
+      "high_signal": "Indicates the result is relevant and compelling in the search results.",
+      "low_signal": "Often signals weak title/meta messaging, poor intent match, or uncompetitive SERP presence.",
+      "decision_use": "Use to prioritize title/meta refreshes, snippet tests, and search-intent alignment.",
+      "caution": "CTR varies by ranking position and SERP format; compare it with position before judging performance."
+    },
+    {
+      "metric": "average_position",
+      "source": "Google Search Console",
+      "meaning": "The average ranking position of a query or page in Google Search results.",
+      "high_signal": "A lower numeric position suggests stronger ranking visibility.",
+      "low_signal": "A higher numeric position suggests weaker visibility and less likely traffic capture.",
+      "decision_use": "Use to identify quick wins, page-one opportunities, and visibility gaps.",
+      "caution": "Average position can mask ranking volatility across devices, geographies, and query variants."
+    },
+    {
+      "metric": "keyword",
+      "source": "SEMrush",
+      "meaning": "The specific search term being tracked for SEO opportunity analysis.",
+      "high_signal": "A keyword tied to clear demand, intent, or visibility opportunity can shape page priorities.",
+      "low_signal": "Weak or irrelevant keywords may not support worthwhile marketing effort.",
+      "decision_use": "Use to map search demand to pages, clusters, and optimization priorities.",
+      "caution": "A keyword alone is not a performance metric; it must be interpreted with position, volume, and intent."
+    },
+    {
+      "metric": "position",
+      "source": "SEMrush",
+      "meaning": "The tracked search ranking position for a keyword.",
+      "high_signal": "Positions in the 4-15 range often indicate fast-improvement opportunities.",
+      "low_signal": "Very weak positions may require more than simple on-page tuning.",
+      "decision_use": "Use to identify quick wins, page refreshes, and where deeper content investment is needed.",
+      "caution": "Position data is directional and can differ from GSC due to methodology and sampling."
+    },
+    {
+      "metric": "search_volume",
+      "source": "SEMrush",
+      "meaning": "Estimated monthly search demand for a keyword.",
+      "high_signal": "Suggests stronger potential upside if the keyword is relevant and achievable.",
+      "low_signal": "May indicate lower upside or niche intent, though niche terms can still convert well.",
+      "decision_use": "Use to size opportunity, compare keyword targets, and prioritize content investment.",
+      "caution": "Search volume is an estimate, not guaranteed traffic."
+    },
+    {
+      "metric": "keyword_difficulty",
+      "source": "SEMrush",
+      "meaning": "Estimated SEO competition level for a keyword.",
+      "high_signal": "Higher difficulty suggests a harder path to rankings and may require stronger authority or depth.",
+      "low_signal": "Lower difficulty can signal a faster route to visibility if intent and relevance are strong.",
+      "decision_use": "Use to balance quick wins against long-term strategic targets.",
+      "caution": "Difficulty should not override business relevance or conversion potential."
+    },
+    {
+      "metric": "traffic",
+      "source": "SEMrush",
+      "meaning": "Estimated organic traffic attributed to a page or keyword set.",
+      "high_signal": "Shows where organic visibility is already translating into meaningful estimated visits.",
+      "low_signal": "Can reveal weak visibility, weak rankings, or pages that need stronger support.",
+      "decision_use": "Use to prioritize high-leverage pages and validate page-level SEO opportunity.",
+      "caution": "Estimated traffic is not the same as first-party analytics data."
+    },
+    {
+      "metric": "keyword_gap",
+      "source": "SEMrush",
+      "meaning": "A relevant keyword area where competitors or market demand exist but site coverage is weak or missing.",
+      "high_signal": "Highlights missed visibility that can often be captured through page refreshes or new content.",
+      "low_signal": "A small or absent gap may suggest stronger current coverage.",
+      "decision_use": "Use to identify missing topics, refresh priorities, and cluster expansion opportunities.",
+      "caution": "Not every gap is strategic; validate intent, fit, and business value first."
+    },
+    {
+      "metric": "topic_opportunity",
+      "source": "SEMrush",
+      "meaning": "A broader content or theme opportunity that could support authority, visibility, or acquisition growth.",
+      "high_signal": "Signals whitespace for topic expansion, authority building, or long-tail coverage.",
+      "low_signal": "Weak topic opportunity may suggest limited strategic upside or poor relevance.",
+      "decision_use": "Use to plan topic clusters, supporting content, and authority-building assets.",
+      "caution": "Topic opportunities should be tied back to business goals, not just search demand."
+    },
+    {
+      "metric": "reach",
+      "source": "Meta",
+      "meaning": "The number of unique users who saw a post or piece of social content.",
+      "high_signal": "Shows strong distribution or algorithmic visibility.",
+      "low_signal": "Can indicate weak distribution, weak hooks, or poor format fit.",
+      "decision_use": "Use to judge content visibility and decide whether a format or topic deserves scaling.",
+      "caution": "Reach alone does not mean the content was compelling or business-relevant."
+    },
+    {
+      "metric": "views",
+      "source": "Meta",
+      "meaning": "The number of times content was viewed, including repeat views where applicable.",
+      "high_signal": "Suggests content is being consumed repeatedly or delivered broadly.",
+      "low_signal": "May indicate weak distribution or low retention.",
+      "decision_use": "Use to evaluate top-of-funnel content consumption and compare formats.",
+      "caution": "Views are not the same as unique reach and do not automatically indicate quality."
+    },
+    {
+      "metric": "engagement",
+      "source": "Meta",
+      "meaning": "The total interaction volume on a piece of content, such as likes, comments, shares, or saves.",
+      "high_signal": "Shows content resonance and audience response.",
+      "low_signal": "Can indicate weak hooks, weak relevance, or low interaction value.",
+      "decision_use": "Use to identify high-resonance content and improve weak-performing posts.",
+      "caution": "Engagement volume should be interpreted with reach and conversion behavior, not alone."
+    },
+    {
+      "metric": "engagement_rate",
+      "source": "Meta",
+      "meaning": "The rate of engagement relative to the audience reached or views generated.",
+      "high_signal": "Suggests content is compelling relative to how many people saw it.",
+      "low_signal": "Often means the content was visible but not persuasive enough to earn interaction.",
+      "decision_use": "Use to compare content quality across posts, formats, and topics.",
+      "caution": "Rate calculations vary by platform export or reporting logic, so compare like with like."
+    },
+    {
+      "metric": "follows",
+      "source": "Meta",
+      "meaning": "The number of follows attributed to a piece of content or time period.",
+      "high_signal": "Shows content that expands audience interest and brand consideration.",
+      "low_signal": "Can indicate content is being consumed without strengthening audience growth.",
+      "decision_use": "Use to identify the formats, hooks, and topics most likely to grow the audience.",
+      "caution": "Follow growth does not always translate into visits, leads, or conversions."
+    },
+    {
+      "metric": "shares",
+      "source": "Meta",
+      "meaning": "The number of times users shared a piece of content with others.",
+      "high_signal": "Suggests strong resonance, social proof, or content worth passing along.",
+      "low_signal": "May indicate the content is not socially compelling enough to spread.",
+      "decision_use": "Use to identify distribution-friendly content and themes worth scaling.",
+      "caution": "Shares are valuable, but not all shared content supports the intended business goal."
+    },
+    {
+      "metric": "saves",
+      "source": "Meta",
+      "meaning": "The number of times users saved a post for later reference.",
+      "high_signal": "Often signals high informational value, future intent, or strong reference usefulness.",
+      "low_signal": "Can indicate the content is not memorable or useful enough to revisit.",
+      "decision_use": "Use to identify educational or utility-driven content themes that deserve expansion.",
+      "caution": "Saves indicate interest, but not necessarily immediate conversion behavior."
+    },
+    {
+      "metric": "link_clicks",
+      "source": "Meta",
+      "meaning": "The number of clicks from social content to an external destination such as a website or landing page.",
+      "high_signal": "Shows content that successfully drives users from awareness into deeper action.",
+      "low_signal": "May indicate weak CTA, weak offer framing, or low intent alignment.",
+      "decision_use": "Use to evaluate social conversion intent and optimize post-to-landing-page pathways.",
+      "caution": "High link clicks still need downstream GA4 or conversion validation to confirm business value."
+    }
+  ]
+}
