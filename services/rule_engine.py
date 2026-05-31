@@ -20,6 +20,32 @@ def load_decision_rules(distilled_dir: Path) -> dict:
         return json.load(file)
 
 
+def load_metric_glossary(rules_dir: Path) -> dict:
+    """Load the metric glossary from disk with a safe empty fallback."""
+    path = Path(rules_dir) / "metric_glossary.json"
+    if not path.exists():
+        return {"version": "1.0", "metrics": []}
+
+    try:
+        with open(path, "r", encoding="utf-8") as file:
+            return json.load(file)
+    except (OSError, json.JSONDecodeError):
+        return {"version": "1.0", "metrics": []}
+
+
+def load_prioritization_rules(rules_dir: Path) -> dict:
+    """Load prioritization rules from disk with a safe empty fallback."""
+    path = Path(rules_dir) / "prioritization_rules.json"
+    if not path.exists():
+        return {"version": "1.0", "rules": []}
+
+    try:
+        with open(path, "r", encoding="utf-8") as file:
+            return json.load(file)
+    except (OSError, json.JSONDecodeError):
+        return {"version": "1.0", "rules": []}
+
+
 def rule_matches(rule: dict, sample_data: dict) -> bool:
     """Evaluate whether one rule matches the current sample data."""
     conditions = rule.get("conditions", {}).get("all", [])
