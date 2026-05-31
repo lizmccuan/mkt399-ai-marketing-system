@@ -15,12 +15,18 @@ from agents.evaluation_agent import run_evaluation_agent
 from agents.execution_agent import run_execution_agent
 from agents.insight_agent import run_insight_agent
 from agents.strategy_agent import run_strategy_agent
-from services.rule_engine import evaluate_workflow_rule_matches, load_decision_rules
+from services.rule_engine import (
+    evaluate_workflow_rule_matches,
+    load_decision_rules,
+    load_metric_glossary,
+    load_prioritization_rules,
+)
 from utils.parser import parse_csv_file
 
 
 LOG_FILE = Path("logs/workflow_runs.csv")
 DISTILLED_DIR = Path("reference_docs") / "distilled"
+RULES_DIR = Path("rules")
 LOG_HEADERS = [
     "run_id",
     "timestamp",
@@ -102,6 +108,8 @@ def run_workflow(
 
     # Step 3: evaluate workflow-level decision rules from structured marketing signals.
     decision_rules_data = load_decision_rules(DISTILLED_DIR)
+    metric_glossary = load_metric_glossary(RULES_DIR)
+    prioritization_rules = load_prioritization_rules(RULES_DIR)
     rule_matches = evaluate_workflow_rule_matches(
         decision_rules_data.get("rules", []),
         data,
@@ -136,6 +144,8 @@ def run_workflow(
         "data_intake": data,
         "insight": insights,
         "rule_matches": rule_matches,
+        "metric_glossary": metric_glossary,
+        "prioritization_rules": prioritization_rules,
         "strategy": strategy,
         "execution": execution,
         "evaluation": evaluation,
