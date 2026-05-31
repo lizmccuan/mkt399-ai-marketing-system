@@ -108,6 +108,7 @@ def evaluate_decision_rules(
     generated_recommendations = sorted(
         generated_recommendations,
         key=lambda item: (
+            to_numeric_score_value((item.get("priority_bundle") or {}).get("priority_score")) or 0,
             to_numeric_score_value(item.get("opportunity_score")) or 0,
             to_numeric_score_value(item.get("business_impact_score")) or 0,
             to_numeric_score_value(item.get("confidence_score")) or 0,
@@ -171,6 +172,7 @@ def evaluate_workflow_rule_matches(
     all_matches = sorted(
         all_matches,
         key=lambda item: (
+            to_numeric_score_value((item.get("priority_bundle") or {}).get("priority_score")) or 0,
             to_numeric_score_value(item.get("opportunity_score")) or 0,
             to_numeric_score_value(item.get("business_impact_score")) or 0,
             to_numeric_score_value(item.get("confidence_score")) or 0,
