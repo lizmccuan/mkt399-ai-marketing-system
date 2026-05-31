@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from services.scoring import calculate_rule_scores, to_numeric_score_value
+from services.scoring import build_priority_bundle, calculate_rule_scores, to_numeric_score_value
 
 
 def load_decision_rules(distilled_dir: Path) -> dict:
@@ -75,25 +75,34 @@ def rule_matches(rule: dict, sample_data: dict) -> bool:
     return True
 
 
-def evaluate_decision_rules(decision_rules: list[dict], sample_data: dict) -> tuple[list[dict], list[dict]]:
+def evaluate_decision_rules(
+    decision_rules: list[dict],
+    sample_data: dict,
+    prioritization_rules: dict | list[dict] | None = None,
+) -> tuple[list[dict], list[dict]]:
     """Return triggered rules and generated recommendations for a run."""
     triggered_rules = [rule for rule in decision_rules if rule_matches(rule, sample_data)]
 
     generated_recommendations = []
     for rule in triggered_rules:
         score_bundle = calculate_rule_scores(rule, sample_data)
+        recommendation = {
+            "title": rule.get("title"),
+            "insight": rule.get("insight"),
+            "why_it_matters": rule.get("why_it_matters"),
+            "recommendation": rule.get("recommendation"),
+            "priority": rule.get("priority"),
+            "impact": rule.get("impact"),
+            "effort": rule.get("effort"),
+            "category": rule.get("category"),
+            "action_type": rule.get("action_type"),
+            "confidence_score": score_bundle.get("confidence_score"),
+            "opportunity_score": score_bundle.get("opportunity_score"),
+            "business_impact_score": score_bundle.get("business_impact_score"),
+        }
+        recommendation["priority_bundle"] = build_priority_bundle(recommendation, prioritization_rules)
         generated_recommendations.append(
-            {
-                "title": rule.get("title"),
-                "insight": rule.get("insight"),
-                "why_it_matters": rule.get("why_it_matters"),
-                "recommendation": rule.get("recommendation"),
-                "priority": rule.get("priority"),
-                "action_type": rule.get("action_type"),
-                "confidence_score": score_bundle.get("confidence_score"),
-                "opportunity_score": score_bundle.get("opportunity_score"),
-                "business_impact_score": score_bundle.get("business_impact_score"),
-            }
+            recommendation
         )
 
     generated_recommendations = sorted(
@@ -193,10 +202,13 @@ def _evaluate_payload(decision_rules: list[dict], label: str, sample_data: dict,
                 "why_it_matters": recommendation.get("why_it_matters"),
                 "recommendation": recommendation.get("recommendation"),
                 "priority": recommendation.get("priority"),
+                "impact": recommendation.get("impact"),
+                "effort": recommendation.get("effort"),
                 "action_type": recommendation.get("action_type"),
                 "confidence_score": recommendation.get("confidence_score"),
                 "opportunity_score": recommendation.get("opportunity_score"),
                 "business_impact_score": recommendation.get("business_impact_score"),
+                "priority_bundle": recommendation.get("priority_bundle"),
                 "sample_data": sample_data,
             }
         )
