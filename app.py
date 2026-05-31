@@ -2444,6 +2444,66 @@ def render_comparison_summary(results: dict | None, sections: list[str]) -> None
             st.caption(section_message)
         st.dataframe(pd.DataFrame(display_rows), use_container_width=True, hide_index=True)
 
+    comparison_insights = comparison_results.get("comparison_insights", []) or []
+    rule_match_deltas = comparison_results.get("rule_match_deltas", {}) or {}
+    priority_shift_summary = comparison_results.get("priority_shift_summary", {}) or {}
+    strategy_deltas = comparison_results.get("strategy_deltas", {}) or {}
+
+    has_intelligence_metadata = any(
+        [
+            comparison_insights
+            and not (
+                len(comparison_insights) == 1
+                and str(comparison_insights[0].get("insight", "")).strip() == "Comparison intelligence is limited for these runs."
+            ),
+            rule_match_deltas.get("new_rule_ids"),
+            rule_match_deltas.get("resolved_rule_ids"),
+            rule_match_deltas.get("persistent_rule_ids"),
+            strategy_deltas.get("new_priority_action_themes"),
+            strategy_deltas.get("persistent_priority_action_themes"),
+            priority_shift_summary.get("highest_current_priority_score") is not None,
+            priority_shift_summary.get("highest_previous_priority_score") is not None,
+        ]
+    )
+
+    st.markdown("**Comparison Intelligence**")
+    if has_intelligence_metadata:
+        for item in comparison_insights:
+            insight_text = str(item.get("insight", "")).strip()
+            why_it_matters = str(item.get("why_it_matters", "")).strip()
+            suggested_next_step = str(item.get("suggested_next_step", "")).strip()
+            supporting_evidence = item.get("supporting_evidence", {})
+
+            with st.container():
+                if insight_text:
+                    st.markdown(f"**Insight:** {insight_text}")
+                if why_it_matters:
+                    st.markdown(f"**Why it matters:** {why_it_matters}")
+                if supporting_evidence:
+                    st.markdown("**Supporting evidence:**")
+                    st.json(supporting_evidence)
+                if suggested_next_step:
+                    st.markdown(f"**Suggested next step:** {suggested_next_step}")
+                st.write("")
+
+        st.markdown("**Rule Changes**")
+        st.markdown(
+            f"- New rule ids: {', '.join(rule_match_deltas.get('new_rule_ids', []) or ['None'])}\n"
+            f"- Resolved rule ids: {', '.join(rule_match_deltas.get('resolved_rule_ids', []) or ['None'])}\n"
+            f"- Persistent rule ids: {', '.join(rule_match_deltas.get('persistent_rule_ids', []) or ['None'])}"
+        )
+
+        st.markdown("**Priority Shifts**")
+        st.markdown(
+            f"- Highest current priority score: "
+            f"{format_comparison_value(priority_shift_summary.get('highest_current_priority_score'), 'number')}\n"
+            f"- Highest previous priority score: "
+            f"{format_comparison_value(priority_shift_summary.get('highest_previous_priority_score'), 'number')}\n"
+            f"- Urgency shift: {str(priority_shift_summary.get('urgency_shift', 'Not available')).replace('_', ' ').title()}"
+        )
+    else:
+        st.info("Comparison intelligence will appear after both runs include rule and strategy outputs.")
+
     debug_payload = comparison_results.get("debug")
     if debug_payload:
         with st.expander("Comparison Debug", expanded=False):
