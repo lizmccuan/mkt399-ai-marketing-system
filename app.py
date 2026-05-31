@@ -1977,6 +1977,277 @@ def build_run_metric_snapshot(results: dict | None, run_id: str | None = None) -
     }
 
 
+def normalize_comparison_theme(value) -> str:
+    """Normalize comparison text for safe deduplication."""
+    return " ".join(str(value or "").strip().lower().split())
+
+
+def extract_rule_match_items(results: dict | None) -> list[dict]:
+    """Return workflow rule matches when available."""
+    if not isinstance(results, dict):
+        return []
+    rule_matches = results.get("rule_matches", {})
+    if not isinstance(rule_matches, dict):
+        return []
+    return [item for item in (rule_matches.get("all_matches") or []) if isinstance(item, dict)]
+
+
+def extract_strategy_payload(results: dict | None) -> dict:
+    """Return the nested strategy payload when available."""
+    if not isinstance(results, dict):
+        return {}
+    strategy_wrapper = results.get("strategy", {})
+    if not isinstance(strategy_wrapper, dict):
+        return {}
+    strategy_payload = strategy_wrapper.get("strategy", {})
+    return strategy_payload if isinstance(strategy_payload, dict) else {}
+
+
+def collect_priority_action_themes(strategy_payload: dict) -> list[str]:
+    """Collect lightweight strategy action themes for saved-run comparison."""
+    priority_actions = strategy_payload.get("priority_actions", []) or []
+    themes: list[str] = []
+    seen = set()
+
+    for item in priority_actions:
+        if not isinstance(item, dict):
+            continue
+        theme = (
+            str(item.get("action_type", "")).strip()
+            or str(item.get("title", "")).strip()
+            or str(item.get("issue", "")).strip()
+            or str(item.get("action", "")).strip()
+        )
+        normalized_theme = normalize_comparison_theme(theme)
+        if not normalized_theme or normalized_theme in seen:
+            continue
+        seen.add(normalized_theme)
+        themes.append(theme)
+
+    return themes
+
+
+def summarize_rule_match_deltas(current_results: dict | None, previous_results: dict | None) -> dict[str, object]:
+    """Compare workflow-level rule matches across two saved runs."""
+    current_matches = extract_rule_match_items(current_results)
+    previous_matches = extract_rule_match_items(previous_results)
+
+    current_rule_ids = {
+        str(item.get("rule_id", "")).strip()
+        for item in current_matches
+        if str(item.get("rule_id", "")).strip()
+    }
+    previous_rule_ids = {
+        str(item.get("rule_id", "")).strip()
+        for item in previous_matches
+        if str(item.get("rule_id", "")).strip()
+    }
+
+    if not current_matches and not previous_matches:
+        return {
+            "new_rule_ids": [],
+            "resolved_rule_ids": [],
+            "persistent_rule_ids": [],
+            "current_rule_match_count": 0,
+            "previous_rule_match_count": 0,
+            "note": "Rule match comparison is not available because workflow rule matches were missing from both runs.",
+        }
+
+    return {
+        "new_rule_ids": sorted(current_rule_ids - previous_rule_ids),
+        "resolved_rule_ids": sorted(previous_rule_ids - current_rule_ids),
+        "persistent_rule_ids": sorted(current_rule_ids.intersection(previous_rule_ids)),
+        "current_rule_match_count": len(current_matches),
+        "previous_rule_match_count": len(previous_matches),
+        "note": "",
+    }
+
+
+def summarize_strategy_deltas(current_results: dict | None, previous_results: dict | None) -> dict[str, object]:
+    """Compare strategy-level priority themes between two runs."""
+    current_strategy = extract_strategy_payload(current_results)
+    previous_strategy = extract_strategy_payload(previous_results)
+    current_priorities = current_strategy.get("rule_grounded_priorities", []) or []
+    previous_priorities = previous_strategy.get("rule_grounded_priorities", []) or []
+
+    current_themes = collect_priority_action_themes(current_strategy)
+    previous_themes = collect_priority_action_themes(previous_strategy)
+    current_theme_map = {normalize_comparison_theme(theme): theme for theme in current_themes}
+    previous_theme_map = {normalize_comparison_theme(theme): theme for theme in previous_themes}
+
+    if not current_strategy and not previous_strategy:
+        return {
+            "current_rule_grounded_priorities": [],
+            "previous_rule_grounded_priorities": [],
+            "new_priority_action_themes": [],
+            "persistent_priority_action_themes": [],
+            "note": "Strategy comparison is not available because strategy outputs were missing from both runs.",
+        }
+
+    return {
+        "current_rule_grounded_priorities": current_priorities,
+        "previous_rule_grounded_priorities": previous_priorities,
+        "new_priority_action_themes": [
+            current_theme_map[key] for key in current_theme_map.keys() - previous_theme_map.keys()
+        ],
+        "persistent_priority_action_themes": [
+            current_theme_map[key] for key in current_theme_map.keys() & previous_theme_map.keys()
+        ],
+        "note": "",
+    }
+
+
+def summarize_priority_shift(current_results: dict | None, previous_results: dict | None) -> dict[str, object]:
+    """Summarize how unified priority scoring shifted across runs."""
+    current_matches = extract_rule_match_items(current_results)
+    previous_matches = extract_rule_match_items(previous_results)
+
+    def _collect_priority_bundle_values(matches: list[dict], field: str) -> list[float]:
+        values = []
+        for item in matches:
+            priority_bundle = item.get("priority_bundle")
+            if not isinstance(priority_bundle, dict):
+                continue
+            numeric_value = to_comparison_number(priority_bundle.get(field))
+            if numeric_value is not None:
+                values.append(numeric_value)
+        return values
+
+    current_priority_scores = _collect_priority_bundle_values(current_matches, "priority_score")
+    previous_priority_scores = _collect_priority_bundle_values(previous_matches, "priority_score")
+    current_urgency_scores = _collect_priority_bundle_values(current_matches, "urgency_score")
+    previous_urgency_scores = _collect_priority_bundle_values(previous_matches, "urgency_score")
+
+    highest_current_priority_score = max(current_priority_scores) if current_priority_scores else None
+    highest_previous_priority_score = max(previous_priority_scores) if previous_priority_scores else None
+    current_urgency_average = (
+        sum(current_urgency_scores) / len(current_urgency_scores) if current_urgency_scores else None
+    )
+    previous_urgency_average = (
+        sum(previous_urgency_scores) / len(previous_urgency_scores) if previous_urgency_scores else None
+    )
+
+    if current_urgency_average is None or previous_urgency_average is None:
+        urgency_shift = "not_available"
+    else:
+        urgency_delta = current_urgency_average - previous_urgency_average
+        if urgency_delta >= 8:
+            urgency_shift = "higher"
+        elif urgency_delta <= -8:
+            urgency_shift = "lower"
+        else:
+            urgency_shift = "similar"
+
+    note = ""
+    if highest_current_priority_score is None and highest_previous_priority_score is None:
+        note = "Priority shift comparison is not available because normalized priority bundles were missing from both runs."
+
+    return {
+        "highest_current_priority_score": highest_current_priority_score,
+        "highest_previous_priority_score": highest_previous_priority_score,
+        "current_average_urgency_score": current_urgency_average,
+        "previous_average_urgency_score": previous_urgency_average,
+        "urgency_shift": urgency_shift,
+        "note": note,
+    }
+
+
+def build_comparison_insights(
+    comparison_results: dict[str, object],
+    rule_match_deltas: dict[str, object],
+    strategy_deltas: dict[str, object],
+    priority_shift_summary: dict[str, object],
+) -> list[dict[str, object]]:
+    """Create plain-English saved-run comparison insights from structured deltas."""
+    insights: list[dict[str, object]] = []
+
+    new_rule_ids = rule_match_deltas.get("new_rule_ids", []) or []
+    resolved_rule_ids = rule_match_deltas.get("resolved_rule_ids", []) or []
+    new_themes = strategy_deltas.get("new_priority_action_themes", []) or []
+    persistent_themes = strategy_deltas.get("persistent_priority_action_themes", []) or []
+    urgency_shift = str(priority_shift_summary.get("urgency_shift", "not_available"))
+    highest_current_priority_score = to_comparison_number(priority_shift_summary.get("highest_current_priority_score"))
+    highest_previous_priority_score = to_comparison_number(priority_shift_summary.get("highest_previous_priority_score"))
+
+    if new_rule_ids:
+        insights.append(
+            {
+                "insight": "New rule-triggered issues appeared in the current run.",
+                "why_it_matters": "The recommendation set may need to shift because the workflow is now detecting different problem patterns than before.",
+                "supporting_evidence": {
+                    "new_rule_ids": new_rule_ids[:5],
+                    "current_rule_match_count": rule_match_deltas.get("current_rule_match_count", 0),
+                    "previous_rule_match_count": rule_match_deltas.get("previous_rule_match_count", 0),
+                },
+                "suggested_next_step": "Review the new rule-triggered issues first and confirm whether they reflect real performance changes or newly available data.",
+            }
+        )
+
+    if resolved_rule_ids:
+        insights.append(
+            {
+                "insight": "Some previously triggered issues no longer appear in the current run.",
+                "why_it_matters": "This can indicate improvement, reduced data coverage, or a meaningful shift in which problems are now most visible.",
+                "supporting_evidence": {
+                    "resolved_rule_ids": resolved_rule_ids[:5],
+                    "persistent_rule_ids": (rule_match_deltas.get("persistent_rule_ids", []) or [])[:5],
+                },
+                "suggested_next_step": "Validate whether these resolved rules represent real gains so effort can move toward the remaining persistent issues.",
+            }
+        )
+
+    if new_themes:
+        insights.append(
+            {
+                "insight": "The strongest strategy themes changed between the two runs.",
+                "why_it_matters": "When priority action themes shift, the highest-value marketing work may need to change as well instead of repeating the previous sprint plan.",
+                "supporting_evidence": {
+                    "new_priority_action_themes": new_themes[:5],
+                    "persistent_priority_action_themes": persistent_themes[:5],
+                },
+                "suggested_next_step": "Use the new priority themes to decide whether to re-scope this week’s work rather than carrying forward the old action mix.",
+            }
+        )
+
+    if highest_current_priority_score is not None and highest_previous_priority_score is not None:
+        score_delta = round(highest_current_priority_score - highest_previous_priority_score, 2)
+        urgency_note = "Urgency appears similar across runs."
+        if urgency_shift == "higher":
+            urgency_note = "Urgency appears higher in the current run."
+        elif urgency_shift == "lower":
+            urgency_note = "Urgency appears lower in the current run."
+
+        insights.append(
+            {
+                "insight": "The top normalized priority score shifted between the compared runs.",
+                "why_it_matters": "This helps show whether the current run’s best opportunity is becoming more urgent and impactful or if the opportunity mix is stabilizing.",
+                "supporting_evidence": {
+                    "highest_current_priority_score": highest_current_priority_score,
+                    "highest_previous_priority_score": highest_previous_priority_score,
+                    "priority_score_delta": score_delta,
+                    "urgency_shift": urgency_shift,
+                },
+                "suggested_next_step": f"{urgency_note} Review the top rule-grounded priority first before expanding effort across lower-scoring items.",
+            }
+        )
+
+    if not insights:
+        insights.append(
+            {
+                "insight": "Comparison intelligence is limited for these runs.",
+                "why_it_matters": "The saved-run metrics still compare correctly, but deeper reasoning needs rule matches or strategy outputs in both runs to explain what changed.",
+                "supporting_evidence": {
+                    "rule_match_note": rule_match_deltas.get("note", ""),
+                    "strategy_note": strategy_deltas.get("note", ""),
+                    "priority_note": priority_shift_summary.get("note", ""),
+                },
+                "suggested_next_step": "Use the metric comparison as directional guidance and reload runs that include fuller workflow outputs if deeper explanation is needed.",
+            }
+        )
+
+    return insights
+
+
 def compare_saved_runs(current_run_id: str, comparison_run_id: str) -> dict | None:
     """Load two saved runs and compare their major metrics."""
     current_run = load_saved_run(current_run_id)
@@ -2006,6 +2277,10 @@ def compare_saved_runs(current_run_id: str, comparison_run_id: str) -> dict | No
         "social": [],
         "semrush": [],
         "section_messages": {},
+        "comparison_insights": [],
+        "rule_match_deltas": {},
+        "strategy_deltas": {},
+        "priority_shift_summary": {},
         "debug": {},
     }
 
@@ -2094,6 +2369,19 @@ def compare_saved_runs(current_run_id: str, comparison_run_id: str) -> dict | No
             )
 
         comparison_results[section_key] = section_rows
+
+    rule_match_deltas = summarize_rule_match_deltas(current_run["results"], comparison_run["results"])
+    strategy_deltas = summarize_strategy_deltas(current_run["results"], comparison_run["results"])
+    priority_shift_summary = summarize_priority_shift(current_run["results"], comparison_run["results"])
+    comparison_results["rule_match_deltas"] = rule_match_deltas
+    comparison_results["strategy_deltas"] = strategy_deltas
+    comparison_results["priority_shift_summary"] = priority_shift_summary
+    comparison_results["comparison_insights"] = build_comparison_insights(
+        comparison_results,
+        rule_match_deltas,
+        strategy_deltas,
+        priority_shift_summary,
+    )
 
     return comparison_results
 
