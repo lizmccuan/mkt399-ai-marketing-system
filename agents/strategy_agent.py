@@ -173,6 +173,7 @@ def run_strategy_agent(
         primary_query, primary_page, secondary_query, semrush_intelligence
     )
     rule_grounded_priorities = build_rule_grounded_priorities(rule_matches)
+    priority_reasoning_summary = build_priority_reasoning_summary(rule_grounded_priorities)
     priority_actions = merge_rule_grounded_priority_actions(priority_actions, rule_grounded_priorities)
     recommended_actions_summary = merge_rule_grounded_action_summaries(
         recommended_actions_summary,
@@ -210,6 +211,7 @@ def run_strategy_agent(
             "next_best_content_topic": semrush_intelligence["priority_topic"],
             "recommended_actions_summary": recommended_actions_summary,
             "rule_grounded_priorities": rule_grounded_priorities,
+            "priority_reasoning_summary": priority_reasoning_summary,
             "recommendations": {
                 "seo": seo_recommendations,
                 "aeo_geo": aeo_geo_recommendations,
@@ -228,25 +230,53 @@ def run_strategy_agent(
     }
 
 
-def build_rule_grounded_priorities(rule_matches: dict[str, Any] | None) -> list[dict[str, str]]:
+def build_rule_grounded_priorities(rule_matches: dict[str, Any] | None) -> list[dict[str, Any]]:
     """Convert workflow-level rule matches into a small strategy-friendly priority list."""
     if not rule_matches or not isinstance(rule_matches, dict):
         return []
 
     priorities = []
     for match in (rule_matches.get("all_matches") or [])[:5]:
-        priorities.append(
-            {
-                "rule_id": str(match.get("rule_id", "")),
-                "issue": str(match.get("insight", "")),
-                "why_it_matters": str(match.get("why_it_matters", "")),
-                "recommendation": str(match.get("recommendation", "")),
-                "priority": str(match.get("priority", "")),
-                "action_type": str(match.get("action_type", "")),
-            }
-        )
+        priority_item: dict[str, Any] = {
+            "rule_id": str(match.get("rule_id", "")),
+            "issue": str(match.get("insight", "")),
+            "why_it_matters": str(match.get("why_it_matters", "")),
+            "recommendation": str(match.get("recommendation", "")),
+            "priority": str(match.get("priority", "")),
+            "action_type": str(match.get("action_type", "")),
+        }
+
+        priority_bundle = match.get("priority_bundle")
+        if isinstance(priority_bundle, dict):
+            priority_item.update(
+                {
+                    "priority_score": priority_bundle.get("priority_score"),
+                    "impact_score": priority_bundle.get("impact_score"),
+                    "effort_score": priority_bundle.get("effort_score"),
+                    "urgency_score": priority_bundle.get("urgency_score"),
+                    "confidence_score": priority_bundle.get("confidence_score"),
+                    "priority_rationale": priority_bundle.get("rationale"),
+                }
+            )
+
+        priorities.append(priority_item)
 
     return priorities
+
+
+def build_priority_reasoning_summary(rule_grounded_priorities: list[dict[str, Any]]) -> str:
+    """Explain how rule-driven priorities are ranked when a normalized bundle is available."""
+    if not rule_grounded_priorities:
+        return ""
+
+    has_priority_bundle = any(item.get("priority_score") is not None for item in rule_grounded_priorities)
+    if not has_priority_bundle:
+        return ""
+
+    return (
+        "Rule-grounded priorities are ranked using a normalized priority bundle that weighs "
+        "impact, effort, urgency, and confidence before falling back to existing strategy signals."
+    )
 
 
 def merge_rule_grounded_priority_actions(
