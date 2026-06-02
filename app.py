@@ -2524,11 +2524,86 @@ def has_uploaded_data(files: list[object | None]) -> bool:
     return any(file is not None for file in files)
 
 
+def describe_opportunity_score_band(score_out_of_ten: float | None) -> str:
+    """Describe the raw Insight Agent opportunity score against heuristic bands."""
+    if score_out_of_ten is None:
+        return "Benchmark unavailable"
+    if score_out_of_ten < 3:
+        return "Low opportunity signal"
+    if score_out_of_ten <= 6.9:
+        return "Moderate opportunity signal"
+    return "Strong opportunity signal"
+
+
+def describe_ctr_benchmark(ctr_percent: float | None) -> str:
+    """Describe CTR against the shared benchmark thresholds."""
+    if ctr_percent is None:
+        return "Benchmark unavailable"
+    if ctr_percent < 1:
+        return "Weak CTR benchmark"
+    if ctr_percent < 3:
+        return "Needs improvement CTR benchmark"
+    if ctr_percent < 5:
+        return "Fair CTR benchmark"
+    return "Strong CTR benchmark"
+
+
+def describe_engagement_rate_benchmark(engagement_percent: float | None) -> str:
+    """Describe GA4 engagement rate against the benchmark thresholds."""
+    if engagement_percent is None:
+        return "Benchmark unavailable"
+    if engagement_percent < 40:
+        return "Needs attention"
+    if engagement_percent >= 60:
+        return "Strong engagement benchmark"
+    if engagement_percent >= 50:
+        return "Healthy engagement benchmark"
+    return "Below healthy benchmark"
+
+
+def describe_average_position_benchmark(position_value: float | None) -> str:
+    """Describe average position using search visibility benchmarks."""
+    if position_value is None:
+        return "Benchmark unavailable"
+    if position_value <= 3:
+        return "Top results"
+    if position_value <= 10:
+        return "Page-one visibility"
+    if position_value <= 20:
+        return "Striking distance"
+    return "Low visibility"
+
+
+def describe_source_share_benchmark(share_percent: float | None) -> str:
+    """Describe traffic concentration using source-share benchmarks."""
+    if share_percent is None:
+        return "Benchmark unavailable"
+    if share_percent > 60:
+        return "High channel concentration"
+    if share_percent >= 30:
+        return "Primary channel"
+    return "Diversified traffic mix"
+
+
+def describe_readiness_benchmark(readiness_score: float | None) -> str:
+    """Describe evaluation readiness using the 1-5 benchmark scale."""
+    if readiness_score is None:
+        return "Benchmark unavailable"
+    if readiness_score <= 2:
+        return "Early stage"
+    if readiness_score < 4:
+        return "Needs optimization"
+    if readiness_score < 5:
+        return "Strong"
+    return "Ready for execution/reporting"
+
+
 def build_scorecard(results: dict) -> dict[str, dict[str, str]]:
     """Collect the main scorecard values and helper context from workflow results."""
     insight = results.get("insight", {})
     data_summary = results.get("data_intake", {}).get("summary", {})
     combined = data_summary.get("combined", {})
+    evaluation = results.get("evaluation", {}).get("evaluation", {})
     high_impression_low_click = insight.get("high_impression_low_click", []) or []
     query_analysis = insight.get("query_analysis", []) or []
     top_sources = insight.get("top_sources", []) or []
@@ -2553,19 +2628,18 @@ def build_scorecard(results: dict) -> dict[str, dict[str, str]]:
 
     opportunity_score_value = to_comparison_number(top_opportunity_item.get("opportunity_score"))
     if opportunity_score_value is not None:
-        opportunity_score_display = f"{(opportunity_score_value / 10):.2f} / 10"
-        if opportunity_score_value / 10 <= 3:
-            opportunity_score_interpretation = "Low opportunity signal"
-        elif opportunity_score_value / 10 <= 6:
-            opportunity_score_interpretation = "Moderate opportunity signal"
-        else:
-            opportunity_score_interpretation = "Strong opportunity signal"
+        opportunity_score_display = (
+            str(int(opportunity_score_value))
+            if float(opportunity_score_value).is_integer()
+            else str(round(opportunity_score_value, 2))
+        )
+        opportunity_score_interpretation = describe_opportunity_score_band(opportunity_score_value)
     elif query_analysis:
         opportunity_score_display = "Requires GSC opportunity scoring"
-        opportunity_score_interpretation = "Out of 10"
+        opportunity_score_interpretation = "Benchmark unavailable"
     else:
         opportunity_score_display = "Requires GSC Queries data"
-        opportunity_score_interpretation = "Out of 10"
+        opportunity_score_interpretation = "Benchmark unavailable"
 
     top_ctr_percent = normalize_ctr_percent(top_opportunity_item.get("ctr")) if top_opportunity_item else None
     top_ctr_gap_value = max(0.0, target_ctr_percent - top_ctr_percent) if top_ctr_percent is not None else None
@@ -2584,15 +2658,17 @@ def build_scorecard(results: dict) -> dict[str, dict[str, str]]:
     elif ctr_value is not None:
         top_opportunity_support = f"CTR: {ctr_value:.2f}%"
     elif opportunity_score_value is not None:
-        top_opportunity_support = f"Priority score: {(opportunity_score_value / 10):.2f} / 10"
+        top_opportunity_support = f"Internal opportunity score: {round(opportunity_score_value, 2)}"
 
     if top_sources:
         top_traffic_source = get_first_value(top_sources, "source_medium")
     else:
         top_traffic_source = "Requires GA4 Source / Medium"
 
-    top_traffic_source_context = "Leading source in current GA4 upload"
-    source_share_text = ""
+    top_traffic_source_context = "Primary acquisition channel"
+    top_traffic_source_benchmark = "Benchmark: >60% concentration | 30–60% primary | <30% diversified"
+    source_share_text = "Leading source in current GA4 upload"
+    source_share_percent = None
     source_rows = combined.get("top_traffic_sources", []) or []
     if source_rows and top_traffic_source not in {"Requires GA4 Source / Medium", "Not available"}:
         source_row = next(
@@ -2611,17 +2687,39 @@ def build_scorecard(results: dict) -> dict[str, dict[str, str]]:
             if session_value is not None:
                 total_source_sessions += session_value
         if source_value is not None and total_source_sessions > 0:
-            source_share_text = f"{(source_value / total_source_sessions) * 100:.1f}% of sessions"
-            top_traffic_source_context = source_share_text
+            source_share_percent = (source_value / total_source_sessions) * 100
+            source_share_text = f"{source_share_percent:.1f}% of sessions | {describe_source_share_benchmark(source_share_percent)}"
 
-    ctr_gap_context = "Goal: reduce gap toward 0%"
-    ctr_gap_signal = "Signals missed clicks from existing impressions" if high_impression_low_click else "Lower gap is better"
+    ctr_gap_context = "Benchmark: <1% weak | 1–3% needs improvement | 3–5% fair | 5%+ strong"
+    if top_ctr_percent is not None:
+        ctr_gap_signal = f"Current CTR: {top_ctr_percent:.2f}% | {describe_ctr_benchmark(top_ctr_percent)}"
+    else:
+        ctr_gap_signal = "Benchmark unavailable"
+
+    ga4_engagement_rate_percent = None
+    ga4_pages_df = get_report_ga4_pages_dataframe(results)
+    if not ga4_pages_df.empty and "engagement_rate" in ga4_pages_df.columns:
+        engagement_rate_value = ga4_pages_df["engagement_rate"].dropna().mean()
+        if not pd.isna(engagement_rate_value):
+            ga4_engagement_rate_percent = normalize_report_percent(engagement_rate_value)
+    if ga4_engagement_rate_percent is None:
+        ga4_engagement_rate_percent = normalize_report_percent(
+            data_summary.get("ga4_pages", {}).get("key_metrics", {}).get("engagement_rate")
+        )
+
+    average_position_value = (
+        sum(to_comparison_number(item.get("position")) or 0 for item in query_analysis) / len(query_analysis)
+        if query_analysis
+        else None
+    )
+    readiness_score_value = to_comparison_number(evaluation.get("score"))
 
     return {
         "Opportunity Score": {
             "value": opportunity_score_display,
-            "context": "Out of 10",
-            "detail": opportunity_score_interpretation,
+            "context": "Internal opportunity score",
+            "benchmark": "Higher = stronger opportunity signal",
+            "detail": f"{opportunity_score_interpretation} | Score combines impressions, CTR gap, position, intent, and branded/non-branded logic",
         },
         "Top Opportunity": {
             "value": top_opportunity_query,
@@ -2631,12 +2729,28 @@ def build_scorecard(results: dict) -> dict[str, dict[str, str]]:
         "CTR Gap": {
             "value": top_ctr_gap,
             "context": ctr_gap_context,
-            "detail": ctr_gap_signal,
+            "detail": f"{ctr_gap_signal} | Goal: reduce gap toward 0%" if top_ctr_percent is not None else "Goal: reduce gap toward 0%",
+        },
+        "GA4 Engagement Rate": {
+            "value": f"{ga4_engagement_rate_percent:.2f}%" if ga4_engagement_rate_percent is not None else "Not available",
+            "context": "Benchmark: <40% needs attention | 50%+ healthy | 60%+ strong",
+            "detail": describe_engagement_rate_benchmark(ga4_engagement_rate_percent),
+        },
+        "Average Position": {
+            "value": f"{average_position_value:.2f}" if average_position_value is not None else "Not available",
+            "context": "Benchmark: 1–3 top results | 4–10 page-one | 11–20 striking distance | 21+ low visibility",
+            "detail": describe_average_position_benchmark(average_position_value),
         },
         "Top Traffic Source": {
             "value": top_traffic_source,
-            "context": "Primary acquisition channel",
-            "detail": top_traffic_source_context,
+            "context": top_traffic_source_context,
+            "benchmark": top_traffic_source_benchmark,
+            "detail": source_share_text,
+        },
+        "Readiness Score": {
+            "value": f"{int(readiness_score_value)}/5" if readiness_score_value is not None else "Not available",
+            "context": "Benchmark: 1–2 early stage | 3 needs optimization | 4 strong | 5 ready",
+            "detail": describe_readiness_benchmark(readiness_score_value),
         },
     }
 
@@ -2645,31 +2759,32 @@ def render_scorecard(results: dict) -> None:
     """Show dashboard metrics in a presentation-friendly layout."""
     scorecard = build_scorecard(results)
 
-    row_one = st.columns(4)
-    with row_one[0]:
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.metric("Opportunity Score", scorecard["Opportunity Score"]["value"])
-        st.caption(scorecard["Opportunity Score"]["context"])
-        st.caption(scorecard["Opportunity Score"]["detail"])
-        st.markdown("</div>", unsafe_allow_html=True)
-    with row_one[1]:
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.metric("Top Opportunity", scorecard["Top Opportunity"]["value"])
-        st.caption(scorecard["Top Opportunity"]["context"])
-        st.caption(scorecard["Top Opportunity"]["detail"])
-        st.markdown("</div>", unsafe_allow_html=True)
-    with row_one[2]:
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.metric("CTR Gap", scorecard["CTR Gap"]["value"])
-        st.caption(scorecard["CTR Gap"]["context"])
-        st.caption(scorecard["CTR Gap"]["detail"])
-        st.markdown("</div>", unsafe_allow_html=True)
-    with row_one[3]:
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        st.metric("Top Traffic Source", scorecard["Top Traffic Source"]["value"])
-        st.caption(scorecard["Top Traffic Source"]["context"])
-        st.caption(scorecard["Top Traffic Source"]["detail"])
-        st.markdown("</div>", unsafe_allow_html=True)
+    scorecard_order = [
+        "Opportunity Score",
+        "Top Opportunity",
+        "CTR Gap",
+        "GA4 Engagement Rate",
+        "Average Position",
+        "Top Traffic Source",
+        "Readiness Score",
+    ]
+
+    first_row = st.columns(4)
+    second_row = st.columns(3)
+    all_columns = first_row + second_row
+
+    for index, card_label in enumerate(scorecard_order):
+        card = scorecard.get(card_label, {})
+        with all_columns[index]:
+            st.markdown('<div class="panel">', unsafe_allow_html=True)
+            st.metric(card_label, card.get("value", "Not available"))
+            if card.get("context"):
+                st.caption(card["context"])
+            if card.get("benchmark"):
+                st.caption(card["benchmark"])
+            if card.get("detail"):
+                st.caption(card["detail"])
+            st.markdown("</div>", unsafe_allow_html=True)
 
 
 def collect_report_recommendations(strategy_recommendations: dict) -> dict[str, list[dict[str, str]]]:
