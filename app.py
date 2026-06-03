@@ -204,6 +204,80 @@ st.markdown(
     .stTextArea textarea::placeholder {
         color: #98A2B3;
     }
+    [data-testid="stFileUploader"] {
+        color: var(--text-main);
+    }
+    [data-testid="stFileUploader"] > div {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    [data-testid="stFileUploaderDropzone"] {
+        background: linear-gradient(180deg, #FFFFFF 0%, #FBFAFF 100%) !important;
+        border: 1px dashed #D8C7FF !important;
+        border-radius: 18px !important;
+        color: var(--text-main) !important;
+        box-shadow: 0 6px 18px rgba(124, 58, 237, 0.05);
+    }
+    [data-testid="stFileUploaderDropzone"]:hover {
+        background: #FFFFFF !important;
+        border-color: #B79BFF !important;
+        box-shadow: 0 10px 22px rgba(124, 58, 237, 0.08);
+    }
+    [data-testid="stFileUploaderDropzone"] * {
+        color: var(--text-main) !important;
+    }
+    [data-testid="stFileUploaderDropzone"] small,
+    [data-testid="stFileUploaderDropzone"] span,
+    [data-testid="stFileUploaderDropzone"] p {
+        color: #52607A !important;
+    }
+    [data-testid="stFileUploaderDropzone"] svg {
+        color: #8C52FF !important;
+        fill: #8C52FF !important;
+    }
+    [data-testid="stFileUploader"] button[kind="secondary"],
+    [data-testid="stFileUploader"] [data-testid="stBaseButton-secondary"] {
+        background: #FFFFFF !important;
+        color: var(--text-main) !important;
+        border: 1px solid var(--border-soft) !important;
+        box-shadow: 0 3px 10px rgba(16, 24, 40, 0.04);
+    }
+    [data-testid="stFileUploader"] section {
+        background: transparent !important;
+    }
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] {
+        background: #FFFFFF !important;
+        border: 1px solid #E6E8F0 !important;
+        border-radius: 14px !important;
+        color: var(--text-main) !important;
+        box-shadow: 0 4px 12px rgba(16, 24, 40, 0.04);
+    }
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] * {
+        color: var(--text-main) !important;
+    }
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] small,
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] span,
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] p {
+        color: #475467 !important;
+    }
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFileName"] {
+        color: #162033 !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] button {
+        background: #F9FAFB !important;
+        color: #344054 !important;
+        border: 1px solid #E4E7EC !important;
+        border-radius: 10px !important;
+    }
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] button:hover {
+        background: #F3F4F6 !important;
+        border-color: #D0D5DD !important;
+    }
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] button svg {
+        color: #344054 !important;
+        fill: #344054 !important;
+    }
     .stMetric {
         background: #FFFFFF;
         border: 1px solid var(--border-soft);
@@ -5501,10 +5575,180 @@ def render_opportunity_card(title: str, data: dict[str, str]) -> None:
         unsafe_allow_html=True,
     )
 
+
+def get_opportunity_priority_rank(priority: str) -> int:
+    """Return a sortable rank for opportunity priority."""
+    return {"high": 3, "medium": 2, "low": 1}.get(str(priority).strip().lower(), 0)
+
+
+def get_existing_opportunity_score(data: dict[str, object] | None) -> float | None:
+    """Return a numeric score only when one already exists in the opportunity payload."""
+    if not isinstance(data, dict):
+        return None
+
+    score_candidates = [
+        data.get("opportunity_score"),
+        data.get("priority_score"),
+        data.get("score"),
+        data.get("business_impact_score"),
+        data.get("confidence_score"),
+    ]
+
+    priority_bundle = data.get("priority_bundle")
+    if isinstance(priority_bundle, dict):
+        score_candidates.append(priority_bundle.get("priority_score"))
+
+    raw_data = data.get("raw")
+    if isinstance(raw_data, dict):
+        raw_score = get_existing_opportunity_score(raw_data)
+        if raw_score is not None:
+            return raw_score
+
+    for candidate in score_candidates:
+        numeric_value = to_comparison_number(candidate)
+        if numeric_value is not None:
+            return numeric_value
+
+    return None
+
+
+def get_existing_opportunity_score_label(data: dict[str, object] | None) -> str | None:
+    """Return the label that matches the existing score field in the opportunity payload."""
+    if not isinstance(data, dict):
+        return None
+
+    if to_comparison_number(data.get("opportunity_score")) is not None:
+        return "Opportunity Score"
+    if to_comparison_number(data.get("priority_score")) is not None:
+        return "Priority Score"
+    priority_bundle = data.get("priority_bundle")
+    if isinstance(priority_bundle, dict) and to_comparison_number(priority_bundle.get("priority_score")) is not None:
+        return "Priority Score"
+    if to_comparison_number(data.get("business_impact_score")) is not None:
+        return "Business Impact Score"
+    if to_comparison_number(data.get("confidence_score")) is not None:
+        return "Confidence Score"
+    if to_comparison_number(data.get("score")) is not None:
+        return "Score"
+
+    raw_data = data.get("raw")
+    if isinstance(raw_data, dict):
+        return get_existing_opportunity_score_label(raw_data)
+
+    return None
+
+
+def build_opportunity_key_metrics(data: dict[str, str]) -> str:
+    """Build a compact key-metrics line from existing opportunity fields."""
+    metric_parts = []
+
+    if is_meaningful_supporting_value(data.get("position")):
+        metric_parts.append(f"Position: {data.get('position')}")
+    if is_meaningful_supporting_value(data.get("volume"), hide_zero=True):
+        metric_parts.append(f"Volume: {data.get('volume')}")
+    if is_meaningful_supporting_value(data.get("metric_line")):
+        metric_parts.append(str(data.get("metric_line")))
+
+    cleaned_supporting_data = clean_supporting_data_text(str(data.get("supporting_data", "")))
+    if cleaned_supporting_data:
+        metric_parts.append(cleaned_supporting_data)
+
+    if data.get("intent_type") or data.get("opportunity_type") or data.get("gap_type"):
+        tag_parts = [part for part in [data.get("intent_type"), data.get("opportunity_type"), data.get("gap_type")] if part]
+        if tag_parts:
+            metric_parts.append(f"Signals: {' | '.join(tag_parts)}")
+
+    return " | ".join(metric_parts)
+
+
+def build_executive_opportunity_entry(group: str, title: str, data: dict[str, str]) -> dict[str, object]:
+    """Normalize one opportunity card into an executive dashboard entry."""
+    target_value = (
+        data.get("target")
+        or data.get("keyword")
+        or data.get("page_url")
+        or data.get("topic")
+        or data.get("title")
+        or "-"
+    )
+    priority = str(data.get("priority", "Medium")).strip().title()
+    score_value = get_existing_opportunity_score(data)
+    score_label = get_existing_opportunity_score_label(data)
+    return {
+        "group": group,
+        "title": str(data.get("title") or title).strip(),
+        "priority": priority,
+        "priority_rank": get_opportunity_priority_rank(priority),
+        "score": score_value,
+        "score_label": score_label,
+        "target": target_value,
+        "key_metrics": build_opportunity_key_metrics(data),
+        "recommended_action": str(data.get("recommended_action", data.get("action", ""))).strip(),
+        "why_it_matters": str(data.get("why_it_matters", data.get("reason", ""))).strip(),
+        "supporting_data": clean_supporting_data_text(str(data.get("supporting_data", ""))),
+        "why_recommendation_works": str(data.get("why_recommendation_works", "")).strip(),
+        "raw": data,
+    }
+
+
+def sort_executive_opportunities(entries: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Sort opportunities by priority first, then by existing numeric score."""
+    return sorted(
+        entries,
+        key=lambda item: (
+            item.get("priority_rank", 0),
+            get_existing_opportunity_score(item),
+            normalize_comparison_theme(item.get("title", "")),
+        ),
+        reverse=True,
+    )
+
+
+def render_executive_opportunity_card(entry: dict[str, object], unique_key: str) -> None:
+    """Render a compact executive-style opportunity card with collapsed evidence."""
+    priority = str(entry.get("priority", "Medium")).strip().title()
+    pill_class = get_report_priority_pill_class(priority)
+    score_value = get_existing_opportunity_score(entry)
+    score_label = str(entry.get("score_label") or get_existing_opportunity_score_label(entry) or "Opportunity Score")
+    score_text = f"{round(score_value, 2)}" if score_value is not None else "Not scored"
+    score_line = f"<strong>{score_label}:</strong> {score_text}" if score_value is not None else "<strong>Opportunity Score:</strong> Not scored"
+    key_metrics = str(entry.get("key_metrics", "")).strip() or "No key metrics available from the current run."
+    recommended_action = str(entry.get("recommended_action", "")).strip() or "No recommended action available."
+
+    st.markdown(
+        f"""
+        <div class="recommendation-card">
+            <div class="recommendation-card-top">
+                <div class="recommendation-category">{entry.get("title", "Opportunity")}</div>
+                <div class="{pill_class}">{'🔴' if priority == 'High' else '🟠' if priority == 'Medium' else '🟢'} {priority} Priority</div>
+            </div>
+            <div class="recommendation-body">
+                {score_line}<br><br>
+                <strong>Key Metrics:</strong> {key_metrics}<br><br>
+                <strong>Recommended Action:</strong> {recommended_action}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("View evidence", expanded=False):
+        st.markdown(f"**Target:** {entry.get('target', '-')}")
+        why_text = str(entry.get("why_it_matters", "")).strip()
+        if why_text:
+            st.markdown(f"**Why This Is An Opportunity:** {why_text}")
+        supporting_data = str(entry.get("supporting_data", "")).strip()
+        if supporting_data:
+            st.markdown(f"**Supporting Data:** {supporting_data}")
+        why_work_text = str(entry.get("why_recommendation_works", "")).strip()
+        if why_work_text:
+            st.markdown(f"**Why It Should Work:** {why_work_text}")
+
+
 def render_opportunities_page(results: dict) -> None:
-    """Render the Opportunities page."""
+    """Render the Opportunities page as an executive opportunity management dashboard."""
     st.title("🚀 Opportunities")
-    st.caption("Combined website + social growth opportunities")
+    st.caption("Executive opportunity management view across website and social analysis.")
 
     if not results:
         st.info("Run the workflow first on the Data Sources page.")
@@ -5514,97 +5758,75 @@ def render_opportunities_page(results: dict) -> None:
     semrush_pages_data = results.get("semrush_pages_data")
     semrush_topics_data = results.get("semrush_topics_data")
     strategy = results["strategy"]["strategy"]
+    seo_cards = (
+        build_semrush_opportunity_cards(semrush_positions_data)
+        if semrush_positions_data is not None and not semrush_positions_data.empty
+        else []
+    )
+    page_cards = (
+        build_semrush_page_cards(semrush_pages_data)
+        if semrush_pages_data is not None and not semrush_pages_data.empty
+        else []
+    )
+    local_cards = (
+        build_semrush_topic_cards(semrush_topics_data, strategy.get("topic_opportunities", []))
+        if semrush_topics_data is not None and not semrush_topics_data.empty
+        else []
+    )
     social_cards = build_social_opportunity_cards(results)
 
-    st.subheader("🌐 Website Opportunities")
+    grouped_opportunities = {
+        "SEO": sort_executive_opportunities([build_executive_opportunity_entry("SEO", "SEO Opportunity", card) for card in seo_cards]),
+        "Pages": sort_executive_opportunities([build_executive_opportunity_entry("Pages", "Page Opportunity", card) for card in page_cards]),
+        "Local SEO": sort_executive_opportunities([build_executive_opportunity_entry("Local SEO", "Local SEO Opportunity", card) for card in local_cards]),
+        "Social": sort_executive_opportunities([build_executive_opportunity_entry("Social", "Social Opportunity", card) for card in social_cards]),
+    }
 
-    if semrush_positions_data is not None and not semrush_positions_data.empty:
-        st.markdown("**Keyword Opportunities**")
-        opportunity_cards = build_semrush_opportunity_cards(semrush_positions_data)
-        if opportunity_cards:
-            for card in opportunity_cards:
-                render_opportunity_card("SEO Opportunity", card)
-        else:
-            st.info("No SEMrush keyword opportunities available yet.")
-    else:
-        st.info("No SEMrush Organic Positions data uploaded yet.")
+    all_entries = [item for group in grouped_opportunities.values() for item in group]
+    high_count = sum(str(item.get("priority", "")).strip().lower() == "high" for item in all_entries)
+    medium_count = sum(str(item.get("priority", "")).strip().lower() == "medium" for item in all_entries)
+    low_count = sum(str(item.get("priority", "")).strip().lower() == "low" for item in all_entries)
+    scored_entries = [item for item in all_entries if item.get("score") is not None]
+    average_score = (
+        round(sum(float(item["score"]) for item in scored_entries) / len(scored_entries), 2)
+        if scored_entries
+        else None
+    )
 
-    if semrush_pages_data is not None and not semrush_pages_data.empty:
-        st.markdown("**Page Opportunities**")
-        page_cards = build_semrush_page_cards(semrush_pages_data)
-        if page_cards:
-            for card in page_cards:
-                render_opportunity_card("Page Opportunity", card)
-        else:
-            st.info("No SEMrush page opportunities available yet.")
-    else:
-        st.info("No SEMrush Pages Report data uploaded yet.")
+    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">Opportunity Summary</div>', unsafe_allow_html=True)
+    summary_columns = st.columns(5)
+    summary_values = [
+        ("Total Opportunities", str(len(all_entries)), "All current opportunity cards"),
+        ("High Priority", str(high_count), "Highest-impact items first"),
+        ("Medium Priority", str(medium_count), "Important but not urgent"),
+        ("Low Priority", str(low_count), "Lower immediate impact"),
+        ("Average Opportunity Score", f"{average_score}" if average_score is not None else "Not scored", "Across scored opportunities only"),
+    ]
+    for index, (label, value, caption) in enumerate(summary_values):
+        with summary_columns[index]:
+            st.metric(label, value)
+            st.caption(caption)
 
-    if semrush_topics_data is not None and not semrush_topics_data.empty:
-        st.markdown("**AI Topic Opportunities**")
-        topic_cards = build_semrush_topic_cards(
-            semrush_topics_data,
-            strategy.get("topic_opportunities", []),
-        )
-        if topic_cards:
-            for card in topic_cards:
-                render_opportunity_card("Topic Opportunity", card)
-        else:
-            st.info("No SEMrush topic opportunities available yet.")
-    else:
-        st.info("No SEMrush Topic Opportunities data uploaded yet.")
+    tab_labels = ["SEO", "Pages", "Local SEO", "Social"]
+    tab_objects = st.tabs(tab_labels)
 
-    st.subheader("📱 Social Opportunities")
-    if social_cards:
-        priority_class_map = {
-            "High": "priority-high-pill",
-            "Medium": "priority-medium-pill",
-            "Low": "priority-low-pill",
-        }
+    for tab_label, tab_object in zip(tab_labels, tab_objects):
+        with tab_object:
+            entries = grouped_opportunities.get(tab_label, [])
+            if not entries:
+                if tab_label == "SEO":
+                    st.info("No SEO opportunities available yet. Upload SEMrush Organic Positions data and rerun the workflow.")
+                elif tab_label == "Pages":
+                    st.info("No page opportunities available yet. Upload SEMrush Pages data and rerun the workflow.")
+                elif tab_label == "Local SEO":
+                    st.info("No local SEO opportunities available yet. Upload SEMrush Topic Opportunities data and rerun the workflow.")
+                else:
+                    st.info("No social opportunities available yet. Upload a Meta content export and rerun the workflow.")
+                continue
 
-        for card in social_cards:
-            card_priority = str(card.get("priority", "Medium")).strip().title()
-            pill_class = priority_class_map.get(card_priority, "priority-medium-pill")
-            content_focus_value = (
-                str(card.get("target", "")).strip()
-                or str(card.get("topic", "")).strip()
-                or str(card.get("social_category", "")).strip()
-                or str(card.get("platform_focus", "")).strip()
-            )
-            content_focus_html = ""
-            if content_focus_value and content_focus_value.lower() != "not available":
-                opportunity_type = str(card.get("opportunity_type", "")).lower()
-                content_focus_label = "Content Focus"
-                if "topic" in opportunity_type:
-                    content_focus_label = "Topic"
-                elif "growth" in opportunity_type or "conversion" in opportunity_type:
-                    content_focus_label = "Social Category"
-                content_focus_html = f"<strong>{content_focus_label}:</strong> {content_focus_value}<br><br>"
-
-            cleaned_supporting_data = clean_supporting_data_text(card.get("supporting_data", ""))
-            supporting_data_html = ""
-            if cleaned_supporting_data:
-                supporting_data_html = f"<strong>Supporting Data:</strong> {cleaned_supporting_data}<br><br>"
-
-            st.markdown(
-                f"""
-                <div class="recommendation-card">
-                    <div class="recommendation-card-top">
-                        <div class="recommendation-category">{card.get("title", "Social Opportunity")}</div>
-                        <div class="{pill_class}">{'🔴' if card_priority == 'High' else '🟠' if card_priority == 'Medium' else '🟢'} {card_priority} Priority</div>
-                    </div>
-                    <div class="recommendation-body">
-                        {content_focus_html}
-                        {supporting_data_html}
-                        <strong>📌 Why it matters:</strong> {card.get("why_it_matters", "")}<br><br>
-                        <strong>💡 Recommended action:</strong> {card.get("recommended_action", "")}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-    else:
-        st.info("No social opportunities available yet. Upload a Meta content export and run the workflow.")
+            for index, entry in enumerate(entries):
+                render_executive_opportunity_card(entry, f"{tab_label.lower().replace(' ', '_')}_{index}")
 
 
 def build_take_action_payload(card: dict, results: dict) -> dict | None:
