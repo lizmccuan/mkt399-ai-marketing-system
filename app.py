@@ -6834,111 +6834,355 @@ def render_recommendation_take_action(card: dict, results: dict, unique_key: str
         render_take_action_block(payload, unique_key)
 
 
+def map_recommendation_to_workspace_tab(
+    action_type: str,
+    category: str = "",
+    opportunity_type: str = "",
+    title: str = "",
+    issue: str = "",
+    recommendation_text: str = "",
+) -> str:
+    """Map recommendation-like content into an executive workspace tab."""
+    action_type_normalized = str(action_type).strip().lower()
+    category_normalized = str(category).strip().lower()
+    content = " ".join(
+        [
+            action_type_normalized,
+            category_normalized,
+            str(opportunity_type).strip().lower(),
+            str(title).strip().lower(),
+            str(issue).strip().lower(),
+            str(recommendation_text).strip().lower(),
+        ]
+    )
+
+    if any(token in content for token in ["social", "reel", "instagram", "facebook", "meta", "post", "follows"]):
+        return "Social"
+    if any(token in content for token in ["analytics", "tracking", "attribution", "measurement"]):
+        return "Analytics"
+    if any(token in content for token in ["ux_conversion", "cro", "conversion", "cta", "landing page", "friction", "trust"]):
+        return "UX/CRO"
+    if action_type_normalized in {"local", "local_seo", "geo"}:
+        return "Local SEO"
+    if action_type_normalized == "aeo":
+        return "Local SEO" if any(token in content for token in ["local", "location", "city", "gbp", "google business"]) else "SEO"
+    if any(token in content for token in ["local seo", "local", "location", "city", "gbp", "google business", "citation", "review"]):
+        return "Local SEO"
+    if action_type_normalized == "seo":
+        return "SEO"
+    if any(token in content for token in ["seo", "search", "query", "keyword", "title tag", "faq", "snippet", "page rank"]):
+        return "SEO"
+    return "SEO"
+
+
+def build_recommendation_workspace_items(results: dict) -> list[dict[str, object]]:
+    """Normalize generated recommendations into tab-ready workspace items."""
+    workspace_items: list[dict[str, object]] = []
+    active_recommendations = get_report_recommendations(results)
+
+    for index, recommendation in enumerate(active_recommendations):
+        if not isinstance(recommendation, dict):
+            continue
+
+        action_type = str(recommendation.get("action_type", "")).strip().lower()
+        title = str(recommendation.get("title", "Recommendation")).strip()
+        issue = str(recommendation.get("insight", "") or recommendation.get("issue", "")).strip()
+        recommendation_text = str(recommendation.get("recommendation", "")).strip()
+        why_it_matters = str(recommendation.get("why_it_matters", "")).strip()
+        priority = str(recommendation.get("priority", "Medium")).strip().title()
+
+        workspace_items.append(
+            {
+                "type": "recommendation",
+                "title": title,
+                "priority": priority,
+                "tab": map_recommendation_to_workspace_tab(
+                    action_type=action_type,
+                    category=str(recommendation.get("category", "")),
+                    opportunity_type=str(recommendation.get("opportunity_type", "")),
+                    title=title,
+                    issue=issue,
+                    recommendation_text=recommendation_text,
+                ),
+                "action_type": action_type,
+                "issue": issue,
+                "recommendation": recommendation_text,
+                "why_it_matters": why_it_matters,
+                "insight": issue,
+                "supporting_evidence": str(recommendation.get("supporting_evidence", "")).strip(),
+                "opportunity_score": to_comparison_number(recommendation.get("opportunity_score")),
+                "business_impact_score": to_comparison_number(recommendation.get("business_impact_score")),
+                "confidence_score": to_comparison_number(recommendation.get("confidence_score")),
+                "unique_key": f"generated_{action_type or 'rule'}_{index}",
+            }
+        )
+
+    return workspace_items
+
+
+def build_priority_queue_workspace_items(results: dict) -> list[dict[str, object]]:
+    """Normalize priority action queue items into tab-ready workspace cards."""
+    items: list[dict[str, object]] = []
+    for index, action in enumerate(build_priority_action_queue(results)):
+        if not isinstance(action, dict):
+            continue
+        title = str(action.get("title", "Priority Action")).strip()
+        recommendation_text = str(action.get("recommended_action", "")).strip()
+        issue = str(action.get("why_it_matters", "")).strip()
+        items.append(
+            {
+                "type": "priority_queue",
+                "title": title,
+                "priority": str(action.get("priority", "Medium")).strip().title(),
+                "tab": map_recommendation_to_workspace_tab(
+                    action_type=str(action.get("data_source", "")),
+                    title=title,
+                    issue=issue,
+                    recommendation_text=recommendation_text,
+                ),
+                "issue": issue,
+                "recommendation": recommendation_text,
+                "why_it_matters": issue,
+                "supporting_evidence": str(action.get("supporting_data", "")).strip(),
+                "impact_score": to_comparison_number(action.get("impact_score")),
+                "unique_key": f"priority_queue_{index}",
+            }
+        )
+    return items
+
+
+def build_what_next_workspace_items(results: dict) -> list[dict[str, object]]:
+    """Normalize what-to-do-next cards into tab-ready workspace cards."""
+    items: list[dict[str, object]] = []
+    for index, action in enumerate(build_combined_what_next_cards(results)):
+        if not isinstance(action, dict):
+            continue
+        title = str(action.get("title", "Next Action")).strip()
+        next_action_text = str(action.get("action", "")).strip()
+        reason = str(action.get("reason", "")).strip()
+        items.append(
+            {
+                "type": "what_next",
+                "title": title,
+                "priority": str(action.get("priority", "Medium")).strip().title(),
+                "tab": map_recommendation_to_workspace_tab(
+                    action_type="social" if "social" in title.lower() else "",
+                    title=title,
+                    issue=reason,
+                    recommendation_text=next_action_text,
+                ),
+                "issue": reason,
+                "recommendation": next_action_text,
+                "why_it_matters": reason,
+                "supporting_evidence": "",
+                "unique_key": f"what_next_{index}",
+            }
+        )
+    return items
+
+
+def build_recommendation_score_line(item: dict[str, object]) -> str:
+    """Build a compact score line for a recommendation workspace card."""
+    score_parts = []
+    for label, key in [
+        ("Opportunity Score", "opportunity_score"),
+        ("Business Impact", "business_impact_score"),
+        ("Confidence", "confidence_score"),
+    ]:
+        numeric_value = to_comparison_number(item.get(key))
+        if numeric_value is not None:
+            score_parts.append(f"{label}: {round(numeric_value)}/100")
+
+    impact_score = to_comparison_number(item.get("impact_score"))
+    if impact_score is not None and not score_parts:
+        score_parts.append(f"Impact Score: {round(impact_score)}")
+
+    return " | ".join(score_parts)
+
+
+def render_recommendation_workspace_card(
+    item: dict[str, object],
+    results: dict,
+    priority_class_map: dict[str, str],
+) -> None:
+    """Render one compact recommendation workspace card."""
+    priority = str(item.get("priority", "Medium")).strip().title()
+    pill_class = priority_class_map.get(priority, "priority-medium-pill")
+    title = str(item.get("title", "Recommendation")).strip()
+    issue = str(item.get("issue", "")).strip()
+    recommendation_text = str(item.get("recommendation", "")).strip()
+    why_it_matters = str(item.get("why_it_matters", "")).strip()
+    supporting_evidence = str(item.get("supporting_evidence", "")).strip()
+    score_line = build_recommendation_score_line(item)
+
+    st.markdown(
+        f"""
+        <div class="recommendation-card">
+            <div class="recommendation-card-top">
+                <div class="recommendation-category" style="font-size: 1.04rem;">{title}</div>
+                <div class="{pill_class}">{'🔴' if priority == 'High' else '🟠' if priority == 'Medium' else '🟢'} {priority} Priority</div>
+            </div>
+            <div class="recommendation-body">
+                {f"<strong>{score_line}</strong><br><br>" if score_line else ""}
+                {f"<strong>⚠️ Issue:</strong><br>{issue}<br><br>" if issue else ""}
+                <strong>💡 Recommended Action:</strong><br>{recommendation_text or 'Not available'}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if any([item.get("insight"), why_it_matters, supporting_evidence]):
+        with st.expander("View details", expanded=False):
+            insight_text = str(item.get("insight", "")).strip()
+            if insight_text:
+                st.markdown(f"**Insight:** {insight_text}")
+            if why_it_matters:
+                st.markdown(f"**Why it matters:** {why_it_matters}")
+            if supporting_evidence:
+                st.markdown(f"**Supporting evidence:** {supporting_evidence}")
+
+    if item.get("type") == "recommendation":
+        action_type = str(item.get("action_type", "")).strip().lower()
+        recommendation_card = {
+            "category": action_type,
+            "action_type": action_type,
+            "issue": issue,
+            "recommendation": recommendation_text,
+            "why_it_matters": why_it_matters,
+            "priority": priority,
+        }
+        render_recommendation_take_action_component(
+            recommendation_card,
+            results,
+            str(item.get("unique_key", title)),
+            get_first_value_fn=get_first_value,
+            build_semrush_opportunity_cards_fn=build_semrush_opportunity_cards,
+            humanize_social_topic_fn=humanize_social_topic,
+        )
+
+
+def render_recommendation_empty_state(tab_label: str) -> None:
+    """Render a clean empty state for recommendation tabs."""
+    messages = {
+        "SEO": "No SEO recommendations are available from the current run yet.",
+        "UX/CRO": "No UX or conversion recommendations are available from the current run yet.",
+        "Local SEO": "No local SEO recommendations are available from the current run yet.",
+        "Social": "No social recommendations are available from the current run yet.",
+        "Analytics": "No analytics recommendations are available from the current run yet.",
+        "Execution Assets": "No execution-ready suggested changes are available from the current run yet.",
+    }
+    st.info(messages.get(tab_label, "No recommendations are available for this tab yet."))
+
+
 def render_recommendations_page(results: dict) -> None:
-    """Render the Recommendations page."""
+    """Render the Recommendations page as a tabbed executive action workspace."""
     st.title("🎯 Recommendations")
-    st.caption("Combined website + social action plan")
+    st.caption("Executive action workspace across strategy, recommendations, and execution assets.")
 
     if not results:
         st.info("Run the workflow first on the Data Sources page.")
         return
 
-    what_next_cards = build_combined_what_next_cards(results)
     priority_class_map = {
         "High": "priority-high-pill",
         "Medium": "priority-medium-pill",
         "Low": "priority-low-pill",
     }
+    recommendation_items = build_recommendation_workspace_items(results)
+    priority_queue_items = build_priority_queue_workspace_items(results)
+    what_next_items = build_what_next_workspace_items(results)
+    suggested_change_cards = build_suggested_change_cards(results)[:3]
 
-    st.subheader("🎯 Recommendations")
-    if generated_recommendations:
-        for index, recommendation in enumerate(generated_recommendations):
-            display_priority = str(recommendation.get("priority", "Medium")).strip().title()
-            pill_class = priority_class_map.get(display_priority, "priority-medium-pill")
-            action_type = str(recommendation.get("action_type", "")).strip().lower()
-            opportunity_score = round(to_comparison_number(recommendation.get("opportunity_score")) or 0)
-            business_impact_score = round(to_comparison_number(recommendation.get("business_impact_score")) or 0)
-            confidence_score = round(to_comparison_number(recommendation.get("confidence_score")) or 0)
-            recommendation_card = {
-                "category": action_type,
-                "action_type": action_type,
-                "issue": str(recommendation.get("insight", "") or "").strip(),
-                "recommendation": str(recommendation.get("recommendation", "") or "").strip(),
-                "why_it_matters": str(recommendation.get("why_it_matters", "") or "").strip(),
-                "priority": display_priority,
-            }
+    total_recommendations = len(recommendation_items)
+    high_count = sum(str(item.get("priority", "")).strip().lower() == "high" for item in recommendation_items)
+    medium_count = sum(str(item.get("priority", "")).strip().lower() == "medium" for item in recommendation_items)
+    low_count = sum(str(item.get("priority", "")).strip().lower() == "low" for item in recommendation_items)
+    opportunity_scores = [
+        to_comparison_number(item.get("opportunity_score"))
+        for item in recommendation_items
+        if to_comparison_number(item.get("opportunity_score")) is not None
+    ]
+    average_opportunity_score = (
+        round(sum(opportunity_scores) / len(opportunity_scores), 1)
+        if opportunity_scores
+        else None
+    )
 
-            st.markdown(
-                f"""
-                <div class="recommendation-card">
-                    <div class="recommendation-card-top">
-                        <div class="recommendation-category" style="font-size: 1.08rem;">
-                            {recommendation.get("title", "Recommendation")}
-                        </div>
-                        <div class="{pill_class}">{'🔴' if display_priority == 'High' else '🟠' if display_priority == 'Medium' else '🟢'} {display_priority} Priority</div>
-                    </div>
-                    <div class="recommendation-body">
-                        <strong>Opportunity Score:</strong> {opportunity_score}/100
-                        &nbsp;&nbsp;|&nbsp;&nbsp;
-                        <strong>Business Impact:</strong> {business_impact_score}/100
-                        &nbsp;&nbsp;|&nbsp;&nbsp;
-                        <strong>Confidence:</strong> {confidence_score}/100
-                        <br><br>
-                        <strong>⚠️ Insight:</strong><br>
-                        {recommendation_card["issue"]}
-                        <br><br>
-                        <strong>📌 Why it matters:</strong><br>
-                        {recommendation_card["why_it_matters"]}
-                        <br><br>
-                        <strong>💡 Recommendation:</strong><br>
-                        {recommendation_card["recommendation"]}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">Recommendation Summary</div>', unsafe_allow_html=True)
+    summary_columns = st.columns(5)
+    summary_values = [
+        ("Total Recommendations", str(total_recommendations), "Rule-driven recommendations in the current run"),
+        ("High Priority", str(high_count), "Highest-priority recommendations"),
+        ("Medium Priority", str(medium_count), "Important but not urgent"),
+        ("Low Priority", str(low_count), "Lower immediate priority"),
+        ("Average Opportunity Score", f"{average_opportunity_score}/100" if average_opportunity_score is not None else "Not scored", "Across scored recommendations only"),
+    ]
+    for index, (label, value, caption) in enumerate(summary_values):
+        with summary_columns[index]:
+            st.metric(label, value)
+            st.caption(caption)
+
+    tab_labels = ["All", "SEO", "UX/CRO", "Local SEO", "Social", "Analytics", "Execution Assets"]
+    tab_objects = st.tabs(tab_labels)
+    all_workspace_items = recommendation_items + priority_queue_items + what_next_items
+
+    for tab_label, tab_object in zip(tab_labels, tab_objects):
+        with tab_object:
+            if tab_label == "Execution Assets":
+                if not suggested_change_cards:
+                    render_recommendation_empty_state(tab_label)
+                    continue
+
+                st.markdown('<div class="panel-title">Suggested Changes with Examples</div>', unsafe_allow_html=True)
+                for card in suggested_change_cards:
+                    before_state_html = str(card["before_state"]).replace("\n", "<br>")
+                    suggested_change_html = str(card["example_layout_content_improvement"]).replace("\n", "<br>")
+                    change_body_html = (
+                        f"<div class='change-card-title'>{card['page_or_asset_name']}</div>"
+                        f"<div class='change-card-body'>"
+                        f"<strong>Issue:</strong><br>{card['issue']}"
+                        f"<br><br><strong>Why it matters:</strong><br>{card['why_it_matters']}"
+                        f"<br><br><strong>Recommended change:</strong><br>{card['recommended_change']}"
+                        f"<br><br><strong>Example headline or CTA:</strong><br>{card['example_headline_or_cta']}"
+                        f"</div>"
+                    )
+                    st.markdown(f"<div class='change-card'>{change_body_html}</div>", unsafe_allow_html=True)
+                    with st.expander("View before / after example", expanded=False):
+                        before_col, after_col = st.columns(2)
+                        with before_col:
+                            st.markdown('<div class="change-comparison-heading">Before</div>', unsafe_allow_html=True)
+                            st.markdown(f"<div class='mock-block'>{before_state_html}</div>", unsafe_allow_html=True)
+                        with after_col:
+                            st.markdown('<div class="change-comparison-heading">Suggested Change</div>', unsafe_allow_html=True)
+                            st.markdown(f"<div class='mock-block'>{suggested_change_html}</div>", unsafe_allow_html=True)
+                    st.write("")
+                continue
+
+            filtered_items = all_workspace_items if tab_label == "All" else [
+                item for item in all_workspace_items if item.get("tab") == tab_label
+            ]
+
+            if not filtered_items:
+                render_recommendation_empty_state(tab_label)
+                continue
+
+            sorted_items = sorted(
+                filtered_items,
+                key=lambda item: (
+                    get_opportunity_priority_rank(str(item.get("priority", "Low")).title()),
+                    to_comparison_number(item.get("opportunity_score")) or 0,
+                    to_comparison_number(item.get("business_impact_score")) or 0,
+                    to_comparison_number(item.get("confidence_score")) or 0,
+                    to_comparison_number(item.get("impact_score")) or 0,
+                    normalize_comparison_theme(item.get("title", "")),
+                ),
+                reverse=True,
             )
-            render_recommendation_take_action_component(
-                recommendation_card,
-                results,
-                f"generated_{action_type or 'rule'}_{index}",
-                get_first_value_fn=get_first_value,
-                build_semrush_opportunity_cards_fn=build_semrush_opportunity_cards,
-                humanize_social_topic_fn=humanize_social_topic,
-            )
-    else:
-        st.info("No recommendations available based on current data.")
 
-    st.subheader("🎯 Priority Action Queue")
-    render_priority_action_queue(results, priority_class_map)
-
-    st.markdown("### 🚀 What To Do Next")
-    if what_next_cards:
-        for action in what_next_cards:
-            action_priority = str(action.get("priority", "Medium")).strip().title()
-            action_pill_class = priority_class_map.get(action_priority, "priority-medium-pill")
-
-            st.markdown(
-                f"""
-                <div class="what-next-card">
-                    <div class="recommendation-card-top">
-                        <div class="what-next-title">{action.get("title", "Opportunity")}</div>
-                        <div class="{action_pill_class}">{'🔴' if action_priority == 'High' else '🟠' if action_priority == 'Medium' else '🟢'} {action_priority} Priority</div>
-                    </div>
-                    <div class="recommendation-body">
-                        <span class="what-next-label">✅ Next Action:</span><br>
-                        {action.get("action", "")}
-                        <br><br>
-                        <span class="what-next-label">📌 Why it matters:</span><br>
-                        {action.get("reason", "")}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-    else:
-        st.info("No next-step recommendations available yet.")
-
-    render_suggested_changes_section(results)
+            for item in sorted_items:
+                render_recommendation_workspace_card(item, results, priority_class_map)
 
 
 def get_report_recommendations(results: dict) -> list[dict]:
