@@ -200,6 +200,46 @@ st.markdown(
         border: 1px solid var(--border-soft);
         border-radius: 12px;
     }
+    .stSelectbox label,
+    .stMultiSelect label {
+        color: #162033 !important;
+        font-weight: 650 !important;
+    }
+    .stSelectbox div[data-baseweb="select"] > div,
+    .stMultiSelect div[data-baseweb="select"] > div {
+        min-height: 3rem;
+        box-shadow: 0 4px 14px rgba(16, 24, 40, 0.04);
+    }
+    .stSelectbox div[data-baseweb="select"] > div:hover,
+    .stMultiSelect div[data-baseweb="select"] > div:hover {
+        border-color: #CDB8FF;
+        box-shadow: 0 8px 18px rgba(124, 58, 237, 0.08);
+    }
+    div[data-baseweb="popover"] {
+        z-index: 9999;
+    }
+    div[data-baseweb="menu"] {
+        background: #FFFFFF !important;
+        border: 1px solid #E6E8F0 !important;
+        border-radius: 16px !important;
+        box-shadow: 0 18px 40px rgba(16, 24, 40, 0.12) !important;
+        padding: 0.35rem !important;
+    }
+    div[data-baseweb="menu"] ul,
+    div[data-baseweb="menu"] li {
+        background: transparent !important;
+    }
+    div[data-baseweb="menu"] [role="option"] {
+        color: #162033 !important;
+        border-radius: 12px !important;
+        margin: 0.12rem 0 !important;
+        padding: 0.7rem 0.8rem !important;
+    }
+    div[data-baseweb="menu"] [role="option"]:hover,
+    div[data-baseweb="menu"] [role="option"][aria-selected="true"] {
+        background: #F4ECFF !important;
+        color: #6D28D9 !important;
+    }
     .stTextInput input::placeholder,
     .stTextArea textarea::placeholder {
         color: #98A2B3;
@@ -591,6 +631,61 @@ st.markdown(
         line-height: 1.55;
         margin-top: -0.2rem;
         margin-bottom: 0.8rem;
+    }
+    .saved-runs-card-marker {
+        display: none !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) {
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 18px;
+        padding: 22px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        margin-bottom: 1rem;
+    }
+    .saved-runs-section-title {
+        font-size: 1.02rem;
+        font-weight: 760;
+        color: #162033;
+        margin-bottom: 0.2rem;
+        letter-spacing: -0.01em;
+    }
+    .saved-runs-section-helper {
+        color: #667085;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        margin-bottom: 0.8rem;
+    }
+    .saved-run-summary-card {
+        background: linear-gradient(180deg, #FFFFFF 0%, #FBFAFF 100%);
+        border: 1px solid #E5E7EB;
+        border-radius: 16px;
+        padding: 1rem 1.05rem;
+        box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
+        margin-top: 0.8rem;
+        margin-bottom: 0.3rem;
+    }
+    .saved-run-summary-title {
+        font-size: 0.95rem;
+        font-weight: 760;
+        color: #162033;
+        margin-bottom: 0.65rem;
+    }
+    .saved-run-summary-row {
+        color: #52607A;
+        font-size: 0.92rem;
+        line-height: 1.65;
+        margin-bottom: 0.2rem;
+    }
+    .saved-run-summary-row strong {
+        color: #162033;
+    }
+    .saved-run-inline-meta {
+        color: #667085;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        margin-top: -0.15rem;
+        margin-bottom: 0.55rem;
     }
     .dashboard-section-divider {
         height: 1px;
@@ -1774,6 +1869,88 @@ def build_saved_run_display_label(metadata: dict | None) -> str:
     if source_labels:
         return f"{run_id or 'Saved Run'} ({', '.join(source_labels)})"
     return run_id or "Saved Run"
+
+
+def get_saved_run_source_labels(metadata: dict | None) -> list[str]:
+    """Return the included data-source labels for a saved run."""
+    metadata = metadata or {}
+    included_files = metadata.get("included_files", [])
+    if not isinstance(included_files, list):
+        included_files = []
+
+    source_order = [
+        ("GA4", {"ga4_pages.csv", "ga4_source.csv"}),
+        ("GSC", {"gsc_queries.csv"}),
+        ("Meta", {"meta_posts.csv"}),
+        ("SEMrush", {"semrush_positions.csv", "semrush_pages.csv", "semrush_topics.csv"}),
+    ]
+    included_set = {str(filename).strip() for filename in included_files if str(filename).strip()}
+    return [
+        label
+        for label, filenames in source_order
+        if included_set.intersection(filenames)
+    ]
+
+
+def build_saved_run_selector_meta(metadata: dict | None) -> str:
+    """Build a compact date-and-sources line for the selected run UI."""
+    metadata = metadata or {}
+    date_label = build_saved_run_date_label(str(metadata.get("run_id", "")).strip())
+    source_labels = get_saved_run_source_labels(metadata)
+    source_text = " • ".join(source_labels) if source_labels else "Sources unavailable"
+    if date_label and date_label != "Not available":
+        return f"{date_label} | {source_text}"
+    return source_text
+
+
+def build_saved_run_summary_rows(metadata: dict | None) -> list[tuple[str, str]]:
+    """Build presentation-only saved run summary rows from existing metadata."""
+    metadata = metadata or {}
+    rows: list[tuple[str, str]] = []
+
+    date_label = build_saved_run_date_label(str(metadata.get("run_id", "")).strip())
+    if date_label and date_label != "Not available":
+        rows.append(("Date", date_label))
+
+    source_labels = get_saved_run_source_labels(metadata)
+    if source_labels:
+        rows.append(("Data Sources", ", ".join(source_labels)))
+
+    run_version = str(metadata.get("run_version", "")).strip()
+    if run_version:
+        rows.append(("Schema", run_version))
+
+    for metadata_key, label in [
+        ("website_opportunities", "Website Opportunities"),
+        ("recommendations", "Recommendations"),
+        ("top_opportunity", "Top Opportunity"),
+    ]:
+        value = metadata.get(metadata_key)
+        if value not in [None, "", [], {}]:
+            rows.append((label, str(value)))
+
+    return rows
+
+
+def render_saved_run_summary(metadata: dict | None, title: str = "Run Summary") -> None:
+    """Render a compact saved-run metadata summary card."""
+    summary_rows = build_saved_run_summary_rows(metadata)
+    if not summary_rows:
+        return
+
+    summary_html = "".join(
+        f"<div class='saved-run-summary-row'><strong>{html.escape(label)}:</strong> {html.escape(value)}</div>"
+        for label, value in summary_rows
+    )
+    st.markdown(
+        f"""
+        <div class="saved-run-summary-card">
+            <div class="saved-run-summary-title">{html.escape(title)}</div>
+            {summary_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def build_saved_run_date_label(run_id: str) -> str:
@@ -4656,16 +4833,37 @@ def render_data_sources() -> dict[str, object]:
         st.caption(f"Current loaded run: {st.session_state['loaded_run_id']}")
 
     if saved_runs:
+        saved_runs_by_id = {run["run_id"]: run for run in saved_runs}
         run_labels = {run["run_id"]: run.get("display_label", run["run_id"]) for run in saved_runs}
+        comparison_options = [run["run_id"] for run in saved_runs]
+
+        st.markdown('<div class="saved-runs-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="saved-runs-section-title">Load Previous Run</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="saved-runs-section-helper">Open a previously saved analysis run and restore it into the app without rerunning uploads.</div>',
+            unsafe_allow_html=True,
+        )
         selected_saved_run_id = st.selectbox(
             "Load Previous Run",
-            options=[run["run_id"] for run in saved_runs],
+            options=comparison_options,
             format_func=lambda run_id: run_labels.get(run_id, run_id),
+            label_visibility="collapsed",
         )
+        selected_saved_run_metadata = saved_runs_by_id.get(selected_saved_run_id)
+        if selected_saved_run_metadata:
+            st.markdown(
+                f"<div class='saved-run-inline-meta'>{html.escape(build_saved_run_selector_meta(selected_saved_run_metadata))}</div>",
+                unsafe_allow_html=True,
+            )
+            render_saved_run_summary(selected_saved_run_metadata)
         load_saved_run_button = st.button("Load One Saved Run")
 
-        st.subheader("📊 Compare Saved Runs")
-        comparison_options = [run["run_id"] for run in saved_runs]
+        st.markdown('<div class="saved-runs-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="saved-runs-section-title">Compare Saved Runs</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="saved-runs-section-helper">Choose a base run and a comparison run to inspect changes in performance, priorities, and intelligence.</div>',
+            unsafe_allow_html=True,
+        )
         loaded_run_id = st.session_state.get("loaded_run_id")
         current_run_index = (
             comparison_options.index(loaded_run_id)
@@ -4681,6 +4879,12 @@ def render_data_sources() -> dict[str, object]:
             format_func=lambda run_id: run_labels.get(run_id, run_id),
             key="comparison_current_run_id",
         )
+        selected_current_metadata = saved_runs_by_id.get(selected_current_run_id)
+        if selected_current_metadata:
+            st.markdown(
+                f"<div class='saved-run-inline-meta'>{html.escape(build_saved_run_selector_meta(selected_current_metadata))}</div>",
+                unsafe_allow_html=True,
+            )
         selected_comparison_run_id = st.selectbox(
             "Comparison Run",
             options=comparison_options,
@@ -4688,7 +4892,23 @@ def render_data_sources() -> dict[str, object]:
             format_func=lambda run_id: run_labels.get(run_id, run_id),
             key="comparison_previous_run_id",
         )
-        compare_saved_runs_button = st.button("Compare Two Saved Runs")
+        selected_comparison_metadata = saved_runs_by_id.get(selected_comparison_run_id)
+        if selected_comparison_metadata:
+            st.markdown(
+                f"<div class='saved-run-inline-meta'>{html.escape(build_saved_run_selector_meta(selected_comparison_metadata))}</div>",
+                unsafe_allow_html=True,
+            )
+
+        compare_saved_runs_button = st.button("Compare Runs", type="primary")
+
+        if selected_current_metadata or selected_comparison_metadata:
+            summary_left, summary_right = st.columns(2)
+            with summary_left:
+                if selected_current_metadata:
+                    render_saved_run_summary(selected_current_metadata, title="Current Run Summary")
+            with summary_right:
+                if selected_comparison_metadata:
+                    render_saved_run_summary(selected_comparison_metadata, title="Comparison Run Summary")
     else:
         st.info("No saved runs yet.")
         selected_saved_run_id = None
