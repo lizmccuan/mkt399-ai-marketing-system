@@ -7000,32 +7000,65 @@ def build_recommendation_score_line(item: dict[str, object]) -> str:
     return " | ".join(score_parts)
 
 
+def slugify_recommendation_key(value: str) -> str:
+    """Create a compact stable slug for recommendation workspace keys."""
+    cleaned = re.sub(r"[^a-z0-9]+", "_", str(value).strip().lower())
+    return cleaned.strip("_") or "item"
+
+
+def normalize_recommendation_plain_text(text: str) -> str:
+    """Convert mixed HTML/markdown-like text into clean plain text for card rendering."""
+    raw_text = str(text or "")
+    replacements = {
+        "<br>": "\n",
+        "<br/>": "\n",
+        "<br />": "\n",
+        "</p>": "\n",
+        "</div>": "\n",
+        "</li>": "\n",
+        "<li>": "- ",
+    }
+    for source, replacement in replacements.items():
+        raw_text = raw_text.replace(source, replacement)
+
+    cleaned = html.unescape(strip_html_tags(raw_text))
+    cleaned = cleaned.replace("\r\n", "\n").replace("\r", "\n")
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
+def htmlize_recommendation_text(text: str) -> str:
+    """Escape recommendation text and preserve intentional line breaks for HTML card wrappers."""
+    return html.escape(normalize_recommendation_plain_text(text)).replace("\n", "<br>")
+
+
 def render_recommendation_workspace_card(
     item: dict[str, object],
     results: dict,
     priority_class_map: dict[str, str],
+    render_context_key: str,
 ) -> None:
     """Render one compact recommendation workspace card."""
     priority = str(item.get("priority", "Medium")).strip().title()
     pill_class = priority_class_map.get(priority, "priority-medium-pill")
-    title = str(item.get("title", "Recommendation")).strip()
-    issue = str(item.get("issue", "")).strip()
-    recommendation_text = str(item.get("recommendation", "")).strip()
-    why_it_matters = str(item.get("why_it_matters", "")).strip()
-    supporting_evidence = str(item.get("supporting_evidence", "")).strip()
+    title = normalize_recommendation_plain_text(str(item.get("title", "Recommendation")))
+    issue = normalize_recommendation_plain_text(str(item.get("issue", "")))
+    recommendation_text = normalize_recommendation_plain_text(str(item.get("recommendation", "")))
+    why_it_matters = normalize_recommendation_plain_text(str(item.get("why_it_matters", "")))
+    supporting_evidence = normalize_recommendation_plain_text(str(item.get("supporting_evidence", "")))
     score_line = build_recommendation_score_line(item)
 
     st.markdown(
         f"""
         <div class="recommendation-card">
             <div class="recommendation-card-top">
-                <div class="recommendation-category" style="font-size: 1.04rem;">{title}</div>
+                <div class="recommendation-category" style="font-size: 1.04rem;">{html.escape(title)}</div>
                 <div class="{pill_class}">{'🔴' if priority == 'High' else '🟠' if priority == 'Medium' else '🟢'} {priority} Priority</div>
             </div>
             <div class="recommendation-body">
-                {f"<strong>{score_line}</strong><br><br>" if score_line else ""}
-                {f"<strong>⚠️ Issue:</strong><br>{issue}<br><br>" if issue else ""}
-                <strong>💡 Recommended Action:</strong><br>{recommendation_text or 'Not available'}
+                {f"<strong>{html.escape(score_line)}</strong><br><br>" if score_line else ""}
+                {f"<strong>⚠️ Issue:</strong><br>{htmlize_recommendation_text(issue)}<br><br>" if issue else ""}
+                <strong>💡 Recommended Action:</strong><br>{htmlize_recommendation_text(recommendation_text or 'Not available')}
             </div>
         </div>
         """,
@@ -7033,8 +7066,9 @@ def render_recommendation_workspace_card(
     )
 
     if any([item.get("insight"), why_it_matters, supporting_evidence]):
-        with st.expander("View details", expanded=False):
-            insight_text = str(item.get("insight", "")).strip()
+        detail_label = f"View details for {title[:48] or 'recommendation'}"
+        with st.expander(detail_label, expanded=False):
+            insight_text = normalize_recommendation_plain_text(str(item.get("insight", "")))
             if insight_text:
                 st.markdown(f"**Insight:** {insight_text}")
             if why_it_matters:
@@ -7055,7 +7089,7 @@ def render_recommendation_workspace_card(
         render_recommendation_take_action_component(
             recommendation_card,
             results,
-            str(item.get("unique_key", title)),
+            render_context_key,
             get_first_value_fn=get_first_value,
             build_semrush_opportunity_cards_fn=build_semrush_opportunity_cards,
             humanize_social_topic_fn=humanize_social_topic,
@@ -7130,13 +7164,14 @@ def render_recommendations_page(results: dict) -> None:
 
     for tab_label, tab_object in zip(tab_labels, tab_objects):
         with tab_object:
+            tab_slug = slugify_recommendation_key(tab_label)
             if tab_label == "Execution Assets":
                 if not suggested_change_cards:
                     render_recommendation_empty_state(tab_label)
                     continue
 
                 st.markdown('<div class="panel-title">Suggested Changes with Examples</div>', unsafe_allow_html=True)
-                for card in suggested_change_cards:
+                for asset_index, card in enumerate(suggested_change_cards):
                     before_state_html = str(card["before_state"]).replace("\n", "<br>")
                     suggested_change_html = str(card["example_layout_content_improvement"]).replace("\n", "<br>")
                     change_body_html = (
@@ -7149,7 +7184,8 @@ def render_recommendations_page(results: dict) -> None:
                         f"</div>"
                     )
                     st.markdown(f"<div class='change-card'>{change_body_html}</div>", unsafe_allow_html=True)
-                    with st.expander("View before / after example", expanded=False):
+                    expander_label = f"View before / after example for {card['page_or_asset_name'][:48]}"
+                    with st.expander(expander_label, expanded=False):
                         before_col, after_col = st.columns(2)
                         with before_col:
                             st.markdown('<div class="change-comparison-heading">Before</div>', unsafe_allow_html=True)
@@ -7181,8 +7217,10 @@ def render_recommendations_page(results: dict) -> None:
                 reverse=True,
             )
 
-            for item in sorted_items:
-                render_recommendation_workspace_card(item, results, priority_class_map)
+            for item_index, item in enumerate(sorted_items):
+                stable_slug = slugify_recommendation_key(str(item.get("title", "")))
+                render_context_key = f"recommendation_{tab_slug}_{item_index}_{stable_slug}"
+                render_recommendation_workspace_card(item, results, priority_class_map, render_context_key)
 
 
 def get_report_recommendations(results: dict) -> list[dict]:
