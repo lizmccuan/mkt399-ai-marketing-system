@@ -7048,33 +7048,42 @@ def render_recommendation_workspace_card(
     supporting_evidence = normalize_recommendation_plain_text(str(item.get("supporting_evidence", "")))
     score_line = build_recommendation_score_line(item)
 
-    st.markdown(
-        f"""
-        <div class="recommendation-card">
-            <div class="recommendation-card-top">
-                <div class="recommendation-category" style="font-size: 1.04rem;">{html.escape(title)}</div>
-                <div class="{pill_class}">{'🔴' if priority == 'High' else '🟠' if priority == 'Medium' else '🟢'} {priority} Priority</div>
-            </div>
-            <div class="recommendation-body">
-                {f"<strong>{html.escape(score_line)}</strong><br><br>" if score_line else ""}
-                {f"<strong>⚠️ Issue:</strong><br>{htmlize_recommendation_text(issue)}<br><br>" if issue else ""}
-                <strong>💡 Recommended Action:</strong><br>{htmlize_recommendation_text(recommendation_text or 'Not available')}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    card_container = st.container()
+    with card_container:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        header_left, header_right = st.columns([0.78, 0.22])
+        with header_left:
+            st.markdown(
+                f'<div class="recommendation-category" style="font-size: 1.04rem;">{html.escape(title)}</div>',
+                unsafe_allow_html=True,
+            )
+        with header_right:
+            st.markdown(
+                f'<div class="{pill_class}">{ "🔴" if priority == "High" else "🟠" if priority == "Medium" else "🟢"} {priority} Priority</div>',
+                unsafe_allow_html=True,
+            )
 
-    if any([item.get("insight"), why_it_matters, supporting_evidence]):
+        if score_line:
+            st.caption(score_line)
+        if issue:
+            st.markdown("**Issue:**")
+            st.write(issue)
+        st.markdown("**Recommended Action:**")
+        st.write(recommendation_text or "Not available")
+        if why_it_matters:
+            st.markdown("**Why It Matters:**")
+            st.write(why_it_matters)
+
+    if any([item.get("insight"), supporting_evidence]):
         detail_label = f"View details for {title[:48] or 'recommendation'}"
         with st.expander(detail_label, expanded=False):
             insight_text = normalize_recommendation_plain_text(str(item.get("insight", "")))
             if insight_text:
-                st.markdown(f"**Insight:** {insight_text}")
-            if why_it_matters:
-                st.markdown(f"**Why it matters:** {why_it_matters}")
+                st.markdown("**Insight:**")
+                st.write(insight_text)
             if supporting_evidence:
-                st.markdown(f"**Supporting evidence:** {supporting_evidence}")
+                st.markdown("**Supporting Evidence:**")
+                st.write(supporting_evidence)
 
     if item.get("type") == "recommendation":
         action_type = str(item.get("action_type", "")).strip().lower()
