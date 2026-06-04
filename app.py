@@ -473,6 +473,35 @@ st.markdown(
     .social-balance-card strong {
         color: #162033;
     }
+    .behavior-mini-card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        padding: 0.95rem 1rem;
+        box-shadow: var(--panel-shadow-soft);
+        min-height: 108px;
+        margin-bottom: 0.75rem;
+    }
+    .behavior-mini-label {
+        font-size: 0.84rem;
+        font-weight: 700;
+        color: #344054;
+        margin-bottom: 0.4rem;
+        letter-spacing: -0.01em;
+    }
+    .behavior-mini-value {
+        font-size: 1.28rem;
+        font-weight: 780;
+        color: #162033;
+        line-height: 1.15;
+        margin-bottom: 0.35rem;
+        word-break: break-word;
+    }
+    .behavior-mini-helper {
+        font-size: 0.82rem;
+        line-height: 1.45;
+        color: #667085;
+    }
     .recommendation-card {
         background: var(--panel-bg);
         border: 1px solid var(--border-soft);
@@ -3285,66 +3314,139 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
                 top_pages_df = pd.DataFrame(page_rows)
                 st.dataframe(top_pages_df, use_container_width=True, hide_index=True)
 
-    row_c_left, row_c_right = st.columns(2)
+    row_c_left, row_c_right = st.columns([1.15, 0.85], gap="large")
 
     with row_c_left:
-        if has_source_data:
-            traffic_card = st.container()
-            with traffic_card:
-                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">🚦 Traffic Distribution</div>', unsafe_allow_html=True)
-                st.markdown(
-                    '<div class="dashboard-card-helper">Acquisition mix based on the loaded GA4 source and medium report.</div>',
-                    unsafe_allow_html=True,
-                )
-                top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
-                traffic_fig = px.bar(
-                    top_sources_df.head(5),
-                    x="source_medium",
-                    y="value",
-                    color_discrete_sequence=["#8C52FF"],
-                )
-                traffic_fig.update_layout(
-                    showlegend=False,
-                    plot_bgcolor="#FFFFFF",
-                    paper_bgcolor="#FFFFFF",
-                    margin=dict(l=12, r=12, t=8, b=8),
-                    font=dict(color="#162033"),
-                    xaxis_title="",
-                    yaxis_title="",
-                )
-                traffic_fig.update_traces(
-                    marker_line_color="#7C3AED",
-                    marker_line_width=0,
-                    hovertemplate="<b>%{x}</b><br>Value: %{y}<extra></extra>",
-                )
-                traffic_fig.update_xaxes(tickfont=dict(color="#111111"))
-                traffic_fig.update_yaxes(tickfont=dict(color="#111111"))
-                st.plotly_chart(traffic_fig, use_container_width=True)
-                st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
+        traffic_card = st.container()
+        with traffic_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">🚦 Traffic Distribution</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dashboard-card-helper">Acquisition mix based on the loaded GA4 source and medium report.</div>',
+                unsafe_allow_html=True,
+            )
+
+            if has_source_data:
+                top_sources_df = pd.DataFrame(combined["top_traffic_sources"]).copy()
+                top_sources_df.columns = [
+                    str(column).strip().lower().replace(" ", "_")
+                    for column in top_sources_df.columns
+                ]
+                if {"source_medium", "value"}.issubset(top_sources_df.columns):
+                    top_sources_df["value"] = pd.to_numeric(top_sources_df["value"], errors="coerce")
+                    top_sources_df["source_medium"] = (
+                        top_sources_df["source_medium"].fillna("").astype(str).str.strip()
+                    )
+                    top_sources_df = top_sources_df.dropna(subset=["value"])
+                    top_sources_df = top_sources_df[top_sources_df["source_medium"] != ""]
+                    top_sources_df = top_sources_df.sort_values("value", ascending=False).head(5).copy()
+                    top_sources_df["display_source_medium"] = top_sources_df["source_medium"].apply(
+                        lambda value: value if len(value) <= 32 else f"{value[:29].rstrip()}..."
+                    )
+
+                    traffic_fig = px.bar(
+                        top_sources_df.iloc[::-1],
+                        x="value",
+                        y="display_source_medium",
+                        orientation="h",
+                        color_discrete_sequence=["#8C52FF"],
+                    )
+                    traffic_fig.update_layout(
+                        showlegend=False,
+                        plot_bgcolor="#FFFFFF",
+                        paper_bgcolor="#FFFFFF",
+                        margin=dict(l=8, r=8, t=6, b=6),
+                        font=dict(color="#162033"),
+                        xaxis_title="Sessions / Value",
+                        yaxis_title="",
+                        height=250,
+                    )
+                    traffic_fig.update_traces(
+                        marker_line_color="#7C3AED",
+                        marker_line_width=0,
+                        hovertemplate="<b>%{customdata[0]}</b><br>Value: %{x}<extra></extra>",
+                        customdata=top_sources_df.iloc[::-1][["source_medium"]].values,
+                    )
+                    traffic_fig.update_xaxes(
+                        tickfont=dict(color="#111111", size=11),
+                        title_font=dict(color="#111111", size=11),
+                        gridcolor="#EEF2F7",
+                        zeroline=False,
+                    )
+                    traffic_fig.update_yaxes(
+                        tickfont=dict(color="#111111", size=11),
+                        title_font=dict(color="#111111", size=11),
+                        automargin=True,
+                    )
+                    st.plotly_chart(traffic_fig, use_container_width=True)
+
+                    with st.expander("View traffic source data", expanded=False):
+                        traffic_table_df = top_sources_df[["source_medium", "value"]].rename(
+                            columns={
+                                "source_medium": "Source / Medium",
+                                "value": "Value",
+                            }
+                        )
+                        st.dataframe(traffic_table_df, use_container_width=True, hide_index=True)
+                else:
+                    st.info("No GA4 source/medium data available for the Traffic Distribution section.")
+            else:
+                st.info("No GA4 source/medium data available for the Traffic Distribution section.")
 
     with row_c_right:
-        if has_behavior_data:
-            behavior_card = st.container()
-            with behavior_card:
-                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">👥 User Behavior Signals</div>', unsafe_allow_html=True)
-                st.markdown(
-                    '<div class="dashboard-card-helper">Behavior metrics from the loaded GA4 page and source reports.</div>',
-                    unsafe_allow_html=True,
-                )
+        behavior_card = st.container()
+        with behavior_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">👥 User Behavior Signals</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dashboard-card-helper">Behavior metrics from the loaded GA4 page and source reports.</div>',
+                unsafe_allow_html=True,
+            )
 
-                behavior_metrics = {
-                    "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
-                    "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
-                    "Engagement Rate": format_ga4_engagement_rate_kpi(
-                        data_summary["ga4_pages"]["key_metrics"].get("engagement_rate")
-                    ),
-                    "Source Sessions": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
-                }
+            if has_behavior_data:
+                behavior_metrics = [
+                    {
+                        "label": "Sessions",
+                        "value": data_summary["ga4_pages"]["key_metrics"].get("sessions", "Not available"),
+                        "helper": "Current uploaded-run total",
+                    },
+                    {
+                        "label": "Active Users",
+                        "value": data_summary["ga4_pages"]["key_metrics"].get("active_users", "Not available"),
+                        "helper": "Current uploaded-run total",
+                    },
+                    {
+                        "label": "Engagement Rate",
+                        "value": format_ga4_engagement_rate_kpi(
+                            data_summary["ga4_pages"]["key_metrics"].get("engagement_rate")
+                        ),
+                        "helper": "Benchmark: 50%+ healthy | 60%+ strong",
+                    },
+                    {
+                        "label": "Source Sessions",
+                        "value": data_summary["ga4_sources"]["key_metrics"].get("sessions", "Not available"),
+                        "helper": "Sessions attributed from GA4 source / medium",
+                    },
+                ]
 
-                for label, value in behavior_metrics.items():
-                    st.metric(label, value)
+                behavior_col_left, behavior_col_right = st.columns(2, gap="small")
+                for index, metric in enumerate(behavior_metrics):
+                    target_col = behavior_col_left if index % 2 == 0 else behavior_col_right
+                    with target_col:
+                        metric_value = str(metric.get("value", "Not available"))
+                        helper_text = str(metric.get("helper", "")).strip()
+                        st.markdown(
+                            f"""
+                            <div class="behavior-mini-card">
+                                <div class="behavior-mini-label">{html.escape(str(metric.get("label", "")))}</div>
+                                <div class="behavior-mini-value">{html.escape(metric_value)}</div>
+                                <div class="behavior-mini-helper">{html.escape(helper_text)}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+            else:
+                st.info("No GA4 behavior data available for the User Behavior Signals section.")
 
     if has_insight_patterns:
         insights_summary_card = st.container()
