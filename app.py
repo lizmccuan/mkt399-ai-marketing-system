@@ -870,6 +870,65 @@ st.markdown(
         max-width: 100%;
         box-sizing: border-box;
     }
+    .opportunities-page-marker,
+    .recommendations-page-marker,
+    .opportunity-hero-marker,
+    .recommendation-action-marker {
+        display: none !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunity-hero-marker),
+    [data-testid="stVerticalBlock"]:has(.recommendation-action-marker) {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        border-radius: 18px;
+        box-sizing: border-box;
+        margin: 0.5rem 0 1.35rem;
+        padding: 1.35rem 1.45rem;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunity-hero-marker) {
+        background: #FBF9FF;
+        border: 1px solid #E5D9FF;
+        box-shadow: 0 12px 30px rgba(92, 68, 180, 0.08);
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendation-action-marker) {
+        background: #FAF9FF;
+        border: 1px solid #DCCEFF;
+        border-left: 4px solid #7C3AED;
+        box-shadow: 0 12px 30px rgba(92, 68, 180, 0.10);
+    }
+    .opportunity-hero-title,
+    .recommendation-action-title {
+        color: #162033;
+        font-size: 1.22rem;
+        font-weight: 780;
+        letter-spacing: -0.02em;
+        line-height: 1.35;
+        margin-bottom: 0.7rem;
+        overflow-wrap: anywhere;
+    }
+    .opportunity-evidence-row,
+    .recommendation-value-row {
+        color: #52607A;
+        font-size: 0.86rem;
+        line-height: 1.55;
+        margin-top: 0.85rem;
+        overflow-wrap: anywhere;
+    }
+    @media (max-width: 768px) {
+        [data-testid="stVerticalBlock"]:has(.opportunities-page-marker) [data-testid="stHorizontalBlock"],
+        [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap;
+            gap: 0.85rem;
+        }
+        [data-testid="stVerticalBlock"]:has(.opportunities-page-marker) [data-testid="column"],
+        [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) [data-testid="column"] {
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+        }
+    }
     /* Override the general dashboard-card clipping for the Social opportunity copy. */
     [data-testid="stVerticalBlock"]:has(.social-opportunity-card-marker) {
         width: 100%;
@@ -6786,16 +6845,13 @@ def build_opportunity_key_metrics(data: dict[str, str]) -> str:
     if is_meaningful_supporting_value(data.get("volume"), hide_zero=True):
         metric_parts.append(f"Volume: {data.get('volume')}")
     if is_meaningful_supporting_value(data.get("metric_line")):
-        metric_parts.append(str(data.get("metric_line")))
+        metric_line = str(data.get("metric_line")).strip()
+        if metric_line.lower() not in {"metrics not available", "not available"}:
+            metric_parts.append(metric_line)
 
     cleaned_supporting_data = clean_supporting_data_text(str(data.get("supporting_data", "")))
     if cleaned_supporting_data:
         metric_parts.append(cleaned_supporting_data)
-
-    if data.get("intent_type") or data.get("opportunity_type") or data.get("gap_type"):
-        tag_parts = [part for part in [data.get("intent_type"), data.get("opportunity_type"), data.get("gap_type")] if part]
-        if tag_parts:
-            metric_parts.append(f"Signals: {' | '.join(tag_parts)}")
 
     return " | ".join(metric_parts)
 
@@ -6813,6 +6869,12 @@ def build_executive_opportunity_entry(group: str, title: str, data: dict[str, st
     priority = str(data.get("priority", "Medium")).strip().title()
     score_value = get_existing_opportunity_score(data)
     score_label = get_existing_opportunity_score_label(data)
+    source_by_group = {
+        "SEO": "SEMrush",
+        "Pages": "SEMrush",
+        "Local SEO": "SEMrush",
+        "Social": "Meta",
+    }
     return {
         "group": group,
         "title": str(data.get("title") or title).strip(),
@@ -6826,6 +6888,8 @@ def build_executive_opportunity_entry(group: str, title: str, data: dict[str, st
         "why_it_matters": str(data.get("why_it_matters", data.get("reason", ""))).strip(),
         "supporting_data": clean_supporting_data_text(str(data.get("supporting_data", ""))),
         "why_recommendation_works": str(data.get("why_recommendation_works", "")).strip(),
+        "diagnosis": str(data.get("diagnosis", data.get("opportunity_type", ""))).strip(),
+        "source": str(data.get("source") or source_by_group.get(group, "")).strip(),
         "raw": data,
     }
 
@@ -6843,51 +6907,141 @@ def sort_executive_opportunities(entries: list[dict[str, object]]) -> list[dict[
     )
 
 
+def get_opportunity_display_title(entry: dict[str, object]) -> str:
+    """Prefer the specific opportunity target over generic internal card titles."""
+    title = normalize_recommendation_plain_text(str(entry.get("title", ""))).strip()
+    target = normalize_recommendation_plain_text(str(entry.get("target", ""))).strip()
+    generic_titles = {"seo opportunity", "page opportunity", "local seo opportunity", "social opportunity"}
+    if title.lower() in generic_titles and is_meaningful_supporting_value(target):
+        return target
+    return title or target or "Opportunity"
+
+
+def get_opportunity_metadata_score(entry: dict[str, object], key: str) -> float | None:
+    """Read an existing score from an opportunity payload without deriving a new one."""
+    raw = entry.get("raw") if isinstance(entry.get("raw"), dict) else {}
+    priority_bundle = raw.get("priority_bundle") if isinstance(raw.get("priority_bundle"), dict) else {}
+    for value in [entry.get(key), raw.get(key), priority_bundle.get(key)]:
+        numeric_value = to_comparison_number(value)
+        if numeric_value is not None:
+            return numeric_value
+    return None
+
+
+def build_opportunity_metadata(entry: dict[str, object]) -> str:
+    """Format only the existing diagnostic metadata that is available for an opportunity."""
+    metadata = []
+    priority = str(entry.get("priority", "")).strip().title()
+    if priority in {"High", "Medium", "Low"}:
+        metadata.append(f"Priority: {priority}")
+
+    confidence = get_opportunity_metadata_score(entry, "confidence_score")
+    if confidence is None:
+        confidence = get_opportunity_metadata_score(entry, "confidence")
+    if confidence is not None:
+        metadata.append(f"Confidence: {round(confidence)}/100")
+
+    source = str(entry.get("source", "")).strip()
+    if source:
+        metadata.append(f"Source: {source}")
+    return " · ".join(metadata)
+
+
+def render_biggest_opportunity(entry: dict[str, object]) -> None:
+    """Present the strongest existing opportunity as a diagnosis-first summary."""
+    title = get_opportunity_display_title(entry)
+    diagnosis = normalize_recommendation_plain_text(str(entry.get("diagnosis", ""))).strip()
+    why_it_matters = normalize_recommendation_plain_text(str(entry.get("why_it_matters", ""))).strip()
+    business_meaning = normalize_recommendation_plain_text(
+        str(entry.get("why_recommendation_works", ""))
+    ).strip()
+    evidence = normalize_recommendation_plain_text(str(entry.get("key_metrics", ""))).strip()
+    metadata = build_opportunity_metadata(entry)
+
+    hero = st.container()
+    with hero:
+        st.markdown('<div class="opportunity-hero-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">🎯 Biggest Opportunity</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="opportunity-hero-title">{html.escape(title)}</div>',
+            unsafe_allow_html=True,
+        )
+        if diagnosis:
+            st.caption(diagnosis)
+        if why_it_matters:
+            st.markdown("**Why this matters**")
+            st.write(why_it_matters)
+        if business_meaning:
+            st.caption(business_meaning)
+        if evidence:
+            st.markdown(f'<div class="opportunity-evidence-row">Evidence: {html.escape(evidence)}</div>', unsafe_allow_html=True)
+        if metadata:
+            st.caption(metadata)
+        st.markdown("View Opportunity →")
+
+
 def render_executive_opportunity_card(entry: dict[str, object], unique_key: str) -> None:
-    """Render a compact executive-style opportunity card with collapsed evidence."""
+    """Render a diagnosis-first opportunity card with secondary evidence collapsed."""
     priority = str(entry.get("priority", "Medium")).strip().title()
     pill_class = get_report_priority_pill_class(priority)
     score_value = get_existing_opportunity_score(entry)
     score_label = str(entry.get("score_label") or get_existing_opportunity_score_label(entry) or "Opportunity Score")
-    score_text = f"{round(score_value, 2)}" if score_value is not None else "Not scored"
-    score_line = f"<strong>{score_label}:</strong> {score_text}" if score_value is not None else "<strong>Opportunity Score:</strong> Not scored"
-    key_metrics = str(entry.get("key_metrics", "")).strip() or "No key metrics available from the current run."
-    recommended_action = str(entry.get("recommended_action", "")).strip() or "No recommended action available."
+    title = get_opportunity_display_title(entry)
+    diagnosis = normalize_recommendation_plain_text(str(entry.get("diagnosis", ""))).strip()
+    why_text = normalize_recommendation_plain_text(str(entry.get("why_it_matters", ""))).strip()
+    key_metrics = normalize_recommendation_plain_text(str(entry.get("key_metrics", ""))).strip()
+    source = str(entry.get("source", "")).strip()
 
-    st.markdown(
-        f"""
-        <div class="recommendation-card">
-            <div class="recommendation-card-top">
-                <div class="recommendation-category">{entry.get("title", "Opportunity")}</div>
-                <div class="{pill_class}">{'🔴' if priority == 'High' else '🟠' if priority == 'Medium' else '🟢'} {priority} Priority</div>
-            </div>
-            <div class="recommendation-body">
-                {score_line}<br><br>
-                <strong>Key Metrics:</strong> {key_metrics}<br><br>
-                <strong>Recommended Action:</strong> {recommended_action}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    card = st.container()
+    with card:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        heading_col, priority_col = st.columns([0.76, 0.24])
+        with heading_col:
+            st.markdown(
+                f'<div class="recommendation-category">{html.escape(title)}</div>',
+                unsafe_allow_html=True,
+            )
+            if diagnosis:
+                st.caption(diagnosis)
+        with priority_col:
+            st.markdown(
+                f'<div class="{pill_class}">{"🔴" if priority == "High" else "🟠" if priority == "Medium" else "🟢"} {priority} Priority</div>',
+                unsafe_allow_html=True,
+            )
 
-    with st.expander("View evidence", expanded=False):
-        st.markdown(f"**Target:** {entry.get('target', '-')}")
-        why_text = str(entry.get("why_it_matters", "")).strip()
         if why_text:
-            st.markdown(f"**Why This Is An Opportunity:** {why_text}")
-        supporting_data = str(entry.get("supporting_data", "")).strip()
+            st.markdown("**Why this matters**")
+            st.write(why_text)
+        if key_metrics:
+            st.markdown("**Evidence**")
+            st.caption(key_metrics)
+        if source:
+            st.caption(f"Source: {source}")
+        if score_value is not None:
+            st.caption(f"{score_label}: {round(score_value, 2)}")
+        st.markdown("View Opportunity →")
+
+    detail_label = f"View supporting details for {title[:48] or unique_key}"
+    with st.expander(detail_label, expanded=False):
+        target = normalize_recommendation_plain_text(str(entry.get("target", ""))).strip()
+        if is_meaningful_supporting_value(target):
+            st.markdown(f"**Focus:** {target}")
+        supporting_data = normalize_recommendation_plain_text(str(entry.get("supporting_data", ""))).strip()
         if supporting_data:
             st.markdown(f"**Supporting Data:** {supporting_data}")
-        why_work_text = str(entry.get("why_recommendation_works", "")).strip()
+        why_work_text = normalize_recommendation_plain_text(str(entry.get("why_recommendation_works", ""))).strip()
         if why_work_text:
-            st.markdown(f"**Why It Should Work:** {why_work_text}")
+            st.markdown(f"**Why it matters:** {why_work_text}")
+        recommended_action = normalize_recommendation_plain_text(str(entry.get("recommended_action", ""))).strip()
+        if recommended_action:
+            st.markdown(f"**What to investigate:** {recommended_action}")
 
 
 def render_opportunities_page(results: dict) -> None:
     """Render the Opportunities page as an executive opportunity management dashboard."""
+    st.markdown('<div class="opportunities-page-marker"></div>', unsafe_allow_html=True)
     st.title("🚀 Opportunities")
-    st.caption("Executive opportunity management view across website and social analysis.")
+    st.caption("Where your marketing has the greatest room to improve.")
 
     if not results:
         st.info("Run the workflow first on the Data Sources page.")
@@ -6896,7 +7050,7 @@ def render_opportunities_page(results: dict) -> None:
     semrush_positions_data = results.get("semrush_positions_data")
     semrush_pages_data = results.get("semrush_pages_data")
     semrush_topics_data = results.get("semrush_topics_data")
-    strategy = results["strategy"]["strategy"]
+    strategy = results.get("strategy", {}).get("strategy", {})
     seo_cards = (
         build_semrush_opportunity_cards(semrush_positions_data)
         if semrush_positions_data is not None and not semrush_positions_data.empty
@@ -6923,47 +7077,44 @@ def render_opportunities_page(results: dict) -> None:
 
     all_entries = [item for group in grouped_opportunities.values() for item in group]
     high_count = sum(str(item.get("priority", "")).strip().lower() == "high" for item in all_entries)
-    medium_count = sum(str(item.get("priority", "")).strip().lower() == "medium" for item in all_entries)
-    low_count = sum(str(item.get("priority", "")).strip().lower() == "low" for item in all_entries)
-    scored_entries = [item for item in all_entries if item.get("score") is not None]
-    average_score = (
-        round(sum(float(item["score"]) for item in scored_entries) / len(scored_entries), 2)
-        if scored_entries
-        else None
-    )
+    if not all_entries:
+        st.info("No opportunities are available for this run yet. Add a supported marketing data source and rerun the workflow.")
+        return
 
-    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">Opportunity Summary</div>', unsafe_allow_html=True)
-    summary_columns = st.columns(5)
+    area_counts = {area: len(entries) for area, entries in grouped_opportunities.items() if entries}
+    largest_area_count = max(area_counts.values())
+    largest_areas = [area for area, count in area_counts.items() if count == largest_area_count]
+    highest_area_priority = max(
+        max((entry.get("priority_rank", 0) for entry in grouped_opportunities[area]), default=0)
+        for area in largest_areas
+    )
+    top_areas = [
+        area
+        for area in largest_areas
+        if max((entry.get("priority_rank", 0) for entry in grouped_opportunities[area]), default=0)
+        == highest_area_priority
+    ]
+    top_area = " + ".join(top_areas) if len(top_areas) <= 2 else "Multiple areas"
+
+    summary_columns = st.columns(3)
     summary_values = [
-        ("Total Opportunities", str(len(all_entries)), "All current opportunity cards"),
-        ("High Priority", str(high_count), "Highest-impact items first"),
-        ("Medium Priority", str(medium_count), "Important but not urgent"),
-        ("Low Priority", str(low_count), "Lower immediate impact"),
-        ("Average Opportunity Score", f"{average_score}" if average_score is not None else "Not scored", "Across scored opportunities only"),
+        ("Opportunities Found", str(len(all_entries)), "Across the marketing areas analyzed in this run"),
+        ("High Priority", str(high_count), "Require the most attention based on current evidence"),
+        ("Top Opportunity Area", top_area, "Largest concentration of detected opportunities"),
     ]
     for index, (label, value, caption) in enumerate(summary_values):
         with summary_columns[index]:
-            st.metric(label, value)
-            st.caption(caption)
+            render_dashboard_kpi_card(label, value, caption)
 
-    tab_labels = ["SEO", "Pages", "Local SEO", "Social"]
+    biggest_opportunity = sort_executive_opportunities(all_entries)[0]
+    render_biggest_opportunity(biggest_opportunity)
+
+    tab_labels = [label for label in ["SEO", "Pages", "Local SEO", "Social"] if grouped_opportunities.get(label)]
     tab_objects = st.tabs(tab_labels)
 
     for tab_label, tab_object in zip(tab_labels, tab_objects):
         with tab_object:
             entries = grouped_opportunities.get(tab_label, [])
-            if not entries:
-                if tab_label == "SEO":
-                    st.info("No SEO opportunities available yet. Upload SEMrush Organic Positions data and rerun the workflow.")
-                elif tab_label == "Pages":
-                    st.info("No page opportunities available yet. Upload SEMrush Pages data and rerun the workflow.")
-                elif tab_label == "Local SEO":
-                    st.info("No local SEO opportunities available yet. Upload SEMrush Topic Opportunities data and rerun the workflow.")
-                else:
-                    st.info("No social opportunities available yet. Upload a Meta content export and rerun the workflow.")
-                continue
-
             for index, entry in enumerate(entries):
                 render_executive_opportunity_card(entry, f"{tab_label.lower().replace(' ', '_')}_{index}")
 
@@ -7919,6 +8070,36 @@ def build_recommendation_score_line(item: dict[str, object]) -> str:
     return " | ".join(score_parts)
 
 
+def build_recommendation_expected_value_line(item: dict[str, object]) -> str:
+    """Show existing impact and confidence fields as action-supporting metadata."""
+    score_parts = []
+    for label, key in [("Business Impact", "business_impact_score"), ("Confidence", "confidence_score")]:
+        numeric_value = to_comparison_number(item.get(key))
+        if numeric_value is not None:
+            score_parts.append(f"{label}: {round(numeric_value)}/100")
+
+    impact_score = to_comparison_number(item.get("impact_score"))
+    if impact_score is not None and not score_parts:
+        score_parts.append(f"Business Impact: {round(impact_score)}/100")
+    return " · ".join(score_parts)
+
+
+def sort_recommendation_workspace_items(items: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Keep the existing display priority order reusable for the action workspace."""
+    return sorted(
+        items,
+        key=lambda item: (
+            get_opportunity_priority_rank(str(item.get("priority", "Low")).title()),
+            to_comparison_number(item.get("opportunity_score")) or 0,
+            to_comparison_number(item.get("business_impact_score")) or 0,
+            to_comparison_number(item.get("confidence_score")) or 0,
+            to_comparison_number(item.get("impact_score")) or 0,
+            normalize_comparison_theme(item.get("title", "")),
+        ),
+        reverse=True,
+    )
+
+
 def slugify_recommendation_key(value: str) -> str:
     """Create a compact stable slug for recommendation workspace keys."""
     cleaned = re.sub(r"[^a-z0-9]+", "_", str(value).strip().lower())
@@ -7965,7 +8146,7 @@ def render_recommendation_workspace_card(
     recommendation_text = normalize_recommendation_plain_text(str(item.get("recommendation", "")))
     why_it_matters = normalize_recommendation_plain_text(str(item.get("why_it_matters", "")))
     supporting_evidence = normalize_recommendation_plain_text(str(item.get("supporting_evidence", "")))
-    score_line = build_recommendation_score_line(item)
+    expected_value_line = build_recommendation_expected_value_line(item)
 
     card_container = st.container()
     with card_container:
@@ -7982,16 +8163,15 @@ def render_recommendation_workspace_card(
                 unsafe_allow_html=True,
             )
 
-        if score_line:
-            st.caption(score_line)
-        if issue:
-            st.markdown("**Issue:**")
-            st.write(issue)
-        st.markdown("**Recommended Action:**")
-        st.write(recommendation_text or "Not available")
-        if why_it_matters:
-            st.markdown("**Why It Matters:**")
-            st.write(why_it_matters)
+        st.markdown("**What to do**")
+        if recommendation_text:
+            st.write(recommendation_text)
+        if why_it_matters or issue:
+            st.markdown("**Why**")
+            st.write(why_it_matters or issue)
+        if expected_value_line:
+            st.markdown("**Expected value**")
+            st.caption(expected_value_line)
 
     if any([item.get("insight"), supporting_evidence]):
         detail_label = f"View details for {title[:48] or 'recommendation'}"
@@ -8024,6 +8204,44 @@ def render_recommendation_workspace_card(
         )
 
 
+def render_recommended_next_action(item: dict[str, object]) -> None:
+    """Present the highest existing recommendation as an action-first summary."""
+    title = normalize_recommendation_plain_text(str(item.get("title", "Recommendation")))
+    action = normalize_recommendation_plain_text(str(item.get("recommendation", "")))
+    context = normalize_recommendation_plain_text(
+        str(item.get("why_it_matters", "") or item.get("issue", ""))
+    )
+    priority = str(item.get("priority", "Medium")).strip().title()
+    pill_class = get_report_priority_pill_class(priority)
+    expected_value_line = build_recommendation_expected_value_line(item)
+
+    hero = st.container()
+    with hero:
+        st.markdown('<div class="recommendation-action-marker"></div>', unsafe_allow_html=True)
+        title_col, priority_col = st.columns([0.76, 0.24])
+        with title_col:
+            st.markdown('<div class="panel-title">⭐ Recommended Next Action</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="recommendation-action-title">{html.escape(title)}</div>',
+                unsafe_allow_html=True,
+            )
+        with priority_col:
+            st.markdown(
+                f'<div class="{pill_class}">{"🔴" if priority == "High" else "🟠" if priority == "Medium" else "🟢"} {priority} Priority</div>',
+                unsafe_allow_html=True,
+            )
+        if action:
+            st.write(action)
+        if context:
+            st.caption(context)
+        if expected_value_line:
+            st.markdown(
+                f'<div class="recommendation-value-row">{html.escape(expected_value_line)}</div>',
+                unsafe_allow_html=True,
+            )
+        st.markdown("View full recommendation →")
+
+
 def render_recommendation_empty_state(tab_label: str) -> None:
     """Render a clean empty state for recommendation tabs."""
     messages = {
@@ -8039,8 +8257,10 @@ def render_recommendation_empty_state(tab_label: str) -> None:
 
 def render_recommendations_page(results: dict) -> None:
     """Render the Recommendations page as a tabbed executive action workspace."""
+    st.markdown('<div class="recommendations-page-marker"></div>', unsafe_allow_html=True)
     st.title("🎯 Recommendations")
-    st.caption("Executive action workspace across strategy, recommendations, and execution assets.")
+    st.caption("Prioritized actions based on what InsightRx found.")
+    st.caption("What should you work on next?")
 
     if not results:
         st.info("Run the workflow first on the Data Sources page.")
@@ -8058,37 +8278,50 @@ def render_recommendations_page(results: dict) -> None:
 
     total_recommendations = len(recommendation_items)
     high_count = sum(str(item.get("priority", "")).strip().lower() == "high" for item in recommendation_items)
-    medium_count = sum(str(item.get("priority", "")).strip().lower() == "medium" for item in recommendation_items)
-    low_count = sum(str(item.get("priority", "")).strip().lower() == "low" for item in recommendation_items)
-    opportunity_scores = [
-        to_comparison_number(item.get("opportunity_score"))
-        for item in recommendation_items
-        if to_comparison_number(item.get("opportunity_score")) is not None
-    ]
-    average_opportunity_score = (
-        round(sum(opportunity_scores) / len(opportunity_scores), 1)
-        if opportunity_scores
-        else None
-    )
-
-    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">Recommendation Summary</div>', unsafe_allow_html=True)
-    summary_columns = st.columns(5)
-    summary_values = [
-        ("Total Recommendations", str(total_recommendations), "Rule-driven recommendations in the current run"),
-        ("High Priority", str(high_count), "Highest-priority recommendations"),
-        ("Medium Priority", str(medium_count), "Important but not urgent"),
-        ("Low Priority", str(low_count), "Lower immediate priority"),
-        ("Average Opportunity Score", f"{average_opportunity_score}/100" if average_opportunity_score is not None else "Not scored", "Across scored recommendations only"),
-    ]
-    for index, (label, value, caption) in enumerate(summary_values):
-        with summary_columns[index]:
-            st.metric(label, value)
-            st.caption(caption)
-
-    tab_labels = ["All", "SEO", "UX/CRO", "Local SEO", "Social", "Analytics", "Execution Assets"]
-    tab_objects = st.tabs(tab_labels)
     all_workspace_items = recommendation_items + priority_queue_items + what_next_items
+    sorted_recommendations = sort_recommendation_workspace_items(recommendation_items)
+
+    if sorted_recommendations:
+        render_recommended_next_action(sorted_recommendations[0])
+
+        affected_areas = []
+        for tab_label in ["SEO", "UX/CRO", "Local SEO", "Social", "Analytics"]:
+            if any(item.get("tab") == tab_label for item in recommendation_items):
+                affected_areas.append(tab_label)
+
+        summary_columns = st.columns(3)
+        summary_values = [
+            (
+                "Actions Ready",
+                str(total_recommendations),
+                "Current recommendations generated from detected opportunities",
+            ),
+            ("High Priority", str(high_count), "Best candidates to address first"),
+            (
+                "Marketing Areas Affected",
+                str(len(affected_areas)),
+                " · ".join(affected_areas) or "Areas represented in current actions",
+            ),
+        ]
+        for index, (label, value, caption) in enumerate(summary_values):
+            with summary_columns[index]:
+                render_dashboard_kpi_card(label, value, caption)
+    else:
+        st.info("No prioritized actions are available for this run yet.")
+
+    tab_labels = []
+    if all_workspace_items:
+        tab_labels.append("All")
+    for tab_label in ["SEO", "UX/CRO", "Local SEO", "Social", "Analytics"]:
+        if any(item.get("tab") == tab_label for item in all_workspace_items):
+            tab_labels.append(tab_label)
+    if suggested_change_cards:
+        tab_labels.append("Execution Assets")
+
+    if not tab_labels:
+        return
+
+    tab_objects = st.tabs(tab_labels)
 
     for tab_label, tab_object in zip(tab_labels, tab_objects):
         with tab_object:
@@ -8132,18 +8365,7 @@ def render_recommendations_page(results: dict) -> None:
                 render_recommendation_empty_state(tab_label)
                 continue
 
-            sorted_items = sorted(
-                filtered_items,
-                key=lambda item: (
-                    get_opportunity_priority_rank(str(item.get("priority", "Low")).title()),
-                    to_comparison_number(item.get("opportunity_score")) or 0,
-                    to_comparison_number(item.get("business_impact_score")) or 0,
-                    to_comparison_number(item.get("confidence_score")) or 0,
-                    to_comparison_number(item.get("impact_score")) or 0,
-                    normalize_comparison_theme(item.get("title", "")),
-                ),
-                reverse=True,
-            )
+            sorted_items = sort_recommendation_workspace_items(filtered_items)
 
             for item_index, item in enumerate(sorted_items):
                 stable_slug = slugify_recommendation_key(str(item.get("title", "")))
