@@ -596,6 +596,99 @@ st.markdown(
     .social-balance-card strong {
         color: #162033;
     }
+    .social-summary-statement {
+        border-left: 3px solid #8C52FF;
+        color: #52607A;
+        font-size: 0.94rem;
+        line-height: 1.55;
+        margin: 0.75rem 0;
+        padding-left: 0.85rem;
+    }
+    .social-opportunity-title {
+        color: #162033;
+        font-size: 1.05rem;
+        font-weight: 760;
+        line-height: 1.35;
+        margin-bottom: 0.6rem;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        word-break: normal;
+    }
+    .social-analysis-page-marker,
+    .social-opportunity-card-marker {
+        display: none !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.social-analysis-page-marker),
+    [data-testid="stVerticalBlock"]:has(.social-opportunity-card-marker),
+    [data-testid="stVerticalBlock"]:has(.social-opportunity-card-marker) [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlock"]:has(.social-opportunity-card-marker) [data-testid="element-container"] {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    [data-testid="stVerticalBlock"]:has(.social-opportunity-card-marker) {
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+        padding: 22px;
+    }
+    [data-testid="stVerticalBlock"]:has(.social-opportunity-card-marker) p,
+    [data-testid="stVerticalBlock"]:has(.social-opportunity-card-marker) span,
+    [data-testid="stVerticalBlock"]:has(.social-opportunity-card-marker) div {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        word-break: normal;
+    }
+    .social-post-card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        box-shadow: var(--panel-shadow-soft);
+        box-sizing: border-box;
+        color: #52607A;
+        margin-bottom: 0.75rem;
+        padding: 1rem 1.05rem;
+    }
+    .social-post-card-title {
+        color: #162033;
+        font-size: 0.98rem;
+        font-weight: 720;
+        line-height: 1.45;
+        margin-bottom: 0.55rem;
+    }
+    .social-post-card-meta {
+        color: #667085;
+        font-size: 0.84rem;
+        line-height: 1.55;
+    }
+    .social-insight-item {
+        background: #FBFAFF;
+        border: 1px solid #E7DDFF;
+        border-radius: 14px;
+        box-sizing: border-box;
+        color: #52607A;
+        line-height: 1.55;
+        margin-bottom: 0.7rem;
+        padding: 0.9rem 0.95rem;
+    }
+    .social-insight-item strong {
+        color: #162033;
+    }
+    @media (max-width: 768px) {
+        [data-testid="stVerticalBlock"]:has(.social-analysis-page-marker) [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        [data-testid="stVerticalBlock"]:has(.social-analysis-page-marker) [data-testid="column"] {
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+        }
+    }
     .behavior-mini-card {
         background: #FFFFFF;
         border: 1px solid var(--border-soft);
@@ -777,6 +870,17 @@ st.markdown(
         max-width: 100%;
         box-sizing: border-box;
     }
+    /* Override the general dashboard-card clipping for the Social opportunity copy. */
+    [data-testid="stVerticalBlock"]:has(.social-opportunity-card-marker) {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        height: auto !important;
+        min-height: 0;
+        overflow: visible !important;
+        padding: 22px;
+    }
     .dashboard-card-helper {
         color: var(--text-muted);
         font-size: 0.92rem;
@@ -787,6 +891,26 @@ st.markdown(
     .saved-runs-card-marker {
         display: none !important;
     }
+    .data-sources-page-marker {
+        display: none !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.data-sources-page-marker) {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow-x: clip;
+    }
+    [data-testid="stVerticalBlock"]:has(.data-sources-page-marker) [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlock"]:has(.data-sources-page-marker) [data-testid="element-container"],
+    [data-testid="stVerticalBlock"]:has(.data-sources-page-marker) .stSelectbox,
+    [data-testid="stVerticalBlock"]:has(.data-sources-page-marker) .stButton,
+    [data-testid="stVerticalBlock"]:has(.data-sources-page-marker) [data-testid="stFileUploader"] {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
     [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) {
         background: #FFFFFF;
         border: 1px solid #E5E7EB;
@@ -794,6 +918,21 @@ st.markdown(
         padding: 22px;
         box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
         margin-bottom: 1rem;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) .stSelectbox,
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) .stButton,
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) [data-testid="stFileUploader"],
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"],
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
     }
     .saved-runs-section-title {
         font-size: 1.02rem;
@@ -816,6 +955,11 @@ st.markdown(
         box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
         margin-top: 0.8rem;
         margin-bottom: 0.3rem;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow-wrap: anywhere;
     }
     .saved-run-summary-title {
         font-size: 0.95rem;
@@ -838,6 +982,28 @@ st.markdown(
         line-height: 1.5;
         margin-top: -0.15rem;
         margin-bottom: 0.55rem;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        box-sizing: border-box;
+    }
+    @media (max-width: 768px) {
+        [data-testid="stVerticalBlock"]:has(.data-sources-page-marker) {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        [data-testid="stVerticalBlock"]:has(.data-sources-page-marker) [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        [data-testid="stVerticalBlock"]:has(.data-sources-page-marker) [data-testid="column"] {
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+        }
+        [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) {
+            padding: 1rem;
+        }
     }
     .dashboard-section-divider {
         height: 1px;
@@ -1491,12 +1657,42 @@ def parse_meta_posts_csv(file) -> pd.DataFrame:
     dataframe = pd.read_csv(file)
     normalized_columns = {str(column).strip().lower(): column for column in dataframe.columns}
 
-    for column_name in ["Views", "Reach", "Likes", "Shares", "Follows", "Comments", "Saves"]:
-        source_column = normalized_columns.get(column_name.lower())
+    metric_aliases = {
+        "Views": ["views"],
+        "Reach": ["reach"],
+        "Likes": ["likes", "reactions"],
+        "Shares": ["shares"],
+        "Follows": ["follows"],
+        "Comments": ["comments"],
+        "Saves": ["saves"],
+    }
+    available_meta_fields = {}
+    for column_name, aliases in metric_aliases.items():
+        source_column = next((normalized_columns.get(alias) for alias in aliases if alias in normalized_columns), None)
         if source_column is not None:
-            dataframe[column_name] = pd.to_numeric(dataframe[source_column], errors="coerce").fillna(0)
+            numeric_values = pd.to_numeric(dataframe[source_column], errors="coerce")
+            available_meta_fields[column_name] = numeric_values.notna().any()
+            dataframe[column_name] = numeric_values.fillna(0)
         else:
+            available_meta_fields[column_name] = False
             dataframe[column_name] = 0
+
+    interaction_source_column = next(
+        (
+            normalized_columns.get(alias)
+            for alias in ["engagement", "interactions", "total interactions"]
+            if alias in normalized_columns
+        ),
+        None,
+    )
+    if interaction_source_column is not None:
+        source_interactions = pd.to_numeric(
+            dataframe[interaction_source_column], errors="coerce"
+        )
+        available_meta_fields["Source Interactions"] = source_interactions.notna().any()
+        dataframe["Source Interactions"] = source_interactions
+    else:
+        available_meta_fields["Source Interactions"] = False
 
     description_column = normalized_columns.get("description")
     if description_column is not None:
@@ -1529,6 +1725,7 @@ def parse_meta_posts_csv(file) -> pd.DataFrame:
     dataframe["Engagement Rate"] = (
         (dataframe["Engagement"] / dataframe["Reach"].replace(0, pd.NA)) * 100
     ).fillna(0).round(2)
+    dataframe.attrs["available_meta_fields"] = available_meta_fields
 
     return dataframe
 
@@ -1639,6 +1836,7 @@ def build_social_insights(meta_posts_data) -> dict[str, object]:
         "what_drives_saves": "Not enough Meta content data yet.",
         "what_drives_follows": "Not enough Meta content data yet.",
         "balance_problems": [],
+        "workspace": build_social_analysis_workspace(pd.DataFrame()),
     }
 
     if meta_posts_data is None or getattr(meta_posts_data, "empty", True):
@@ -1736,6 +1934,290 @@ def build_social_insights(meta_posts_data) -> dict[str, object]:
             else "Not enough Meta content data yet."
         ),
         "balance_problems": balance_problems,
+        "workspace": build_social_analysis_workspace(dataframe, balance_problems=balance_problems),
+    }
+
+
+def get_social_available_fields(dataframe: pd.DataFrame) -> dict[str, bool]:
+    """Return the original Meta fields that were actually supplied by the export."""
+    stored_fields = getattr(dataframe, "attrs", {}).get("available_meta_fields")
+    if isinstance(stored_fields, dict):
+        return {str(key): bool(value) for key, value in stored_fields.items()}
+
+    # Older in-memory payloads do not retain parser metadata. Keep this fallback
+    # conservative so absent source columns are not presented as observed zeroes.
+    return {
+        column: (
+            column in dataframe.columns
+            and pd.to_numeric(dataframe[column], errors="coerce").notna().any()
+            and pd.to_numeric(dataframe[column], errors="coerce").ne(0).any()
+        )
+        for column in ["Views", "Reach", "Likes", "Shares", "Follows", "Comments", "Saves", "Source Interactions"]
+    }
+
+
+def format_social_number(value: object) -> str:
+    """Format a social metric compactly without converting missing values into zero."""
+    numeric_value = to_comparison_number(value)
+    if numeric_value is None:
+        return ""
+    if abs(numeric_value) >= 1000:
+        return f"{numeric_value / 1000:.1f}K"
+    return f"{numeric_value:,.0f}"
+
+
+def build_social_analysis_workspace(
+    meta_posts_data: pd.DataFrame,
+    balance_problems: list[str] | None = None,
+) -> dict[str, object]:
+    """Build source-aware social workspace data for presentation without inventing metrics."""
+    empty_workspace = {
+        "available_fields": {},
+        "metrics": {},
+        "data_period": "",
+        "format_performance": [],
+        "theme_performance": [],
+        "content_records": [],
+        "engagement_components": [],
+        "summary_statements": [],
+        "top_opportunity": None,
+        "key_insights": [],
+        "posting_patterns": None,
+    }
+    if meta_posts_data is None or getattr(meta_posts_data, "empty", True):
+        return empty_workspace
+
+    dataframe = meta_posts_data.copy()
+    available_fields = get_social_available_fields(dataframe)
+    component_columns = [
+        column
+        for column in ["Likes", "Comments", "Shares", "Saves"]
+        if available_fields.get(column, False) and column in dataframe.columns
+    ]
+    has_interactions = bool(component_columns) or available_fields.get("Source Interactions", False)
+
+    if component_columns:
+        dataframe["_valid_interactions"] = dataframe[component_columns].sum(axis=1, min_count=1)
+    elif available_fields.get("Source Interactions", False) and "Source Interactions" in dataframe.columns:
+        dataframe["_valid_interactions"] = pd.to_numeric(dataframe["Source Interactions"], errors="coerce")
+    else:
+        dataframe["_valid_interactions"] = pd.NA
+
+    has_reach = available_fields.get("Reach", False)
+    has_views = available_fields.get("Views", False)
+    has_saves = available_fields.get("Saves", False)
+    has_engagement_rate = has_reach and has_interactions
+    if has_engagement_rate:
+        dataframe["_valid_engagement_rate"] = (
+            dataframe["_valid_interactions"] / dataframe["Reach"].replace(0, pd.NA) * 100
+        )
+    else:
+        dataframe["_valid_engagement_rate"] = pd.NA
+
+    valid_posts = int(len(dataframe))
+    metrics: dict[str, float | int] = {"posts_published": valid_posts}
+    if has_reach:
+        metrics["total_reach"] = float(dataframe["Reach"].sum(min_count=1))
+    if has_views:
+        metrics["total_views"] = float(dataframe["Views"].sum(min_count=1))
+    if has_interactions:
+        total_engagements = dataframe["_valid_interactions"].sum(min_count=1)
+        if pd.notna(total_engagements):
+            metrics["total_engagements"] = float(total_engagements)
+        if valid_posts and metrics.get("total_engagements") is not None:
+            metrics["average_engagements_per_post"] = metrics["total_engagements"] / valid_posts
+    if has_engagement_rate and metrics.get("total_reach", 0) > 0 and metrics.get("total_engagements") is not None:
+        metrics["engagement_rate"] = (metrics["total_engagements"] / metrics["total_reach"]) * 100
+
+    def build_group_performance(group_column: str, label_key: str) -> list[dict[str, object]]:
+        if group_column not in dataframe.columns:
+            return []
+        rows: list[dict[str, object]] = []
+        for label, group in dataframe.groupby(group_column, dropna=False):
+            label_text = str(label).strip() or "Unknown"
+            record: dict[str, object] = {label_key: label_text, "posts": int(len(group))}
+            if has_reach:
+                record["avg_reach"] = float(group["Reach"].mean())
+            if has_views:
+                record["avg_views"] = float(group["Views"].mean())
+            average_engagements = group["_valid_interactions"].mean() if has_interactions else None
+            if average_engagements is not None and pd.notna(average_engagements):
+                record["avg_engagements"] = float(average_engagements)
+            average_engagement_rate = group["_valid_engagement_rate"].mean() if has_engagement_rate else None
+            if average_engagement_rate is not None and pd.notna(average_engagement_rate):
+                record["engagement_rate"] = float(average_engagement_rate)
+            if has_saves and has_reach and group["Reach"].sum() > 0:
+                record["save_rate"] = float((group["Saves"].sum() / group["Reach"].sum()) * 100)
+            rows.append(record)
+
+        sort_key = "engagement_rate" if has_engagement_rate else ("avg_engagements" if has_interactions else "avg_reach")
+        return sorted(rows, key=lambda item: float(item.get(sort_key, 0) or 0), reverse=True)
+
+    format_performance = build_group_performance("Post type", "format")
+    theme_performance = build_group_performance("Topic", "theme")
+
+    content_records = []
+    for _, row in dataframe.iterrows():
+        record: dict[str, object] = {
+            "hook": str(row.get("Hook", "")).strip(),
+            "format": str(row.get("Post type", "Unknown")).strip() or "Unknown",
+            "topic": str(row.get("Topic", "general")).strip() or "general",
+        }
+        if "Publish time" in dataframe.columns and pd.notna(row.get("Publish time")):
+            record["publish_time"] = row["Publish time"].strftime("%b %d, %Y")
+        for source_column, key, available in [
+            ("Reach", "reach", has_reach),
+            ("Views", "views", has_views),
+            ("_valid_interactions", "engagements", has_interactions),
+            ("_valid_engagement_rate", "engagement_rate", has_engagement_rate),
+            ("Saves", "saves", has_saves),
+            ("Shares", "shares", available_fields.get("Shares", False)),
+        ]:
+            if available and pd.notna(row.get(source_column)):
+                record[key] = float(row[source_column])
+        content_records.append(record)
+
+    engagement_components = []
+    for source_column, label in [
+        ("Likes", "Reactions / likes"),
+        ("Comments", "Comments"),
+        ("Shares", "Shares"),
+        ("Saves", "Saves"),
+        ("Follows", "Follows"),
+    ]:
+        if available_fields.get(source_column, False) and source_column in dataframe.columns:
+            total = float(dataframe[source_column].sum(min_count=1))
+            engagement_components.append({"label": label, "value": total})
+
+    valid_publish_times = (
+        dataframe["Publish time"].dropna()
+        if "Publish time" in dataframe.columns
+        else pd.Series(dtype="datetime64[ns]")
+    )
+    data_period = ""
+    if not valid_publish_times.empty:
+        start_date = valid_publish_times.min()
+        end_date = valid_publish_times.max()
+        data_period = start_date.strftime("%b %d, %Y")
+        if start_date.date() != end_date.date():
+            data_period = f"{data_period} – {end_date.strftime('%b %d, %Y')}"
+
+    posting_patterns = None
+    if len(valid_publish_times) >= 8 and valid_publish_times.dt.day_name().nunique() >= 2 and valid_publish_times.dt.hour.nunique() >= 2:
+        pattern_metric = "_valid_engagement_rate" if has_engagement_rate else "_valid_interactions"
+        if pattern_metric in dataframe.columns and dataframe[pattern_metric].notna().any():
+            patterned = dataframe.loc[dataframe["Publish time"].notna()].copy()
+            patterned["day"] = patterned["Publish time"].dt.day_name()
+            patterned["hour"] = patterned["Publish time"].dt.hour
+            grouped = patterned.groupby(["day", "hour"])[pattern_metric].agg(["mean", "count"]).reset_index()
+            posting_patterns = {
+                "metric_label": "Average engagement rate" if has_engagement_rate else "Average interactions",
+                "rows": grouped.rename(columns={"mean": "value"}).to_dict(orient="records"),
+            }
+
+    summary_statements = []
+    if len(format_performance) >= 2 and "engagement_rate" in format_performance[0]:
+        top_format = format_performance[0]
+        summary_statements.append(
+            f"{top_format['format']} has the strongest average audience response at {top_format['engagement_rate']:.2f}% across {top_format['posts']} posts."
+        )
+    if len(theme_performance) >= 2 and "engagement_rate" in theme_performance[0]:
+        top_theme = theme_performance[0]
+        summary_statements.append(
+            f"{humanize_social_topic(str(top_theme['theme']))} is the strongest current content theme by average engagement rate."
+        )
+    total_component_engagement = sum(item["value"] for item in engagement_components)
+    save_share_total = sum(item["value"] for item in engagement_components if item["label"] in {"Saves", "Shares"})
+    if total_component_engagement > 0 and save_share_total > 0:
+        summary_statements.append(
+            f"Saves and shares account for {save_share_total / total_component_engagement * 100:.0f}% of recorded engagement actions."
+        )
+
+    top_opportunity = None
+    if len(format_performance) >= 2 and format_performance[0].get("posts", 0) >= 2 and "engagement_rate" in format_performance[0]:
+        top_format = format_performance[0]
+        top_opportunity = {
+            "title": f"Scale {top_format['format']} content",
+            "explanation": (
+                f"Across {top_format['posts']} posts, this format has the strongest average engagement rate "
+                f"({top_format['engagement_rate']:.2f}%) among the formats in this run."
+            ),
+            "evidence": f"{top_format['posts']} posts • {top_format['engagement_rate']:.2f}% average engagement rate",
+        }
+
+    key_insights = []
+    if len(theme_performance) >= 2 and theme_performance[0].get("posts", 0) >= 2 and "engagement_rate" in theme_performance[0]:
+        top_theme = theme_performance[0]
+        key_insights.append(
+            {
+                "title": "Winning Theme",
+                "conclusion": f"{humanize_social_topic(str(top_theme['theme']))} earns the strongest average engagement rate among the themes in this run.",
+                "evidence": f"{top_theme['posts']} posts • {top_theme['engagement_rate']:.2f}% average engagement rate",
+            }
+        )
+    if len(format_performance) >= 2 and format_performance[0].get("posts", 0) >= 2 and "engagement_rate" in format_performance[0]:
+        top_format = format_performance[0]
+        key_insights.append(
+            {
+                "title": "Strongest Format",
+                "conclusion": f"{top_format['format']} is the strongest format by average audience response in this run.",
+                "evidence": f"{top_format['posts']} posts • {top_format['engagement_rate']:.2f}% average engagement rate",
+            }
+        )
+    if has_saves and has_reach and len(format_performance) >= 2 and "save_rate" in format_performance[0]:
+        top_format = format_performance[0]
+        key_insights.append(
+            {
+                "title": "Save Signal",
+                "conclusion": f"{top_format['format']} generates the highest save rate among the available formats.",
+                "evidence": f"{top_format['save_rate']:.2f}% saves relative to reach",
+            }
+        )
+
+    balance_problems = balance_problems or []
+    cta_signal = next(
+        (item for item in balance_problems if "high engagement but low conversion" in str(item).lower()),
+        None,
+    )
+    if cta_signal and available_fields.get("Follows", False):
+        key_insights.append(
+            {
+                "title": "CTA Opportunity",
+                "conclusion": "Some posts earn strong engagement without generating follows, so their next-step guidance can be made clearer.",
+                "evidence": str(cta_signal),
+            }
+        )
+        top_opportunity = {
+            "title": "Clarify next steps on engaged posts",
+            "explanation": "Posts with strong engagement but no follows may benefit from a clearer follow prompt or next-step action in the caption and creative.",
+            "evidence": str(cta_signal),
+        }
+
+    content_gap_signal = next(
+        (item for item in balance_problems if "high reach with low engagement" in str(item).lower()),
+        None,
+    )
+    if content_gap_signal and has_reach and has_interactions:
+        key_insights.append(
+            {
+                "title": "Content Gap",
+                "conclusion": "Some higher-reach posts are not earning proportional audience response, indicating an opening to improve hooks or creative payoff.",
+                "evidence": str(content_gap_signal),
+            }
+        )
+
+    return {
+        "available_fields": available_fields,
+        "metrics": metrics,
+        "data_period": data_period,
+        "format_performance": format_performance,
+        "theme_performance": theme_performance,
+        "content_records": content_records,
+        "engagement_components": engagement_components,
+        "summary_statements": summary_statements[:3],
+        "top_opportunity": top_opportunity,
+        "key_insights": key_insights[:4],
+        "posting_patterns": posting_patterns,
     }
 
 
@@ -3981,138 +4463,335 @@ def render_analysis_page(results: dict) -> None:
             )
 
 
+def format_social_workspace_table(records: list[dict[str, object]], label_key: str) -> pd.DataFrame:
+    """Format source-supported social group metrics for compact tables."""
+    if not records:
+        return pd.DataFrame()
+
+    table = pd.DataFrame(records).copy()
+    label_title = "Format" if label_key == "format" else "Theme"
+    column_labels = {
+        label_key: label_title,
+        "posts": "Posts",
+        "avg_reach": "Avg Reach",
+        "avg_views": "Avg Views",
+        "engagement_rate": "Engagement Rate",
+        "save_rate": "Save Rate",
+    }
+    visible_columns = [column for column in column_labels if column in table.columns]
+    table = table[visible_columns].rename(columns=column_labels)
+    for column in ["Avg Reach", "Avg Views"]:
+        if column in table.columns:
+            table[column] = table[column].apply(format_social_number)
+    for column in ["Engagement Rate", "Save Rate"]:
+        if column in table.columns:
+            table[column] = table[column].apply(
+                lambda value: f"{float(value):.2f}%" if pd.notna(value) else ""
+            )
+    return table
+
+
+def sort_social_content(records: list[dict[str, object]], metric: str) -> list[dict[str, object]]:
+    """Sort post cards by a selected, source-supported performance metric."""
+    metric_order = {
+        "overall": ["engagement_rate", "engagements", "saves", "shares", "reach", "views"],
+        "reach": ["reach", "engagement_rate", "engagements"],
+        "engagement": ["engagement_rate", "engagements", "saves"],
+        "saves": ["saves", "engagement_rate", "engagements"],
+        "shares": ["shares", "engagement_rate", "engagements"],
+    }
+    keys = metric_order.get(metric, metric_order["overall"])
+    return sorted(
+        records,
+        key=lambda item: tuple(to_comparison_number(item.get(key)) or 0 for key in keys),
+        reverse=True,
+    )
+
+
+def render_social_post_cards(records: list[dict[str, object]]) -> None:
+    """Render compact text-based post cards when no usable media thumbnail is supplied."""
+    for item in records[:3]:
+        hook = str(item.get("hook") or "Untitled social post").strip()
+        if len(hook) > 180:
+            hook = f"{hook[:177].rstrip()}..."
+        meta_parts = [
+            str(item.get("format") or "Unknown format"),
+            humanize_social_topic(str(item.get("topic") or "general")),
+        ]
+        if item.get("publish_time"):
+            meta_parts.append(str(item["publish_time"]))
+        metric_parts = []
+        for key, label, is_rate in [
+            ("reach", "Reach", False),
+            ("views", "Views", False),
+            ("engagements", "Engagements", False),
+            ("engagement_rate", "Engagement rate", True),
+            ("saves", "Saves", False),
+            ("shares", "Shares", False),
+        ]:
+            if item.get(key) is not None:
+                value = item[key]
+                value_text = f"{float(value):.2f}%" if is_rate else format_social_number(value)
+                metric_parts.append(f"{label}: {value_text}")
+        st.markdown(
+            f"""
+            <div class="social-post-card">
+                <div class="social-post-card-title">{html.escape(hook)}</div>
+                <div class="social-post-card-meta">{html.escape(' • '.join(meta_parts))}</div>
+                <div class="social-post-card-meta" style="margin-top: 0.5rem;">{html.escape(' • '.join(metric_parts))}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def render_social_summary_card(summary_statements: list[object], metrics: dict[str, object]) -> None:
+    """Render the social summary from existing structured social-analysis statements."""
+    summary_card = st.container()
+    with summary_card:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">🧠 AI Social Summary</div>', unsafe_allow_html=True)
+        if summary_statements:
+            for statement in summary_statements:
+                st.markdown(
+                    f'<div class="social-summary-statement">{html.escape(str(statement))}</div>',
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.markdown(
+                f'<div class="social-summary-statement">{format_social_number(metrics.get("posts_published"))} valid posts are available for analysis. More variation in content formats or themes is needed before a comparative pattern can be stated.</div>',
+                unsafe_allow_html=True,
+            )
+
+
 def render_social_analysis_page(results: dict) -> None:
-    """Render the Social Analysis page using Meta social insights."""
+    """Render the Social Analysis workspace from structured Meta social intelligence."""
+    st.markdown('<div class="social-analysis-page-marker"></div>', unsafe_allow_html=True)
     st.title("📱 Social Analysis")
-    st.caption("Instagram + Facebook performance insights")
+    st.caption("AI-powered insights from your social content performance")
 
     if not results:
         st.info("Upload a Meta content export and run the workflow first on the Data Sources page.")
         return
 
-    render_comparison_summary(results, ["social"])
-
     social_insights = results.get("social_insights") or {}
     meta_posts_data = results.get("meta_posts_data")
-
     if not social_insights or meta_posts_data is None or getattr(meta_posts_data, "empty", True):
         st.info("Upload a Meta content export and run the workflow first on the Data Sources page.")
         return
 
-    top_topics = social_insights.get("top_topics", [])
-    weak_topics = social_insights.get("weak_topics", [])
-    best_post_type = social_insights.get("best_post_type", "Not available")
-    worst_post_type = social_insights.get("worst_post_type", "Not available")
-    top_topic = humanize_social_topic(top_topics[0]) if top_topics else "Not available"
-    weak_topic = humanize_social_topic(weak_topics[0]) if weak_topics else "Not available"
+    workspace = social_insights.get("workspace") or build_social_analysis_workspace(meta_posts_data)
+    data_period = str(workspace.get("data_period") or "").strip()
+    if data_period:
+        st.caption(f"Content period: {data_period}")
+    render_comparison_summary(results, ["social"])
 
-    metric_cols = st.columns(4)
-    with metric_cols[0]:
-        st.metric("Best Post Type", best_post_type)
-    with metric_cols[1]:
-        st.metric("Worst Post Type", worst_post_type)
-    with metric_cols[2]:
-        st.metric("Top Topic", top_topic)
-    with metric_cols[3]:
-        st.metric("Weak Topic", weak_topic)
-    st.markdown('<div class="dashboard-section-divider"></div>', unsafe_allow_html=True)
+    metrics = workspace.get("metrics") or {}
+    kpis = []
+    if metrics.get("total_reach") is not None:
+        kpis.append(("Total Reach", format_social_number(metrics["total_reach"]), "Total supplied Meta reach"))
+    if metrics.get("total_views") is not None:
+        kpis.append(("Total Views", format_social_number(metrics["total_views"]), "Total supplied Meta views"))
+    if metrics.get("engagement_rate") is not None:
+        kpis.append(("Engagement Rate", f"{float(metrics['engagement_rate']):.2f}%", "Recorded interactions relative to reach"))
+    if metrics.get("posts_published"):
+        kpis.append(("Posts Published", format_social_number(metrics["posts_published"]), "Valid posts analyzed in this run"))
+    if metrics.get("average_engagements_per_post") is not None:
+        kpis.append(("Avg Engagements / Post", f"{float(metrics['average_engagements_per_post']):.1f}", "Average recorded interactions per valid post"))
 
-    top_performing_content = social_insights.get("top_performing_content", [])
-    top_content_card = st.container()
-    with top_content_card:
-        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">📱 Top Performing Content</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="dashboard-card-helper">The strongest-performing Meta content from the current loaded run.</div>',
-            unsafe_allow_html=True,
-        )
-        if top_performing_content:
-            top_performing_df = pd.DataFrame(top_performing_content)
-            visible_columns = [
-                column
-                for column in ["Hook", "Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"]
-                if column in top_performing_df.columns
-            ]
-            st.dataframe(top_performing_df[visible_columns], use_container_width=True, hide_index=True)
-        else:
-            st.info("No top performing social content available yet.")
+    if kpis:
+        metric_columns = st.columns(len(kpis))
+        for index, (label, value, helper) in enumerate(kpis):
+            with metric_columns[index]:
+                render_dashboard_kpi_card(label, value, helper)
+        st.markdown('<div class="dashboard-section-divider"></div>', unsafe_allow_html=True)
 
-    conversion_content = social_insights.get("conversion_content", [])
-    conversion_card = st.container()
-    with conversion_card:
-        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">🎯 Conversion Content</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="dashboard-card-helper">Posts most likely to support stronger next-step or conversion behavior.</div>',
-            unsafe_allow_html=True,
-        )
-        if conversion_content:
-            conversion_df = pd.DataFrame(conversion_content)
-            visible_columns = [
-                column
-                for column in ["Hook", "Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"]
-                if column in conversion_df.columns
-            ]
-            st.dataframe(conversion_df[visible_columns], use_container_width=True, hide_index=True)
-        else:
-            st.info("No conversion-oriented social content available yet.")
+    summary_statements = workspace.get("summary_statements") or []
+    top_opportunity = workspace.get("top_opportunity")
+    if top_opportunity:
+        summary_col, opportunity_col = st.columns([1.8, 1], gap="large")
+        with summary_col:
+            render_social_summary_card(summary_statements, metrics)
+        with opportunity_col:
+            opportunity_card = st.container()
+            with opportunity_card:
+                st.markdown('<div class="social-opportunity-card-marker"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">🚀 Top Opportunity</div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="social-opportunity-title">{html.escape(str(top_opportunity.get("title", "Social opportunity")))}</div>',
+                    unsafe_allow_html=True,
+                )
+                st.write(str(top_opportunity.get("explanation", "")))
+                if top_opportunity.get("evidence"):
+                    st.caption(str(top_opportunity["evidence"]))
+                st.markdown("View Opportunities →")
+    else:
+        render_social_summary_card(summary_statements, metrics)
 
-    st.markdown("### 🧩 Topic Insights")
-    topic_left_col, topic_right_col = st.columns(2)
-
-    with topic_left_col:
-        top_topics_card = st.container()
-        with top_topics_card:
+    format_performance = workspace.get("format_performance") or []
+    if format_performance:
+        format_card = st.container()
+        with format_card:
             st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="social-mini-title">🔥 Top Topics</div>', unsafe_allow_html=True)
-            if top_topics:
-                for topic in top_topics:
-                    st.write(f"- {humanize_social_topic(topic)}")
-            else:
-                st.write("No top topics available yet.")
-
-    with topic_right_col:
-        weak_topics_card = st.container()
-        with weak_topics_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="social-mini-title">⚠️ Weak Topics</div>', unsafe_allow_html=True)
-            if weak_topics:
-                for topic in weak_topics:
-                    st.write(f"- {humanize_social_topic(topic)}")
-            else:
-                st.write("No weak topics available yet.")
-
-    performance_card = st.container()
-    with performance_card:
-        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">🔥 What Drives Performance</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="dashboard-card-helper">Short strategist signals from the strongest save-driving and follow-driving patterns.</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            f"""
-            <div class="social-label-row"><strong>What drives saves:</strong> {social_insights.get('what_drives_saves', 'Not available')}</div>
-            <br>
-            <div class="social-label-row"><strong>What drives follows:</strong> {social_insights.get('what_drives_follows', 'Not available')}</div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("### ⚠️ Balance Problems")
-    balance_problems = social_insights.get("balance_problems", [])
-    if balance_problems:
-        for issue in balance_problems:
+            st.markdown('<div class="panel-title">Content Format Performance</div>', unsafe_allow_html=True)
             st.markdown(
-                f"""
-                <div class="social-balance-card">
-                    <strong>Issue:</strong> {issue}
-                </div>
-                """,
+                '<div class="dashboard-card-helper">Performance is grouped by the actual post formats included in the Meta export.</div>',
                 unsafe_allow_html=True,
             )
-    else:
-        st.info("No balance problems detected yet.")
+            format_table = format_social_workspace_table(format_performance, "format")
+            st.dataframe(format_table, use_container_width=True, hide_index=True)
+            if len(format_performance) >= 2 and "engagement_rate" in format_performance[0]:
+                chart_df = pd.DataFrame(format_performance).sort_values("engagement_rate", ascending=True)
+                format_fig = px.bar(
+                    chart_df,
+                    x="engagement_rate",
+                    y="format",
+                    orientation="h",
+                    color_discrete_sequence=["#8C52FF"],
+                    labels={"engagement_rate": "Average Engagement Rate", "format": ""},
+                )
+                format_fig.update_layout(
+                    plot_bgcolor="#FFFFFF",
+                    paper_bgcolor="#FFFFFF",
+                    font={"color": "#162033"},
+                    height=280,
+                    margin={"l": 8, "r": 12, "t": 12, "b": 28},
+                    showlegend=False,
+                )
+                format_fig.update_xaxes(ticksuffix="%", gridcolor="#EEF2F7", zeroline=False)
+                format_fig.update_yaxes(automargin=True)
+                st.plotly_chart(format_fig, use_container_width=True)
+            elif len(format_performance) == 1:
+                st.caption("One content format is present in this run, so no best-versus-worst format comparison is shown.")
+
+    theme_performance = workspace.get("theme_performance") or []
+    if theme_performance:
+        theme_card = st.container()
+        with theme_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Content Themes</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dashboard-card-helper">Themes use the existing InsightRx topic classification and are ranked by available audience-response signals.</div>',
+                unsafe_allow_html=True,
+            )
+            theme_records = [
+                {**item, "theme": humanize_social_topic(str(item.get("theme") or "general"))}
+                for item in theme_performance
+            ]
+            st.dataframe(format_social_workspace_table(theme_records, "theme"), use_container_width=True, hide_index=True)
+            if len(theme_records) >= 2:
+                st.caption("The first row is best performing by the available response metric; post count is shown separately from performance.")
+
+    content_records = workspace.get("content_records") or []
+    if content_records:
+        content_card = st.container()
+        with content_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">📱 Top Performing Content</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dashboard-card-helper">Post ranking prioritizes audience response when available; reach alone is not treated as the best-content signal.</div>',
+                unsafe_allow_html=True,
+            )
+            tab_specs = [("Overall", "overall")]
+            for label, key in [("Reach", "reach"), ("Engagement", "engagement"), ("Saves", "saves"), ("Shares", "shares")]:
+                if any(record.get(key if key != "engagement" else "engagement_rate") is not None for record in content_records):
+                    tab_specs.append((label, key))
+            content_tabs = st.tabs([label for label, _ in tab_specs])
+            for tab, (_, sort_key) in zip(content_tabs, tab_specs):
+                with tab:
+                    render_social_post_cards(sort_social_content(content_records, sort_key))
+
+    engagement_components = workspace.get("engagement_components") or []
+    if engagement_components:
+        engagement_card = st.container()
+        with engagement_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Engagement Quality</div>', unsafe_allow_html=True)
+            engagement_col, interpretation_col = st.columns([1.1, 0.9], gap="large")
+            with engagement_col:
+                component_df = pd.DataFrame(engagement_components)
+                component_fig = px.pie(
+                    component_df,
+                    names="label",
+                    values="value",
+                    hole=0.62,
+                    color_discrete_sequence=["#7C3AED", "#A78BFA", "#C4B5FD", "#DDD6FE", "#6D28D9"],
+                )
+                component_fig.update_layout(
+                    plot_bgcolor="#FFFFFF",
+                    paper_bgcolor="#FFFFFF",
+                    font={"color": "#162033"},
+                    height=300,
+                    margin={"l": 4, "r": 4, "t": 8, "b": 8},
+                    legend={"orientation": "h", "y": -0.15},
+                )
+                st.plotly_chart(component_fig, use_container_width=True)
+            with interpretation_col:
+                total_engagements = metrics.get("total_engagements")
+                if total_engagements is not None:
+                    st.metric("Total Engagements", format_social_number(total_engagements))
+                total_component_actions = sum(float(item.get("value") or 0) for item in engagement_components)
+                saves_and_shares = sum(
+                    float(item.get("value") or 0)
+                    for item in engagement_components
+                    if item.get("label") in {"Saves", "Shares"}
+                )
+                if total_component_actions > 0 and saves_and_shares > 0:
+                    st.write(
+                        f"Saves and shares account for {saves_and_shares / total_component_actions * 100:.0f}% of the recorded engagement actions in this run."
+                    )
+                else:
+                    st.write("The chart shows the mix of recorded engagement actions available in this Meta export.")
+
+    posting_patterns = workspace.get("posting_patterns")
+    if posting_patterns and posting_patterns.get("rows"):
+        pattern_card = st.container()
+        with pattern_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Posting Patterns</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="dashboard-card-helper">Heatmap shows {html.escape(str(posting_patterns.get("metric_label", "average performance")))} by day and hour for posts with valid timestamps.</div>',
+                unsafe_allow_html=True,
+            )
+            pattern_df = pd.DataFrame(posting_patterns["rows"])
+            day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            heatmap_df = pattern_df.pivot(index="day", columns="hour", values="value").reindex(day_order).dropna(how="all")
+            if not heatmap_df.empty:
+                heatmap_fig = px.imshow(
+                    heatmap_df,
+                    aspect="auto",
+                    color_continuous_scale=["#F3EDFF", "#7C3AED"],
+                    labels={"x": "Hour of day", "y": "Day", "color": str(posting_patterns.get("metric_label", "Performance"))},
+                )
+                heatmap_fig.update_layout(
+                    plot_bgcolor="#FFFFFF",
+                    paper_bgcolor="#FFFFFF",
+                    font={"color": "#162033"},
+                    height=310,
+                    margin={"l": 8, "r": 8, "t": 8, "b": 28},
+                )
+                st.plotly_chart(heatmap_fig, use_container_width=True)
+
+    key_insights = workspace.get("key_insights") or []
+    if key_insights:
+        insights_card = st.container()
+        with insights_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Key Insights & Opportunities</div>', unsafe_allow_html=True)
+            insight_columns = st.columns(min(2, len(key_insights)))
+            for index, insight_item in enumerate(key_insights):
+                with insight_columns[index % len(insight_columns)]:
+                    st.markdown(
+                        f"""
+                        <div class="social-insight-item">
+                            <strong>{html.escape(str(insight_item.get('title', 'Insight')))}</strong><br>
+                            {html.escape(str(insight_item.get('conclusion', '')))}<br><br>
+                            <span>{html.escape(str(insight_item.get('evidence', '')))}</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
 
 def render_suggested_changes_section(results: dict) -> None:
@@ -5064,6 +5743,7 @@ def render_export_section(results: dict, inside_panel: bool = False) -> None:
 
 def render_data_sources() -> dict[str, object]:
     """Render uploaders and workflow trigger on the Data Sources page."""
+    st.markdown('<div class="data-sources-page-marker"></div>', unsafe_allow_html=True)
     st.title("📂 Data Sources")
     st.write("Upload and manage your marketing data inputs")
     saved_runs = list_saved_runs()
