@@ -361,6 +361,129 @@ st.markdown(
         line-height: 1.65;
         max-width: 760px;
     }
+    .dashboard-eyebrow {
+        color: #7C3AED;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+    }
+    .dashboard-kpi-card {
+        background: #FFFFFF;
+        border: 1px solid #E8E8EE;
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+        padding: 1.2rem 1.25rem;
+        min-height: 148px;
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+    }
+    .dashboard-kpi-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #7C3AED, #A78BFA);
+    }
+    .dashboard-kpi-label {
+        color: #344054;
+        font-size: 0.86rem;
+        font-weight: 700;
+        margin-bottom: 0.7rem;
+    }
+    .dashboard-kpi-value {
+        color: #162033;
+        font-size: 1.75rem;
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        overflow-wrap: anywhere;
+    }
+    .dashboard-kpi-helper {
+        color: #667085;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        margin-top: 0.55rem;
+    }
+    .dashboard-kpi-trend {
+        display: inline-block;
+        margin-top: 0.55rem;
+        border-radius: 999px;
+        padding: 0.22rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        background: #ECFDF3;
+        color: #067647;
+    }
+    .dashboard-kpi-trend.is-negative {
+        background: #FFF7ED;
+        color: #B54708;
+    }
+    .dashboard-opportunity-card {
+        background: linear-gradient(135deg, #FFFFFF 0%, #FBF9FF 100%);
+        border: 1px solid #E8E8EE;
+        border-left: 4px solid #8C52FF;
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+        padding: 1.25rem 1.35rem;
+        box-sizing: border-box;
+    }
+    .dashboard-opportunity-title {
+        color: #162033;
+        font-size: 1.08rem;
+        font-weight: 780;
+        margin-bottom: 0.55rem;
+    }
+    .dashboard-opportunity-copy {
+        color: #52607A;
+        font-size: 0.93rem;
+        line-height: 1.58;
+    }
+    .dashboard-opportunity-meta {
+        color: #667085;
+        font-size: 0.82rem;
+        line-height: 1.5;
+        margin-top: 0.8rem;
+    }
+    .dashboard-action-card {
+        background: #FFFFFF;
+        border: 1px solid #E8E8EE;
+        border-radius: 16px;
+        padding: 1rem 1.05rem;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+        margin-bottom: 0.8rem;
+    }
+    .dashboard-action-title {
+        color: #162033;
+        font-size: 0.96rem;
+        font-weight: 760;
+        line-height: 1.35;
+    }
+    .dashboard-action-copy {
+        color: #667085;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        margin-top: 0.45rem;
+    }
+    .dashboard-action-footer {
+        color: #7C3AED;
+        font-size: 0.8rem;
+        font-weight: 700;
+        margin-top: 0.75rem;
+    }
+    @media (max-width: 900px) {
+        .dashboard-kpi-card {
+            min-height: 126px;
+            margin-bottom: 0.35rem;
+        }
+        .dashboard-kpi-value {
+            font-size: 1.48rem;
+        }
+    }
     .panel {
         background: var(--panel-bg);
         border: 1px solid var(--border-soft);
@@ -8454,10 +8577,334 @@ def render_ai_right_rail(results: dict | None) -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+def format_dashboard_compact_number(value) -> str:
+    """Format existing numeric dashboard values without changing their meaning."""
+    numeric_value = to_comparison_number(value)
+    if numeric_value is None:
+        return "Not available"
+    if abs(numeric_value) >= 1_000_000:
+        return f"{numeric_value / 1_000_000:.1f}M"
+    if abs(numeric_value) >= 1_000:
+        return f"{numeric_value / 1_000:.1f}K"
+    return f"{int(numeric_value):,}" if numeric_value.is_integer() else f"{numeric_value:,.1f}"
+
+
+def get_dashboard_comparison_change(section: str, metric_label: str) -> float | None:
+    """Return an existing saved-run percentage change for a matching dashboard metric."""
+    comparison_results = st.session_state.get("comparison_results") or {}
+    if not st.session_state.get("comparison_mode") or not isinstance(comparison_results, dict):
+        return None
+
+    for row in comparison_results.get(section, []) or []:
+        if str(row.get("metric", "")).strip() == metric_label:
+            return to_comparison_number(row.get("percent_change"))
+    return None
+
+
+def render_dashboard_kpi_card(label: str, value: str, helper: str, trend: float | None = None) -> None:
+    """Render one presentation-only dashboard KPI card."""
+    trend_html = ""
+    if trend is not None:
+        trend_class = "" if trend >= 0 else " is-negative"
+        trend_prefix = "↑" if trend >= 0 else "↓"
+        trend_html = (
+            f'<div class="dashboard-kpi-trend{trend_class}">'
+            f'{trend_prefix} {abs(trend):.1f}% vs previous run</div>'
+        )
+
+    st.markdown(
+        f"""
+        <div class="dashboard-kpi-card">
+            <div class="dashboard-kpi-label">{html.escape(label)}</div>
+            <div class="dashboard-kpi-value">{html.escape(value)}</div>
+            <div class="dashboard-kpi-helper">{html.escape(helper)}</div>
+            {trend_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def get_dashboard_top_opportunity(insight: dict) -> dict:
+    """Return the strongest existing search opportunity for dashboard presentation."""
+    high_impression_low_click = insight.get("high_impression_low_click", []) or []
+    if high_impression_low_click:
+        return high_impression_low_click[0]
+
+    query_analysis = insight.get("query_analysis", []) or []
+    return max(
+        query_analysis,
+        key=lambda item: to_comparison_number(item.get("opportunity_score")) or 0,
+        default={},
+    )
+
+
+def render_figma_dashboard_view(results: dict, ga4_debug_titles: list[str], show_debug: bool) -> None:
+    """Render the dashboard using existing workflow outputs in the current product layout."""
+    insight = results.get("insight", {})
+    data_summary = results.get("data_intake", {}).get("summary", {})
+    combined = data_summary.get("combined", {})
+    strategy = results.get("strategy", {}).get("strategy", {})
+    query_analysis = insight.get("query_analysis", []) or []
+    top_pages = combined.get("top_pages", []) or []
+    top_sources = combined.get("top_traffic_sources", []) or []
+    meta_posts_data = results.get("meta_posts_data")
+    social_insights = results.get("social_insights", {}) or {}
+    ga4_page_metrics = data_summary.get("ga4_pages", {}).get("key_metrics", {}) or {}
+    ga4_source_metrics = data_summary.get("ga4_sources", {}).get("key_metrics", {}) or {}
+
+    sessions_value = to_comparison_number(ga4_page_metrics.get("sessions"))
+    if sessions_value is None:
+        sessions_value = to_comparison_number(ga4_source_metrics.get("sessions"))
+
+    total_impressions = sum(
+        to_comparison_number(item.get("impressions")) or 0
+        for item in query_analysis
+    ) if query_analysis else None
+
+    engagement_rate_percent = normalize_report_percent(ga4_page_metrics.get("engagement_rate"))
+    if engagement_rate_percent is None:
+        ga4_pages_df = get_report_ga4_pages_dataframe(results)
+        if not ga4_pages_df.empty and "engagement_rate" in ga4_pages_df.columns:
+            engagement_rate_percent = normalize_report_percent(ga4_pages_df["engagement_rate"].dropna().mean())
+
+    social_engagement_rate = None
+    if meta_posts_data is not None and not getattr(meta_posts_data, "empty", True):
+        if {"Engagement", "Reach"}.issubset(meta_posts_data.columns):
+            total_reach = to_comparison_number(meta_posts_data["Reach"].fillna(0).sum())
+            total_engagement = to_comparison_number(meta_posts_data["Engagement"].fillna(0).sum())
+            if total_reach is not None and total_reach > 0 and total_engagement is not None:
+                social_engagement_rate = (total_engagement / total_reach) * 100
+
+    st.markdown('<div class="dashboard-eyebrow">Marketing intelligence</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dashboard-title">Marketing Intelligence Dashboard</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="dashboard-subtitle">Your marketing performance at a glance, with the opportunities that matter most.</div>',
+        unsafe_allow_html=True,
+    )
+
+    website_change = get_dashboard_comparison_change("ga4", "Sessions")
+    impressions_change = get_dashboard_comparison_change("gsc", "Tracked GSC Impressions")
+    engagement_change = get_dashboard_comparison_change("ga4", "Engagement Rate")
+
+    kpi_columns = st.columns(4, gap="medium")
+    with kpi_columns[0]:
+        render_dashboard_kpi_card(
+            "Website Traffic",
+            format_dashboard_compact_number(sessions_value),
+            "Sessions from the current GA4 run",
+            website_change,
+        )
+    with kpi_columns[1]:
+        render_dashboard_kpi_card(
+            "Organic Visibility",
+            format_dashboard_compact_number(total_impressions),
+            "Google Search impressions",
+            impressions_change,
+        )
+    with kpi_columns[2]:
+        engagement_display = f"{engagement_rate_percent:.2f}%" if engagement_rate_percent is not None else "Not available"
+        render_dashboard_kpi_card(
+            "Engagement Rate",
+            engagement_display,
+            "Engaged website sessions",
+            engagement_change,
+        )
+    with kpi_columns[3]:
+        social_display = f"{social_engagement_rate:.2f}%" if social_engagement_rate is not None else "No Meta data"
+        render_dashboard_kpi_card(
+            "Social Engagement",
+            social_display,
+            "Interactions relative to reach" if social_engagement_rate is not None else "Upload a Meta social export to measure engagement",
+        )
+
+    st.markdown('<div class="dashboard-section-divider"></div>', unsafe_allow_html=True)
+
+    overview_card = st.container()
+    with overview_card:
+        st.markdown('<div class="dashboard-card-marker dashboard-chart-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="dashboard-card-helper">Top Google Search queries by impressions in the loaded run.</div>',
+            unsafe_allow_html=True,
+        )
+        if query_analysis:
+            overview_df = pd.DataFrame(query_analysis).copy()
+            overview_df.columns = [str(column).strip().lower().replace(" ", "_") for column in overview_df.columns]
+            if {"query", "impressions"}.issubset(overview_df.columns):
+                overview_df["impressions"] = pd.to_numeric(overview_df["impressions"], errors="coerce")
+                overview_df["query"] = overview_df["query"].fillna("").astype(str).str.strip()
+                overview_df = overview_df.dropna(subset=["impressions"])
+                overview_df = overview_df[overview_df["query"] != ""].sort_values("impressions", ascending=False).head(5)
+                overview_df["display_query"] = overview_df["query"].apply(
+                    lambda value: value if len(value) <= 44 else f"{value[:41].rstrip()}..."
+                )
+                overview_fig = px.bar(
+                    overview_df.iloc[::-1],
+                    x="impressions",
+                    y="display_query",
+                    orientation="h",
+                    color_discrete_sequence=["#8C52FF"],
+                )
+                overview_fig.update_layout(
+                    height=300,
+                    showlegend=False,
+                    plot_bgcolor="#FFFFFF",
+                    paper_bgcolor="#FFFFFF",
+                    margin=dict(l=8, r=12, t=8, b=10),
+                    font=dict(color="#162033"),
+                    xaxis_title="Search impressions",
+                    yaxis_title="",
+                )
+                overview_fig.update_traces(
+                    customdata=overview_df.iloc[::-1][["query"]].values,
+                    hovertemplate="<b>%{customdata[0]}</b><br>Impressions: %{x}<extra></extra>",
+                )
+                overview_fig.update_xaxes(gridcolor="#EEF2F7", zeroline=False, tickfont=dict(color="#344054"))
+                overview_fig.update_yaxes(automargin=True, tickfont=dict(color="#344054"))
+                st.plotly_chart(overview_fig, use_container_width=True)
+            else:
+                st.info("No GSC query data available for the Performance Overview chart.")
+        else:
+            st.info("No GSC query data available for the Performance Overview chart.")
+
+    top_opportunity = get_dashboard_top_opportunity(insight)
+    if top_opportunity:
+        opportunity_title = str(top_opportunity.get("query") or top_opportunity.get("title") or "Current search opportunity")
+        impressions_value = to_comparison_number(top_opportunity.get("impressions"))
+        ctr_value = normalize_report_percent(top_opportunity.get("ctr"))
+        position_value = to_comparison_number(top_opportunity.get("position"))
+        opportunity_explanation = "This item already has search visibility and is the strongest current opportunity from the loaded search analysis."
+        evidence_parts = []
+        if impressions_value is not None:
+            evidence_parts.append(f"{format_dashboard_compact_number(impressions_value)} impressions")
+        if ctr_value is not None:
+            evidence_parts.append(f"{ctr_value:.2f}% CTR")
+        if position_value is not None:
+            evidence_parts.append(f"position {position_value:.1f}")
+        business_impact = "Potential to capture more clicks from existing search demand."
+
+        opportunity_card = st.container()
+        with opportunity_card:
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Top Opportunity</div>', unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div class="dashboard-opportunity-card">
+                    <div class="dashboard-opportunity-title">{html.escape(opportunity_title)}</div>
+                    <div class="dashboard-opportunity-copy">{html.escape(opportunity_explanation)}</div>
+                    <div class="dashboard-opportunity-meta"><strong>Business impact:</strong> {html.escape(business_impact)}<br>
+                    {html.escape(' • '.join(evidence_parts)) if evidence_parts else 'Supporting search evidence is limited in the current run.'}</div>
+                    <div class="dashboard-action-footer">View Opportunity →</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    drivers_card = st.container()
+    with drivers_card:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">What’s Driving Performance</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="dashboard-card-helper">Supporting signals from the available website, search, acquisition, and social data.</div>',
+            unsafe_allow_html=True,
+        )
+        driver_tabs = st.tabs(["Top Pages", "Top Queries", "Traffic Sources", "Social Content"])
+
+        with driver_tabs[0]:
+            if top_pages:
+                page_rows = [
+                    {
+                        "Page": item.get("page_title", "Not available"),
+                        "Metric": item.get("metric", "Value"),
+                        "Value": item.get("value", "Not available"),
+                    }
+                    for item in top_pages[:5]
+                ]
+                st.dataframe(pd.DataFrame(page_rows), use_container_width=True, hide_index=True)
+            else:
+                st.info("No GA4 page data is available in the current run.")
+
+        with driver_tabs[1]:
+            if query_analysis:
+                query_df = format_ctr_dataframe(pd.DataFrame(query_analysis))
+                available_columns = [column for column in ["query", "ctr", "impressions", "position"] if column in query_df.columns]
+                st.dataframe(query_df[available_columns].head(5), use_container_width=True, hide_index=True)
+            else:
+                st.info("No GSC query data is available in the current run.")
+
+        with driver_tabs[2]:
+            if top_sources:
+                source_df = pd.DataFrame(top_sources).copy()
+                st.dataframe(source_df.head(5), use_container_width=True, hide_index=True)
+            else:
+                st.info("No GA4 source/medium data is available in the current run.")
+
+        with driver_tabs[3]:
+            social_content = social_insights.get("top_performing_content", []) or []
+            if social_content:
+                social_df = pd.DataFrame(social_content)
+                available_columns = [column for column in ["Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"] if column in social_df.columns]
+                st.dataframe(social_df[available_columns].head(5), use_container_width=True, hide_index=True)
+            else:
+                st.info("No Meta social content data is available in the current run.")
+
+    recommended_actions = get_report_recommendations(results)
+    actions_card = st.container()
+    with actions_card:
+        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Recommended Actions</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="dashboard-card-helper">The highest-priority actions generated from the current run.</div>',
+            unsafe_allow_html=True,
+        )
+        if recommended_actions:
+            priority_rank = {"high": 3, "medium": 2, "low": 1}
+            sorted_actions = sorted(
+                [item for item in recommended_actions if isinstance(item, dict)],
+                key=lambda item: (
+                    priority_rank.get(str(item.get("priority", "")).strip().lower(), 0),
+                    to_comparison_number((item.get("priority_bundle") or {}).get("priority_score")) or 0,
+                    to_comparison_number(item.get("opportunity_score")) or 0,
+                ),
+                reverse=True,
+            )[:3]
+            for action in sorted_actions:
+                title = normalize_recommendation_plain_text(str(action.get("title", "Recommendation")))
+                reason = normalize_recommendation_plain_text(str(action.get("why_it_matters", "") or action.get("insight", "")))
+                source = str(action.get("action_type", "strategy")).strip().replace("_", " ").title()
+                priority = str(action.get("priority", "Medium")).strip().title()
+                st.markdown(
+                    f"""
+                    <div class="dashboard-action-card">
+                        <div class="dashboard-action-title">{html.escape(title)}</div>
+                        <div class="dashboard-action-copy">{html.escape(reason)}</div>
+                        <div class="dashboard-action-footer">{html.escape(priority)} priority · {html.escape(source)} · View Recommendation →</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("No recommendations are available from the current run yet.")
+
+    if st.session_state.get("comparison_mode") and st.session_state.get("comparison_results"):
+        with st.expander("View saved-run comparison", expanded=False):
+            render_comparison_summary(results, ["ga4", "gsc", "social", "semrush"])
+
+    if show_debug:
+        with st.expander("Workflow Debug Data", expanded=False):
+            if ga4_debug_titles:
+                st.write("First 5 parsed GA4 page titles:")
+                st.write(ga4_debug_titles)
+            else:
+                st.write("No GA4 page titles were detected.")
+            st.json(make_json_safe(results.get("data_intake", {}).get("summary", {}).get("combined", {})))
+
+
 def render_dashboard_page(results: dict | None, ga4_debug_titles: list[str], show_debug: bool) -> None:
     """Render the dashboard page inside the shared shell."""
     if results:
-        render_standard_view(results, ga4_debug_titles, show_debug)
+        render_figma_dashboard_view(results, ga4_debug_titles, show_debug)
     else:
         st.title("Marketing Intelligence Dashboard")
         st.caption("Overview of your marketing performance and opportunities")
