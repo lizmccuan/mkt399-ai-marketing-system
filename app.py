@@ -993,6 +993,71 @@ st.markdown(
         min-width: 0 !important;
         box-sizing: border-box !important;
     }
+    /* Keep saved-run selectors readable even when BaseWeb applies its dark defaults. */
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) .stSelectbox label {
+        color: #111827 !important;
+        font-weight: 650 !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] > div {
+        background: #FFFFFF !important;
+        border: 1px solid #E5E7EB !important;
+        border-radius: 12px !important;
+        box-shadow: none !important;
+        color: #111827 !important;
+        min-height: 46px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] > div:hover {
+        border-color: #D1D5DB !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"]:focus-within > div,
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"][aria-expanded="true"] > div {
+        border-color: #8B5CF6 !important;
+        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.12) !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] div,
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] span,
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] input,
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] [role="combobox"] {
+        color: #111827 !important;
+        -webkit-text-fill-color: #111827 !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] svg {
+        color: #374151 !important;
+        fill: #374151 !important;
+        opacity: 1 !important;
+    }
+    /* BaseWeb places dropdown menus in a page-level popover portal. */
+    body:has(.data-sources-page-marker) div[data-baseweb="popover"],
+    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="listbox"],
+    body:has(.data-sources-page-marker) div[data-baseweb="popover"] div[data-baseweb="menu"] {
+        background: #FFFFFF !important;
+        border-color: #E5E7EB !important;
+        color: #111827 !important;
+    }
+    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"] {
+        background: #FFFFFF !important;
+        border-radius: 10px !important;
+        color: #111827 !important;
+    }
+    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"] *,
+    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"] [data-baseweb="typo"] {
+        color: #111827 !important;
+        -webkit-text-fill-color: #111827 !important;
+    }
+    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"]:hover,
+    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"][aria-selected="true"] {
+        background: #F3EDFF !important;
+        color: #5B21B6 !important;
+    }
+    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"]:hover *,
+    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"][aria-selected="true"] * {
+        color: #5B21B6 !important;
+        -webkit-text-fill-color: #5B21B6 !important;
+    }
     .saved-runs-section-title {
         font-size: 1.02rem;
         font-weight: 760;
