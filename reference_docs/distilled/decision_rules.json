@@ -9,7 +9,7 @@
       "conditions": {
         "all": [
           { "field": "impressions", "operator": ">=", "value": 1000 },
-          { "field": "ctr", "operator": "<=", "value": 0.05 }
+          { "field": "ctr", "operator": "<=", "value": 5.0 }
         ]
       },
       "insight": "This page or query is getting strong visibility but not enough clicks.",
@@ -28,7 +28,7 @@
       "conditions": {
         "all": [
           { "field": "position", "operator": "<=", "value": 5 },
-          { "field": "ctr", "operator": "<=", "value": 0.05 }
+          { "field": "ctr", "operator": "<=", "value": 5.0 }
         ]
       },
       "insight": "The page ranks well but is not attracting clicks.",
@@ -121,7 +121,7 @@
       "conditions": {
         "all": [
           { "field": "impressions", "operator": ">=", "value": 100 },
-          { "field": "ctr", "operator": "<=", "value": 0.05 }
+          { "field": "ctr", "operator": "<=", "value": 5.0 }
         ]
       },
       "insight": "The topic has visibility, but it likely needs clearer FAQ support and answer-engine formatting to improve extraction readiness.",
@@ -178,7 +178,7 @@
       "conditions": {
         "all": [
           { "field": "non_branded_impressions", "operator": ">=", "value": 500 },
-          { "field": "non_branded_ctr", "operator": "<=", "value": 0.05 }
+          { "field": "non_branded_ctr", "operator": "<=", "value": 5.0 }
         ]
       },
       "insight": "Non-branded search demand exists, but the site is not converting enough of that visibility into clicks.",
@@ -310,7 +310,7 @@
       "conditions": {
         "all": [
           { "field": "reach", "operator": ">=", "value": 1000 },
-          { "field": "engagement_rate", "operator": "<=", "value": 0.02 }
+          { "field": "engagement_rate", "operator": "<=", "value": 2.0 }
         ]
       },
       "insight": "Content is reaching users but not driving interaction.",

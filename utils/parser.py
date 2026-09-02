@@ -356,6 +356,9 @@ def clean_marketing_dataframe(dataframe: pd.DataFrame, source_name: str) -> pd.D
         cleaned = recover_misaligned_ga4_dataframe(cleaned, expected_columns, primary_dimension)
         warn_if_misaligned_ga4(cleaned, primary_dimension)
 
+    if str(source_name or "").strip().lower() in {"gsc", "gsc_queries", "gsc_query"}:
+        cleaned = normalize_gsc_query_metrics(cleaned)
+
     cleaned["data_source"] = source_name
     return cleaned
 
@@ -380,6 +383,52 @@ def normalize_ga4_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
 
     matching_columns = {column: column_map[column] for column in renamed.columns if column in column_map}
     return renamed.rename(columns=matching_columns)
+
+
+def normalize_gsc_query_metrics(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Normalize GSC query metrics to percentage-point CTR without magnitude guessing."""
+    normalized = dataframe.copy()
+    if "clicks" in normalized.columns:
+        normalized["clicks"] = normalized["clicks"].apply(optional_gsc_number)
+    if "impressions" in normalized.columns:
+        normalized["impressions"] = normalized["impressions"].apply(optional_gsc_number)
+
+    if "ctr" not in normalized.columns:
+        return normalized
+
+    normalized["ctr"] = normalized.apply(
+        lambda row: normalize_gsc_ctr_percent(
+            row.get("ctr"),
+            clicks=row.get("clicks"),
+            impressions=row.get("impressions"),
+        ),
+        axis=1,
+    )
+    return normalized
+
+
+def normalize_gsc_ctr_percent(value: Any, clicks: Any = None, impressions: Any = None) -> float | None:
+    """Return GSC CTR in percentage points, preserving unknown raw values as supplied."""
+    click_count = optional_gsc_number(clicks)
+    impression_count = optional_gsc_number(impressions)
+    if click_count is not None and impression_count is not None and impression_count > 0:
+        return round((click_count / impression_count) * 100, 2)
+
+    # A bare number without counts is retained as-is rather than guessed from
+    # its magnitude. Missing values remain missing instead of becoming zero.
+    return optional_gsc_number(value)
+
+
+def optional_gsc_number(value: Any) -> float | None:
+    """Parse a present GSC metric while retaining blank values as unknown."""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    try:
+        if bool(pd.isna(value)):
+            return None
+    except (AttributeError, TypeError, ValueError):
+        pass
+    return to_number(value)
 
 
 def warn_if_misaligned_ga4(dataframe: pd.DataFrame, primary_dimension: str) -> None:

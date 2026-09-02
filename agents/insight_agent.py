@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from math import isnan
 from typing import Any
+
+from utils.parser import normalize_gsc_ctr_percent
 
 
 BRAND_TERMS = [
@@ -49,8 +52,9 @@ def run_insight_agent(data: dict[str, Any]) -> dict[str, Any]:
     ]
     top_sources = combined_summary["top_traffic_sources"]
     query_analysis = analyze_queries(gsc_queries_summary["sample_records"])
-    branded_queries = [item for item in query_analysis if item["is_branded"]]
-    non_branded_queries = [item for item in query_analysis if not item["is_branded"]]
+    full_query_analysis = analyze_queries(get_gsc_query_records(data))
+    branded_queries = [item for item in full_query_analysis if item["is_branded"]]
+    non_branded_queries = [item for item in full_query_analysis if not item["is_branded"]]
     high_impression_low_click = [item for item in non_branded_queries if item["is_high_impression_low_click"]][:5]
     local_intent_queries = [item for item in non_branded_queries if item["is_local_intent"]][:5]
     conversion_intent_queries = [item for item in non_branded_queries if item["is_conversion_intent"]][:5]
@@ -123,6 +127,7 @@ def run_insight_agent(data: dict[str, Any]) -> dict[str, Any]:
         "top_pages": top_pages,
         "top_sources": top_sources,
         "query_analysis": query_analysis,
+        "full_query_analysis": full_query_analysis,
         "branded_queries": branded_queries,
         "non_branded_queries": non_branded_queries,
         "high_impression_low_click": high_impression_low_click,
@@ -146,10 +151,22 @@ def analyze_queries(sample_records: list[dict[str, Any]]) -> list[dict[str, Any]
 
         query_text = str(query)
         query_lower = query_text.lower()
-        clicks = to_number(record.get("clicks"))
-        impressions = to_number(record.get("impressions"))
+        # Keep the scoring inputs backward compatible, but retain missing source
+        # values as missing in the evidence contract instead of turning them into zero.
+        clicks = optional_number(record.get("clicks"))
+        impressions = optional_number(record.get("impressions"))
         ctr = normalize_ctr_percent(record.get("ctr"), clicks, impressions)
-        position = to_number(record.get("position"))
+        position = optional_number(record.get("position"))
+        evidence = {
+            key: value
+            for key, value in {
+                "impressions": impressions,
+                "clicks": clicks,
+                "ctr": ctr,
+                "position": position,
+            }.items()
+            if value is not None
+        }
 
         analyzed_queries.append(
             {
@@ -158,10 +175,20 @@ def analyze_queries(sample_records: list[dict[str, Any]]) -> list[dict[str, Any]
                 "impressions": impressions,
                 "ctr": ctr,
                 "position": position,
+                "subject": query_text,
+                "subject_type": "query",
+                "source": "Google Search Console",
+                "evidence": evidence,
+                "pattern": classify_search_pattern(evidence),
                 "is_branded": contains_any(query_lower, BRAND_TERMS),
                 "is_local_intent": contains_any(query_lower, LOCAL_TERMS),
                 "is_conversion_intent": contains_any(query_lower, CONVERSION_TERMS),
-                "is_high_impression_low_click": impressions >= 100 and ctr <= 5,
+                "is_high_impression_low_click": (
+                    impressions is not None
+                    and ctr is not None
+                    and impressions >= 100
+                    and ctr <= 5
+                ),
                 "opportunity_score": build_opportunity_score(
                     impressions=impressions,
                     ctr=ctr,
@@ -176,30 +203,26 @@ def analyze_queries(sample_records: list[dict[str, Any]]) -> list[dict[str, Any]
     return sorted(analyzed_queries, key=lambda item: item["opportunity_score"], reverse=True)
 
 
-def normalize_ctr_percent(raw_ctr: Any, clicks: float, impressions: float) -> float:
+def normalize_ctr_percent(raw_ctr: Any, clicks: float | None, impressions: float | None) -> float | None:
     """Normalize CTR into percentage units for all downstream logic."""
-    if impressions > 0 and clicks >= 0:
-        return round((clicks / impressions) * 100, 2)
-
-    ctr = to_number(raw_ctr)
-    return ctr
+    return normalize_gsc_ctr_percent(raw_ctr, clicks=clicks, impressions=impressions)
 
 
 def build_opportunity_score(
-    impressions: float,
-    ctr: float,
-    position: float,
+    impressions: float | None,
+    ctr: float | None,
+    position: float | None,
     is_branded: bool,
     is_local_intent: bool,
     is_conversion_intent: bool,
 ) -> float:
     """Score queries with extra weight on non-branded, high-intent opportunities."""
-    score = impressions / 100
+    score = (impressions or 0) / 100
 
-    if ctr <= 5:
+    if ctr is not None and ctr <= 5:
         score += 2
 
-    if 3 <= position <= 20:
+    if position is not None and 3 <= position <= 20:
         score += 2
 
     if is_local_intent:
@@ -212,6 +235,31 @@ def build_opportunity_score(
         score -= 4
 
     return round(score, 2)
+
+
+def classify_search_pattern(evidence: dict[str, float]) -> str:
+    """Classify a factual GSC pattern without turning it into a recommendation."""
+    impressions = evidence.get("impressions")
+    ctr = evidence.get("ctr")
+    position = evidence.get("position")
+
+    if impressions is None:
+        return "limited_search_evidence"
+    if position is not None and position <= 3 and ctr is not None and ctr <= 5:
+        return "top_ranking_low_ctr"
+    if ctr is not None and ctr >= 5 and position is not None and 4 <= position <= 20:
+        return "strong_ctr_mid_ranking"
+    if impressions is not None and impressions >= 1000 and ctr is not None and ctr <= 5:
+        return "high_impressions_low_ctr"
+    if ctr is not None and ctr <= 5 and impressions is not None and impressions > 0:
+        return "low_ctr_search_result"
+    if position is not None and position <= 3 and ctr is not None and ctr >= 5:
+        return "strong_search_performer"
+    if position is not None and 4 <= position <= 20:
+        return "mid_ranking_growth_opportunity"
+    if impressions is not None and impressions < 100:
+        return "limited_search_evidence"
+    return "search_performance_signal"
 
 
 def align_pages_to_queries(top_pages: list[dict[str, Any]], non_branded_queries: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -336,3 +384,32 @@ def to_number(value: Any) -> float:
         return float(cleaned)
     except ValueError:
         return 0.0
+
+
+def optional_number(value: Any) -> float | None:
+    """Convert a present CSV value to a number without inventing a missing metric."""
+    if value in (None, ""):
+        return None
+
+    if isinstance(value, (int, float)):
+        numeric_value = float(value)
+        return None if isnan(numeric_value) else numeric_value
+
+    cleaned = str(value).replace(",", "").replace("%", "").strip()
+    if not cleaned:
+        return None
+
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def get_gsc_query_records(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return all available normalized GSC records, with legacy summary fallback."""
+    dataset = data.get("datasets", {}).get("gsc_queries")
+    if hasattr(dataset, "to_dict"):
+        return dataset.to_dict(orient="records")
+    if isinstance(dataset, list):
+        return dataset
+    return data.get("summary", {}).get("gsc_queries", {}).get("sample_records", []) or []

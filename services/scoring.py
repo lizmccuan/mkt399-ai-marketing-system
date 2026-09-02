@@ -60,11 +60,11 @@ def clamp_score(value: float, minimum: float = 0.0, maximum: float = 100.0) -> f
 
 
 def normalize_rule_ctr_value(value) -> float | None:
-    """Normalize CTR into decimal form for rule scoring."""
+    """Convert canonical GSC percentage-point CTR into decimal form for scoring."""
     numeric_value = to_numeric_score_value(value)
     if numeric_value is None:
         return None
-    return numeric_value / 100 if numeric_value > 1 else numeric_value
+    return numeric_value / 100
 
 
 def calculate_rule_scores(rule: dict, sample_data: dict) -> dict[str, float]:
@@ -73,6 +73,10 @@ def calculate_rule_scores(rule: dict, sample_data: dict) -> dict[str, float]:
     ctr_decimal = normalize_rule_ctr_value(sample_data.get("ctr"))
     position = to_numeric_score_value(sample_data.get("position"))
     engagement_rate = to_numeric_score_value(sample_data.get("engagement_rate"))
+    # Meta engagement rates are normalized as percentage points at intake;
+    # convert only that source's rate for the existing decimal GA4 scorer.
+    if str(rule.get("action_type", "")).strip().lower() == "social" and engagement_rate is not None:
+        engagement_rate = engagement_rate / 100
     sessions = to_numeric_score_value(sample_data.get("sessions")) or 0
     conversions = to_numeric_score_value(sample_data.get("conversions")) or 0
 

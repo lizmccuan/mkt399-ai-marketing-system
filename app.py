@@ -1209,7 +1209,8 @@ def normalize_rule_ctr_value(value) -> float | None:
     numeric_value = to_comparison_number(value)
     if numeric_value is None:
         return None
-    return numeric_value / 100 if numeric_value > 1 else numeric_value
+    # GSC CTR is stored internally as percentage points, including values below 1%.
+    return numeric_value / 100
 
 
 def calculate_rule_scores(rule: dict, sample_data: dict) -> dict[str, float]:
@@ -1218,6 +1219,8 @@ def calculate_rule_scores(rule: dict, sample_data: dict) -> dict[str, float]:
     ctr_decimal = normalize_rule_ctr_value(sample_data.get("ctr"))
     position = to_comparison_number(sample_data.get("position"))
     engagement_rate = to_comparison_number(sample_data.get("engagement_rate"))
+    if str(rule.get("action_type", "")).strip().lower() == "social" and engagement_rate is not None:
+        engagement_rate = engagement_rate / 100
     sessions = to_comparison_number(sample_data.get("sessions")) or 0
     conversions = to_comparison_number(sample_data.get("conversions")) or 0
 
@@ -1328,6 +1331,17 @@ def normalize_ctr_percent(value) -> float | None:
         return None
 
     return numeric_value
+
+
+def normalize_gsc_ctr_percent(value) -> float | None:
+    """Read canonical GSC CTR percentage points without magnitude-based guessing."""
+    return to_comparison_number(value)
+
+
+def format_gsc_ctr_percent(value, fallback: str = "Not available") -> str:
+    """Format canonical GSC CTR percentage points for reports and exports."""
+    numeric_value = normalize_gsc_ctr_percent(value)
+    return f"{numeric_value:.2f}%" if numeric_value is not None else fallback
 
 
 def format_ctr_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
@@ -3055,7 +3069,7 @@ def build_scorecard(results: dict) -> dict[str, dict[str, str]]:
 
     top_opportunity_support = "Highest-ranked opportunity from current rule + search analysis"
     impressions_value = to_comparison_number(top_opportunity_item.get("impressions"))
-    ctr_value = normalize_report_percent(top_opportunity_item.get("ctr"))
+    ctr_value = normalize_gsc_ctr_percent(top_opportunity_item.get("ctr"))
     if impressions_value is not None and impressions_value > 0:
         top_opportunity_support = f"Impressions: {int(impressions_value):,}"
     elif ctr_value is not None:
@@ -7653,7 +7667,7 @@ def build_report_kpi_cards(results: dict, opportunities: list[dict], recommendat
             )
 
     if query_analysis:
-        ctr_values = [normalize_report_percent(item.get("ctr")) for item in query_analysis if normalize_report_percent(item.get("ctr")) is not None]
+        ctr_values = [normalize_gsc_ctr_percent(item.get("ctr")) for item in query_analysis if normalize_gsc_ctr_percent(item.get("ctr")) is not None]
         position_values = [to_comparison_number(item.get("position")) for item in query_analysis if to_comparison_number(item.get("position")) is not None]
         impressions_total = sum(to_comparison_number(item.get("impressions")) or 0 for item in query_analysis)
         if ctr_values or position_values:
@@ -7684,9 +7698,9 @@ def build_report_kpi_cards(results: dict, opportunities: list[dict], recommendat
     social_top_content = social_insights.get("top_performing_content", []) or []
     if social_top_content:
         top_engagement_values = [
-            normalize_report_percent(item.get("Engagement Rate"))
+            to_comparison_number(item.get("Engagement Rate"))
             for item in social_top_content
-            if normalize_report_percent(item.get("Engagement Rate")) is not None
+            if to_comparison_number(item.get("Engagement Rate")) is not None
         ]
         if top_engagement_values:
             kpis.append(
@@ -7838,7 +7852,7 @@ def build_reports_powerpoint_bytes(results: dict) -> bytes:
         search_bullets = [
             f"Clicks: {int(total_clicks)}",
             f"Impressions: {int(total_impressions)}",
-            f"CTR: {format_report_percent(tracked_ctr)}",
+            f"CTR: {format_gsc_ctr_percent(tracked_ctr)}",
             f"Average Position: {round(avg_position, 2) if avg_position is not None else 'Not available'}",
         ]
     if search_bullets:
@@ -8084,7 +8098,7 @@ def render_reports_page(results: dict) -> None:
         search_metrics = [
             ("Clicks", f"{int(total_clicks):,}"),
             ("Impressions", f"{int(total_impressions):,}"),
-            ("CTR", format_report_percent(average_ctr)),
+            ("CTR", format_gsc_ctr_percent(average_ctr)),
             ("Average Position", f"{average_position:.2f}" if average_position is not None else "Not available"),
         ]
         metric_columns = st.columns(4)
@@ -8625,18 +8639,75 @@ def render_dashboard_kpi_card(label: str, value: str, helper: str, trend: float 
     )
 
 
-def get_dashboard_top_opportunity(insight: dict) -> dict:
-    """Return the strongest existing search opportunity for dashboard presentation."""
+def get_dashboard_top_opportunity(results: dict) -> dict:
+    """Return the strategy-owned top opportunity, with a safe legacy fallback."""
+    structured_opportunity = results.get("strategy", {}).get("strategy", {}).get("top_opportunity", {})
+    if isinstance(structured_opportunity, dict) and structured_opportunity.get("subject"):
+        return structured_opportunity
+
+    insight = results.get("insight", {}) or {}
     high_impression_low_click = insight.get("high_impression_low_click", []) or []
     if high_impression_low_click:
-        return high_impression_low_click[0]
+        legacy_item = high_impression_low_click[0]
+    else:
+        query_analysis = insight.get("query_analysis", []) or []
+        legacy_item = max(
+            query_analysis,
+            key=lambda item: to_comparison_number(item.get("opportunity_score")) or 0,
+            default={},
+        )
 
-    query_analysis = insight.get("query_analysis", []) or []
-    return max(
-        query_analysis,
-        key=lambda item: to_comparison_number(item.get("opportunity_score")) or 0,
-        default={},
-    )
+    if not legacy_item:
+        return {}
+
+    evidence = legacy_item.get("evidence") if isinstance(legacy_item.get("evidence"), dict) else {}
+    evidence = {
+        key: value
+        for key, value in {
+            "impressions": evidence.get("impressions", legacy_item.get("impressions")),
+            "clicks": evidence.get("clicks", legacy_item.get("clicks")),
+            "ctr": evidence.get("ctr", legacy_item.get("ctr")),
+            "position": evidence.get("position", legacy_item.get("position")),
+        }.items()
+        if value is not None
+    }
+    return {
+        "subject": str(legacy_item.get("query") or legacy_item.get("title") or "Current search opportunity"),
+        "subject_type": "query",
+        "source": "Google Search Console",
+        "evidence": evidence,
+        "business_summary": "This Google search result has recorded performance data in the current run.",
+        "why_it_matters": "Use the available evidence to decide whether this topic deserves a focused optimization review.",
+        "recommended_next_step": "Review this opportunity in the Opportunities page before choosing an optimization action.",
+        "business_impact": "A more detailed strategy explanation will be available after this run is processed with the current workflow.",
+        "opportunity_score": legacy_item.get("opportunity_score"),
+    }
+
+
+def format_dashboard_opportunity_evidence(evidence: dict) -> list[str]:
+    """Translate structured opportunity evidence into business-friendly metric labels."""
+    if not isinstance(evidence, dict):
+        return []
+
+    evidence_parts = []
+    impressions = to_comparison_number(evidence.get("impressions"))
+    clicks = to_comparison_number(evidence.get("clicks"))
+    ctr = normalize_gsc_ctr_percent(evidence.get("ctr"))
+    position = to_comparison_number(evidence.get("position"))
+
+    if impressions is not None:
+        evidence_parts.append(f"{format_dashboard_compact_number(impressions)} Google search appearances")
+    if clicks is not None:
+        evidence_parts.append(f"{format_dashboard_compact_number(clicks)} Google search clicks")
+    if ctr is not None:
+        evidence_parts.append(f"{ctr:.2f}% click-through rate")
+    if position is not None:
+        position_label = str(int(position)) if float(position).is_integer() else f"{position:.1f}"
+        evidence_parts.append(f"#{position_label} average Google position")
+    if evidence.get("url"):
+        evidence_parts.append(str(evidence["url"]))
+
+    return evidence_parts
 
 
 def render_figma_dashboard_view(results: dict, ga4_debug_titles: list[str], show_debug: bool) -> None:
@@ -8768,21 +8839,16 @@ def render_figma_dashboard_view(results: dict, ga4_debug_titles: list[str], show
         else:
             st.info("No GSC query data available for the Performance Overview chart.")
 
-    top_opportunity = get_dashboard_top_opportunity(insight)
+    top_opportunity = get_dashboard_top_opportunity(results)
     if top_opportunity:
-        opportunity_title = str(top_opportunity.get("query") or top_opportunity.get("title") or "Current search opportunity")
-        impressions_value = to_comparison_number(top_opportunity.get("impressions"))
-        ctr_value = normalize_report_percent(top_opportunity.get("ctr"))
-        position_value = to_comparison_number(top_opportunity.get("position"))
-        opportunity_explanation = "This item already has search visibility and is the strongest current opportunity from the loaded search analysis."
-        evidence_parts = []
-        if impressions_value is not None:
-            evidence_parts.append(f"{format_dashboard_compact_number(impressions_value)} impressions")
-        if ctr_value is not None:
-            evidence_parts.append(f"{ctr_value:.2f}% CTR")
-        if position_value is not None:
-            evidence_parts.append(f"position {position_value:.1f}")
-        business_impact = "Potential to capture more clicks from existing search demand."
+        opportunity_title = str(top_opportunity.get("subject") or top_opportunity.get("query") or "Current opportunity")
+        business_summary = str(top_opportunity.get("business_summary") or "No business summary is available for this opportunity.")
+        why_it_matters = str(top_opportunity.get("why_it_matters") or "Supporting evidence is limited in the current run.")
+        recommended_next_step = str(top_opportunity.get("recommended_next_step") or "Review this opportunity before choosing an action.")
+        evidence_parts = format_dashboard_opportunity_evidence(top_opportunity.get("evidence", {}))
+        confidence = to_comparison_number(top_opportunity.get("confidence"))
+        if confidence is not None:
+            evidence_parts.append(f"{round(confidence)}/100 confidence")
 
         opportunity_card = st.container()
         with opportunity_card:
@@ -8792,9 +8858,11 @@ def render_figma_dashboard_view(results: dict, ga4_debug_titles: list[str], show
                 f"""
                 <div class="dashboard-opportunity-card">
                     <div class="dashboard-opportunity-title">{html.escape(opportunity_title)}</div>
-                    <div class="dashboard-opportunity-copy">{html.escape(opportunity_explanation)}</div>
-                    <div class="dashboard-opportunity-meta"><strong>Business impact:</strong> {html.escape(business_impact)}<br>
-                    {html.escape(' • '.join(evidence_parts)) if evidence_parts else 'Supporting search evidence is limited in the current run.'}</div>
+                    <div class="dashboard-opportunity-meta"><strong>WHAT'S HAPPENING</strong><br>{html.escape(business_summary)}</div>
+                    <div class="dashboard-opportunity-meta"><strong>WHY THIS MATTERS</strong><br>{html.escape(why_it_matters)}</div>
+                    <div class="dashboard-opportunity-meta"><strong>RECOMMENDED NEXT STEP</strong><br>{html.escape(recommended_next_step)}</div>
+                    <div class="dashboard-opportunity-meta"><strong>CURRENT PERFORMANCE</strong><br>
+                    {html.escape(' • '.join(evidence_parts)) if evidence_parts else 'Supporting metrics are unavailable for this saved run.'}</div>
                     <div class="dashboard-action-footer">View Opportunity →</div>
                 </div>
                 """,

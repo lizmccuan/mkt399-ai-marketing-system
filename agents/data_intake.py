@@ -6,7 +6,7 @@ from typing import Any
 
 import pandas as pd
 
-from utils.parser import summarize_dataframe
+from utils.parser import normalize_gsc_query_metrics, summarize_dataframe
 
 
 def run_data_intake(
@@ -17,7 +17,9 @@ def run_data_intake(
     """Structure the uploaded files into separate summaries plus a combined view."""
     ga4_pages_data = ga4_pages_data if ga4_pages_data is not None else pd.DataFrame()
     ga4_source_data = ga4_source_data if ga4_source_data is not None else pd.DataFrame()
-    gsc_queries_data = gsc_queries_data if gsc_queries_data is not None else pd.DataFrame()
+    gsc_queries_data = normalize_gsc_query_metrics(
+        gsc_queries_data if gsc_queries_data is not None else pd.DataFrame()
+    )
 
     ga4_pages_summary = summarize_dataframe(ga4_pages_data, "GA4 Page Title Report")
     ga4_source_summary = summarize_dataframe(ga4_source_data, "GA4 Session Source / Medium")
@@ -64,6 +66,11 @@ def run_data_intake(
                 "total_rows": total_rows,
             },
             "total_rows": total_rows,
+        },
+        "datasets": {
+            # Keep one dataframe reference for full-funnel agent analysis while
+            # preserving the existing compact summary for UI previews.
+            "gsc_queries": gsc_queries_data,
         },
         "notes": [
             "GA4 Page Title Report represents page-level behavior data.",

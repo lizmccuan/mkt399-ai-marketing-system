@@ -24,7 +24,13 @@ def run_strategy_agent(
     rule_matches: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Turn insight patterns into more specific marketing strategy."""
-    primary_query = pick_primary_query(insights)
+    actionable_query = select_top_actionable_query(insights, rule_matches)
+    primary_query = actionable_query or pick_primary_query(insights)
+    top_opportunity = (
+        build_top_opportunity_conclusion(actionable_query, rule_matches)
+        if actionable_query
+        else build_no_actionable_top_opportunity(insights)
+    )
     primary_page = pick_primary_page(insights, primary_query["query"])
     secondary_query = pick_secondary_query(insights, primary_query["query"])
     semrush_intelligence = build_semrush_strategy_intelligence(
@@ -38,15 +44,9 @@ def run_strategy_agent(
 
     seo_recommendations = [
         {
-            "issue": f"Low CTR and untapped visibility for {primary_query['query']}",
-            "recommendation": (
-                f"Refresh {primary_page} to target {primary_query['query']} in the title tag, H1, "
-                "opening paragraph, meta description, and FAQ section."
-            ),
-            "why_it_matters": (
-                f"The query shows non-branded demand with {int(primary_query['impressions'])} impressions "
-                f"and only {primary_query['ctr']}% CTR, which suggests the page is being seen but not compelling enough."
-            ),
+            "issue": top_opportunity["diagnosis"],
+            "recommendation": top_opportunity["recommended_next_step"],
+            "why_it_matters": top_opportunity["why_it_matters"],
             "priority": "High",
             "best_practice_category": "seo_keyword_strategy",
         },
@@ -144,10 +144,11 @@ def run_strategy_agent(
         primary_page=primary_page,
         secondary_query=secondary_query,
         semrush_intelligence=semrush_intelligence,
+        top_opportunity=top_opportunity,
     )
 
     what_to_do_this_week = [
-        f"Refresh {primary_page} title, H1, intro, and FAQ structure for {primary_query['query']}.",
+        top_opportunity["recommended_next_step"],
         "Add stronger CTA and trust/payment information above the fold.",
         f"Draft a new supporting content piece for {secondary_query['query']}.",
     ]
@@ -161,11 +162,7 @@ def run_strategy_agent(
             f"Brief a new content asset around {semrush_intelligence['priority_topic']['topic']}."
         )
 
-    what_to_test_next = [
-        "Test a stronger meta title and description to improve CTR.",
-        "Test moving FAQ blocks higher on the page.",
-        "Test direct-answer formatting for AI/search snippet visibility.",
-    ]
+    what_to_test_next = build_top_opportunity_tests(top_opportunity)
 
     observed_patterns = insights["patterns"]
     executive_summary = build_executive_summary(primary_query, primary_page, semrush_intelligence)
@@ -201,6 +198,7 @@ def run_strategy_agent(
             "primary_query": primary_query,
             "secondary_query": secondary_query,
             "primary_page": primary_page,
+            "top_opportunity": top_opportunity,
             "executive_summary": executive_summary,
             "keyword_opportunities": semrush_intelligence["keyword_opportunities"],
             "page_opportunities": semrush_intelligence["page_opportunities"],
@@ -230,6 +228,289 @@ def run_strategy_agent(
     }
 
 
+def build_top_opportunity_conclusion(
+    query: dict[str, Any],
+    rule_matches: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Turn the selected query's factual pattern into a business-ready conclusion."""
+    subject = str(query.get("subject") or query.get("query") or "Current search opportunity").strip()
+    evidence = query.get("evidence") if isinstance(query.get("evidence"), dict) else {}
+    evidence = {
+        key: value
+        for key, value in {
+            "impressions": evidence.get("impressions", query.get("impressions")),
+            "clicks": evidence.get("clicks", query.get("clicks")),
+            "ctr": evidence.get("ctr", query.get("ctr")),
+            "position": evidence.get("position", query.get("position")),
+        }.items()
+        if value is not None
+    }
+    pattern = str(query.get("pattern") or "search_performance_signal")
+    position = strategy_number(evidence.get("position"))
+
+    conclusion = {
+        "opportunity_type": pattern,
+        "subject": subject,
+        "subject_type": str(query.get("subject_type") or "query"),
+        "source": str(query.get("source") or "Google Search Console"),
+        "evidence": evidence,
+        "diagnosis": "Search performance opportunity",
+        "business_summary": "This result has measurable Google search performance that is worth reviewing.",
+        "why_it_matters": "The available search data indicates a potential way to improve how this topic contributes to website traffic.",
+        "recommended_next_step": "Review the page and search intent alignment before choosing an optimization action.",
+        "business_impact": "A focused improvement could help the result contribute more qualified website traffic.",
+        "opportunity_score": query.get("opportunity_score"),
+    }
+
+    if pattern == "strong_ctr_mid_ranking" and position is not None:
+        conclusion.update(
+            {
+                "opportunity_type": "ranking_growth",
+                "diagnosis": "Ranking growth opportunity",
+                "business_summary": (
+                    f'"{subject}" earns strong clicks when it appears in Google, but it ranks around position {format_position(position)}.'
+                ),
+                "why_it_matters": (
+                    "Because searchers already respond well when they see this result, improving its ranking could expose it to more people already searching for this topic."
+                ),
+                "recommended_next_step": (
+                    "Strengthen the page content, internal links, and search relevance so it can compete for a higher Google position."
+                ),
+                "business_impact": "A higher ranking could create more qualified website traffic without relying on a change in click-through rate.",
+            }
+        )
+    elif pattern in {"high_impressions_low_ctr", "low_ctr_search_result"}:
+        conclusion.update(
+            {
+                "opportunity_type": "search_result_messaging",
+                "diagnosis": "Search-result click-through opportunity",
+                "business_summary": (
+                    f'"{subject}" is appearing in Google searches, but relatively few searchers are clicking it.'
+                ),
+                "why_it_matters": (
+                    "The topic is already being shown to searchers, so clearer search-result messaging could help more of those appearances turn into visits."
+                ),
+                "recommended_next_step": (
+                    "Improve the title tag, meta description, and search-intent alignment to make the result more compelling in Google."
+                ),
+                "business_impact": "Better click-through performance could help this topic generate more visits from its existing Google search appearances.",
+            }
+        )
+    elif pattern == "top_ranking_low_ctr":
+        conclusion.update(
+            {
+                "opportunity_type": "serp_messaging",
+                "diagnosis": "Search-result messaging opportunity",
+                "business_summary": (
+                    f'"{subject}" already ranks near the top of Google, but its search-result message is not earning many clicks.'
+                ),
+                "why_it_matters": (
+                    "Strong rankings create frequent opportunities to be chosen, so a weak click-through rate may leave qualified visits on the table."
+                ),
+                "recommended_next_step": (
+                    "Test a clearer title tag and meta description that better reflect the searcher's likely question and next step."
+                ),
+                "business_impact": "Improving search-result messaging could help the existing high ranking generate more website visits.",
+            }
+        )
+    elif pattern == "strong_search_performer":
+        conclusion.update(
+            {
+                "opportunity_type": "strong_performer",
+                "diagnosis": "Strong search performer",
+                "business_summary": f'"{subject}" is already ranking near the top of Google and attracting clicks when it appears.',
+                "why_it_matters": "This is a proven search asset that can inform what works well across related pages and topics.",
+                "recommended_next_step": "Protect the page's relevance and use its content structure as a reference for related topics.",
+                "business_impact": "Maintaining this performance helps preserve a reliable source of organic website traffic.",
+            }
+        )
+    elif pattern == "limited_search_evidence":
+        conclusion.update(
+            {
+                "opportunity_type": "limited_evidence",
+                "diagnosis": "Limited search evidence",
+                "business_summary": f'"{subject}" has limited Google search appearance data in the current run.',
+                "why_it_matters": "There is not enough search evidence yet to treat this as a major optimization priority.",
+                "recommended_next_step": "Monitor this topic alongside higher-evidence search opportunities before investing in a dedicated update.",
+                "business_impact": "Additional data will make it easier to judge whether this topic merits a larger investment.",
+            }
+        )
+    elif pattern == "mid_ranking_growth_opportunity" and position is not None:
+        conclusion.update(
+            {
+                "opportunity_type": "ranking_growth",
+                "diagnosis": "Ranking growth opportunity",
+                "business_summary": f'"{subject}" ranks around position {format_position(position)} in Google.',
+                "why_it_matters": "A higher Google position could make the result visible to more people searching for this topic.",
+                "recommended_next_step": "Review content depth, internal links, and search-intent alignment to identify ranking improvements.",
+                "business_impact": "A stronger ranking may increase the topic's opportunity to contribute website traffic.",
+            }
+        )
+
+    matching_rule = find_matching_query_rule(rule_matches, subject)
+    if matching_rule:
+        conclusion["rule_id"] = matching_rule.get("rule_id")
+        conclusion["priority"] = matching_rule.get("priority")
+        conclusion["confidence"] = (
+            (matching_rule.get("priority_bundle") or {}).get("confidence_score")
+            or matching_rule.get("confidence_score")
+        )
+
+    return conclusion
+
+
+ACTIONABLE_SEARCH_PATTERNS = {
+    "high_impressions_low_ctr",
+    "low_ctr_search_result",
+    "top_ranking_low_ctr",
+    "strong_ctr_mid_ranking",
+    "mid_ranking_growth_opportunity",
+}
+
+
+def select_top_actionable_query(
+    insights: dict[str, Any],
+    rule_matches: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Choose the strongest actionable search opportunity without replacing scoring."""
+    candidates = (
+        insights.get("full_query_analysis")
+        or insights.get("query_analysis")
+        or insights.get("non_branded_queries")
+        or []
+    )
+    actionable_candidates = [
+        candidate
+        for candidate in candidates
+        if str(candidate.get("pattern") or "") in ACTIONABLE_SEARCH_PATTERNS
+    ]
+    if not actionable_candidates:
+        return None
+
+    return max(
+        actionable_candidates,
+        key=lambda candidate: actionable_query_priority_key(candidate, rule_matches),
+    )
+
+
+def actionable_query_priority_key(
+    query: dict[str, Any],
+    rule_matches: dict[str, Any] | None = None,
+) -> tuple[float, float, float, float]:
+    """Use the existing rule and opportunity signals to order actionable candidates."""
+    subject = str(query.get("subject") or query.get("query") or "")
+    matching_rule = find_matching_query_rule(rule_matches, subject) or {}
+    priority_bundle = matching_rule.get("priority_bundle") or {}
+
+    return (
+        strategy_number(priority_bundle.get("priority_score")) or 0.0,
+        strategy_number(matching_rule.get("business_impact_score")) or 0.0,
+        strategy_number(matching_rule.get("confidence_score")) or 0.0,
+        strategy_number(query.get("opportunity_score")) or 0.0,
+    )
+
+
+def build_no_actionable_top_opportunity(insights: dict[str, Any]) -> dict[str, Any]:
+    """Provide an honest, non-optimization conclusion when no action is supported."""
+    candidates = (
+        insights.get("full_query_analysis")
+        or insights.get("query_analysis")
+        or insights.get("non_branded_queries")
+        or []
+    )
+    strong_performer = next(
+        (
+            candidate
+            for candidate in candidates
+            if str(candidate.get("pattern") or "") == "strong_search_performer"
+        ),
+        None,
+    )
+
+    if strong_performer:
+        subject = str(strong_performer.get("subject") or strong_performer.get("query") or "Current search result")
+        evidence = strong_performer.get("evidence") if isinstance(strong_performer.get("evidence"), dict) else {}
+        return {
+            "opportunity_type": "no_actionable_search_issue",
+            "subject": "No major search optimization issue detected",
+            "subject_type": "query",
+            "source": "Google Search Console",
+            "evidence": evidence,
+            "diagnosis": "No major search optimization issue detected",
+            "business_summary": f'"{subject}" is a strong current search performer based on the available evidence.',
+            "why_it_matters": "The available search data does not identify a higher-priority search optimization issue in this run.",
+            "recommended_next_step": "Protect this result's current relevance and monitor it alongside future search opportunities.",
+            "business_impact": "Maintaining strong search performance helps preserve an existing source of organic website traffic.",
+            "opportunity_score": strong_performer.get("opportunity_score"),
+        }
+
+    return {
+        "opportunity_type": "no_actionable_search_issue",
+        "subject": "No major search optimization issue detected",
+        "subject_type": "query",
+        "source": "Google Search Console",
+        "evidence": {},
+        "diagnosis": "No major search optimization issue detected",
+        "business_summary": "The available search data does not identify a clear, high-evidence optimization priority.",
+        "why_it_matters": "More complete search data is needed before presenting a major search optimization recommendation.",
+        "recommended_next_step": "Monitor future search performance and review opportunities when sufficient evidence is available.",
+        "business_impact": "Additional evidence will make it easier to prioritize a focused search improvement.",
+        "opportunity_score": None,
+    }
+
+
+def build_top_opportunity_tests(top_opportunity: dict[str, Any]) -> list[str]:
+    """Keep strategy testing suggestions aligned to the diagnosed opportunity."""
+    opportunity_type = top_opportunity.get("opportunity_type")
+    if opportunity_type in {"search_result_messaging", "serp_messaging"}:
+        return [
+            "Test a clearer title tag and meta description against the current search-result message.",
+            "Test question-led FAQ content that matches the searcher's intent.",
+            "Review whether the page opening answers the same need promised in Google.",
+        ]
+    if opportunity_type == "ranking_growth":
+        return [
+            "Test stronger topical coverage and clearer answer sections on the page.",
+            "Add relevant internal links from related high-authority pages.",
+            "Review the page against the search intent behind the query before expanding content.",
+        ]
+    return [
+        "Review the page's relevance to the search topic before making changes.",
+        "Compare the content structure with related pages that already perform well.",
+        "Collect additional search data before prioritizing a larger update.",
+    ]
+
+
+def find_matching_query_rule(rule_matches: dict[str, Any] | None, subject: str) -> dict[str, Any] | None:
+    """Return the strongest rule match for the selected GSC query when one exists."""
+    if not isinstance(rule_matches, dict) or not subject:
+        return None
+
+    subject_key = normalize_strategy_text(subject)
+    for match in rule_matches.get("all_matches", []) or []:
+        if (
+            str(match.get("source_type", "")) == "gsc_queries"
+            and normalize_strategy_text(match.get("label", "")) == subject_key
+        ):
+            return match
+    return None
+
+
+def strategy_number(value: Any) -> float | None:
+    """Read an optional structured metric without substituting a synthetic zero."""
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def format_position(value: float) -> str:
+    """Format an average Google position for plain-language strategy text."""
+    return str(int(value)) if float(value).is_integer() else f"{value:.1f}"
+
+
 def build_rule_grounded_priorities(rule_matches: dict[str, Any] | None) -> list[dict[str, Any]]:
     """Convert workflow-level rule matches into a small strategy-friendly priority list."""
     if not rule_matches or not isinstance(rule_matches, dict):
@@ -239,6 +520,10 @@ def build_rule_grounded_priorities(rule_matches: dict[str, Any] | None) -> list[
     for match in (rule_matches.get("all_matches") or [])[:5]:
         priority_item: dict[str, Any] = {
             "rule_id": str(match.get("rule_id", "")),
+            "subject": str(match.get("subject") or match.get("label") or ""),
+            "subject_type": str(match.get("subject_type", "")),
+            "source": str(match.get("source", "")),
+            "evidence": match.get("evidence") if isinstance(match.get("evidence"), dict) else {},
             "issue": str(match.get("insight", "")),
             "why_it_matters": str(match.get("why_it_matters", "")),
             "recommendation": str(match.get("recommendation", "")),
@@ -456,6 +741,7 @@ def build_priority_actions(
     primary_page: str,
     secondary_query: dict[str, Any],
     semrush_intelligence: dict[str, Any],
+    top_opportunity: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     """Create prioritized actions, using SEMrush quick wins when available."""
     quick_wins = semrush_intelligence.get("quick_wins", [])
@@ -467,12 +753,14 @@ def build_priority_actions(
 
     return [
         {
-            "title": "Refresh primary query page",
-            "action": (
-                f"Optimize {primary_page} for {primary_query['query']} by tightening the title tag, H1, intro copy, and FAQ coverage."
+            "title": (top_opportunity or {}).get("diagnosis", "Refresh primary query page"),
+            "action": (top_opportunity or {}).get(
+                "recommended_next_step",
+                f"Optimize {primary_page} for {primary_query['query']} by improving the page's search relevance and content coverage.",
             ),
-            "reason": (
-                "The strongest non-branded opportunity is already visible in search data, so improving page relevance should support stronger CTR and conversions."
+            "reason": (top_opportunity or {}).get(
+                "why_it_matters",
+                "The strongest non-branded opportunity is already visible in search data, so improving page relevance could support more qualified website traffic.",
             ),
             "priority": "High",
         },

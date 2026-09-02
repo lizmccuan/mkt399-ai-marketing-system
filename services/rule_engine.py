@@ -87,6 +87,7 @@ def evaluate_decision_rules(
     for rule in triggered_rules:
         score_bundle = calculate_rule_scores(rule, sample_data)
         recommendation = {
+            "rule_id": rule.get("id"),
             "title": rule.get("title"),
             "insight": rule.get("insight"),
             "why_it_matters": rule.get("why_it_matters"),
@@ -189,16 +190,20 @@ def evaluate_workflow_rule_matches(
 
 def _evaluate_payload(decision_rules: list[dict], label: str, sample_data: dict, source_type: str) -> list[dict]:
     """Evaluate one normalized payload against the rule set."""
-    triggered_rules, generated_recommendations = evaluate_decision_rules(decision_rules, sample_data)
+    _, generated_recommendations = evaluate_decision_rules(decision_rules, sample_data)
     matches = []
 
-    for rule, recommendation in zip(triggered_rules, generated_recommendations):
+    for recommendation in generated_recommendations:
         matches.append(
             {
                 "source_type": source_type,
                 "label": label,
-                "rule_id": rule.get("id"),
-                "category": rule.get("category"),
+                "subject": label,
+                "subject_type": _subject_type_for_source(source_type),
+                "source": _source_label_for_type(source_type),
+                "evidence": _available_evidence(sample_data),
+                "rule_id": recommendation.get("rule_id"),
+                "category": recommendation.get("category"),
                 "title": recommendation.get("title"),
                 "insight": recommendation.get("insight"),
                 "why_it_matters": recommendation.get("why_it_matters"),
@@ -226,9 +231,59 @@ def _first_available(record: dict, keys: list[str]):
     return None
 
 
+def _available_evidence(sample_data: dict) -> dict:
+    """Keep only actual source metrics in the downstream evidence contract."""
+    evidence_keys = {
+        "impressions",
+        "clicks",
+        "ctr",
+        "position",
+        "sessions",
+        "active_users",
+        "engagement_rate",
+        "conversions",
+        "reach",
+        "follows",
+        "saves",
+        "volume",
+        "url",
+    }
+    return {
+        key: value
+        for key, value in sample_data.items()
+        if key in evidence_keys and value is not None
+    }
+
+
+def _source_label_for_type(source_type: str) -> str:
+    """Translate internal source identifiers into readable source names."""
+    return {
+        "gsc_queries": "Google Search Console",
+        "ga4_pages": "Google Analytics 4",
+        "ga4_sources": "Google Analytics 4",
+        "semrush_positions": "SEMrush",
+        "semrush_pages": "SEMrush",
+        "semrush_topics": "SEMrush",
+        "social": "Meta social analytics",
+    }.get(source_type, source_type)
+
+
+def _subject_type_for_source(source_type: str) -> str:
+    """Provide a stable subject type alongside each rule match."""
+    return {
+        "gsc_queries": "query",
+        "ga4_pages": "page",
+        "ga4_sources": "traffic_source",
+        "semrush_positions": "keyword",
+        "semrush_pages": "page",
+        "semrush_topics": "topic",
+        "social": "post",
+    }.get(source_type, "item")
+
+
 def _build_gsc_query_payloads(data: dict, insights: dict) -> list[tuple[str, dict]]:
     payloads = []
-    query_analysis = insights.get("query_analysis", []) or []
+    query_analysis = insights.get("full_query_analysis") or insights.get("query_analysis", []) or []
     non_branded_queries = insights.get("non_branded_queries", []) or []
     non_branded_impressions = sum(to_numeric_score_value(item.get("impressions")) or 0 for item in non_branded_queries)
     non_branded_ctr_values = [
@@ -253,6 +308,7 @@ def _build_gsc_query_payloads(data: dict, insights: dict) -> list[tuple[str, dic
                 query,
                 {
                     "impressions": to_numeric_score_value(item.get("impressions")),
+                    "clicks": to_numeric_score_value(item.get("clicks")),
                     "ctr": to_numeric_score_value(item.get("ctr")),
                     "position": to_numeric_score_value(item.get("position")),
                     "non_branded_impressions": non_branded_impressions or None,
