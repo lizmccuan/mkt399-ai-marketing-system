@@ -993,18 +993,24 @@ st.markdown(
         min-width: 0 !important;
         box-sizing: border-box !important;
     }
-    /* Keep saved-run selectors readable even when BaseWeb applies its dark defaults. */
+    /* Saved-run BaseWeb selects require nested value and portal overrides on deployed themes. */
     [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) .stSelectbox label {
         color: #111827 !important;
         font-weight: 650 !important;
     }
-    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] > div {
-        background: #FFFFFF !important;
-        border: 1px solid #E5E7EB !important;
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"],
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] > div,
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] [role="combobox"] {
+        background-color: #FFFFFF !important;
+        border-color: #E5E7EB !important;
         border-radius: 12px !important;
         box-shadow: none !important;
         color: #111827 !important;
         min-height: 46px !important;
+        outline: none !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] > div {
+        border: 1px solid #E5E7EB !important;
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
@@ -1013,50 +1019,64 @@ st.markdown(
     [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] > div:hover {
         border-color: #D1D5DB !important;
     }
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"]:focus-within,
     [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"]:focus-within > div,
     [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"][aria-expanded="true"] > div {
         border-color: #8B5CF6 !important;
         box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.12) !important;
+        outline: none !important;
     }
-    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] div,
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] [data-baseweb="select-value"],
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] [data-baseweb="select-value"] *,
     [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] span,
     [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] input,
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] input:disabled,
     [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] [role="combobox"] {
+        background-color: transparent !important;
         color: #111827 !important;
         -webkit-text-fill-color: #111827 !important;
-    }
-    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] svg {
-        color: #374151 !important;
-        fill: #374151 !important;
         opacity: 1 !important;
     }
-    /* BaseWeb places dropdown menus in a page-level popover portal. */
-    body:has(.data-sources-page-marker) div[data-baseweb="popover"],
-    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="listbox"],
-    body:has(.data-sources-page-marker) div[data-baseweb="popover"] div[data-baseweb="menu"] {
-        background: #FFFFFF !important;
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] [aria-disabled="true"],
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] [aria-disabled="true"] * {
+        background-color: #F9FAFB !important;
+        color: #4B5563 !important;
+        -webkit-text-fill-color: #4B5563 !important;
+        opacity: 1 !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] svg,
+    [data-testid="stVerticalBlock"]:has(.saved-runs-card-marker) div[data-baseweb="select"] svg * {
+        color: #374151 !important;
+        fill: #374151 !important;
+        stroke: #374151 !important;
+        opacity: 1 !important;
+    }
+    /* The BaseWeb listbox is mounted in a page-level portal, outside the saved-run card. */
+    body:has(.data-sources-page-marker) [data-baseweb="popover"],
+    body:has(.data-sources-page-marker) [data-baseweb="popover"] > div,
+    body:has(.data-sources-page-marker) [data-baseweb="popover"] [role="listbox"],
+    body:has(.data-sources-page-marker) [data-baseweb="popover"] [data-baseweb="menu"],
+    body:has(.data-sources-page-marker) [data-baseweb="popover"] [data-baseweb="menu"] > div {
+        background-color: #FFFFFF !important;
         border-color: #E5E7EB !important;
         color: #111827 !important;
+        box-shadow: 0 18px 40px rgba(16, 24, 40, 0.12) !important;
     }
-    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"] {
-        background: #FFFFFF !important;
+    body:has(.data-sources-page-marker) [data-baseweb="popover"] [role="option"],
+    body:has(.data-sources-page-marker) [data-baseweb="popover"] [role="option"] * {
+        background-color: #FFFFFF !important;
         border-radius: 10px !important;
         color: #111827 !important;
+        -webkit-text-fill-color: #111827 !important;
+        opacity: 1 !important;
     }
-    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"] *,
-    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"] [data-baseweb="typo"] {
+    body:has(.data-sources-page-marker) [data-baseweb="popover"] [role="option"]:hover,
+    body:has(.data-sources-page-marker) [data-baseweb="popover"] [role="option"]:hover *,
+    body:has(.data-sources-page-marker) [data-baseweb="popover"] [role="option"][aria-selected="true"],
+    body:has(.data-sources-page-marker) [data-baseweb="popover"] [role="option"][aria-selected="true"] * {
+        background-color: #F3EDFF !important;
         color: #111827 !important;
         -webkit-text-fill-color: #111827 !important;
-    }
-    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"]:hover,
-    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"][aria-selected="true"] {
-        background: #F3EDFF !important;
-        color: #5B21B6 !important;
-    }
-    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"]:hover *,
-    body:has(.data-sources-page-marker) div[data-baseweb="popover"] [role="option"][aria-selected="true"] * {
-        color: #5B21B6 !important;
-        -webkit-text-fill-color: #5B21B6 !important;
     }
     .saved-runs-section-title {
         font-size: 1.02rem;
@@ -4974,13 +4994,28 @@ def render_social_analysis_page(results: dict) -> None:
                 format_fig.update_layout(
                     plot_bgcolor="#FFFFFF",
                     paper_bgcolor="#FFFFFF",
-                    font={"color": "#162033"},
+                    font={"color": "#374151"},
                     height=280,
                     margin={"l": 8, "r": 12, "t": 12, "b": 28},
                     showlegend=False,
+                    hoverlabel={
+                        "bgcolor": "#FFFFFF",
+                        "bordercolor": "#E5E7EB",
+                        "font": {"color": "#111827"},
+                    },
                 )
-                format_fig.update_xaxes(ticksuffix="%", gridcolor="#EEF2F7", zeroline=False)
-                format_fig.update_yaxes(automargin=True)
+                format_fig.update_xaxes(
+                    ticksuffix="%",
+                    gridcolor="#EEF2F7",
+                    zeroline=False,
+                    tickfont={"color": "#374151"},
+                    title_font={"color": "#111827"},
+                )
+                format_fig.update_yaxes(
+                    automargin=True,
+                    tickfont={"color": "#374151"},
+                    title_font={"color": "#111827"},
+                )
                 st.plotly_chart(format_fig, use_container_width=True)
             elif len(format_performance) == 1:
                 st.caption("One content format is present in this run, so no best-versus-worst format comparison is shown.")
@@ -5041,10 +5076,26 @@ def render_social_analysis_page(results: dict) -> None:
                 component_fig.update_layout(
                     plot_bgcolor="#FFFFFF",
                     paper_bgcolor="#FFFFFF",
-                    font={"color": "#162033"},
+                    font={"color": "#374151"},
                     height=300,
                     margin={"l": 4, "r": 4, "t": 8, "b": 8},
-                    legend={"orientation": "h", "y": -0.15},
+                    legend={
+                        "orientation": "h",
+                        "y": -0.15,
+                        "font": {"color": "#374151", "size": 12},
+                    },
+                    hoverlabel={
+                        "bgcolor": "#FFFFFF",
+                        "bordercolor": "#E5E7EB",
+                        "font": {"color": "#111827"},
+                    },
+                )
+                # Outside labels remain readable across both dark and light lavender slices.
+                component_fig.update_traces(
+                    textinfo="percent",
+                    textposition="outside",
+                    textfont={"color": "#374151", "size": 11},
+                    marker={"line": {"color": "#FFFFFF", "width": 2}},
                 )
                 st.plotly_chart(component_fig, use_container_width=True)
             with interpretation_col:
@@ -5087,9 +5138,22 @@ def render_social_analysis_page(results: dict) -> None:
                 heatmap_fig.update_layout(
                     plot_bgcolor="#FFFFFF",
                     paper_bgcolor="#FFFFFF",
-                    font={"color": "#162033"},
+                    font={"color": "#374151"},
                     height=310,
                     margin={"l": 8, "r": 8, "t": 8, "b": 28},
+                    hoverlabel={
+                        "bgcolor": "#FFFFFF",
+                        "bordercolor": "#E5E7EB",
+                        "font": {"color": "#111827"},
+                    },
+                )
+                heatmap_fig.update_xaxes(tickfont={"color": "#374151"}, title_font={"color": "#111827"})
+                heatmap_fig.update_yaxes(tickfont={"color": "#374151"}, title_font={"color": "#111827"})
+                heatmap_fig.update_coloraxes(
+                    colorbar={
+                        "tickfont": {"color": "#374151"},
+                        "title": {"font": {"color": "#111827"}},
+                    }
                 )
                 st.plotly_chart(heatmap_fig, use_container_width=True)
 
@@ -6546,6 +6610,13 @@ def build_combined_what_next_cards(results: dict) -> list[dict[str, str]]:
                 "action": str(item.get("action", "")),
                 "reason": str(item.get("reason", "")),
                 "priority": str(item.get("priority", "Medium")),
+                "rule_id": str(item.get("rule_id", "")),
+                "subject": str(item.get("subject", "")),
+                "source": str(item.get("source", "")),
+                "category": str(item.get("category", item.get("action_type", ""))),
+                "action_type": str(item.get("action_type", "")),
+                "evidence": item.get("evidence") if isinstance(item.get("evidence"), dict) else {},
+                "action_steps": item.get("action_steps", item.get("improvement_guidance", [])),
             }
         )
 
@@ -6567,6 +6638,11 @@ def build_combined_what_next_cards(results: dict) -> list[dict[str, str]]:
                 "action": str(item.get("recommendation", "")),
                 "reason": str(item.get("why_it_matters", "")),
                 "priority": str(item.get("priority", "High")),
+                "source": "Meta",
+                "category": str(item.get("category", "social")),
+                "action_type": "social",
+                "evidence": item.get("evidence") if isinstance(item.get("evidence"), dict) else {},
+                "action_steps": item.get("action_steps", item.get("improvement_guidance", [])),
             }
         )
 
@@ -7156,6 +7232,13 @@ def build_opportunity_key_metrics(data: dict[str, str]) -> str:
     return " | ".join(metric_parts)
 
 
+def build_stable_context_identifier(prefix: str, *parts: object) -> str:
+    """Create a deterministic UI context ID from existing opportunity or recommendation fields."""
+    combined = " ".join(str(part or "").strip().lower() for part in parts)
+    slug = re.sub(r"[^a-z0-9]+", "_", combined).strip("_")
+    return f"{prefix}_{slug or 'unidentified'}"
+
+
 def build_executive_opportunity_entry(group: str, title: str, data: dict[str, str]) -> dict[str, object]:
     """Normalize one opportunity card into an executive dashboard entry."""
     target_value = (
@@ -7175,7 +7258,17 @@ def build_executive_opportunity_entry(group: str, title: str, data: dict[str, st
         "Local SEO": "SEMrush",
         "Social": "Meta",
     }
+    source = str(data.get("source") or source_by_group.get(group, "")).strip()
+    opportunity_type = str(data.get("opportunity_type", "")).strip()
+    opportunity_id = str(data.get("opportunity_id", "")).strip() or build_stable_context_identifier(
+        "opportunity",
+        source,
+        group,
+        opportunity_type,
+        target_value,
+    )
     return {
+        "opportunity_id": opportunity_id,
         "group": group,
         "title": str(data.get("title") or title).strip(),
         "priority": priority,
@@ -7188,8 +7281,9 @@ def build_executive_opportunity_entry(group: str, title: str, data: dict[str, st
         "why_it_matters": str(data.get("why_it_matters", data.get("reason", ""))).strip(),
         "supporting_data": clean_supporting_data_text(str(data.get("supporting_data", ""))),
         "why_recommendation_works": str(data.get("why_recommendation_works", "")).strip(),
-        "diagnosis": str(data.get("diagnosis", data.get("opportunity_type", ""))).strip(),
-        "source": str(data.get("source") or source_by_group.get(group, "")).strip(),
+        "diagnosis": str(data.get("diagnosis", opportunity_type)).strip(),
+        "source": source,
+        "rule_id": str(data.get("rule_id", data.get("source_rule_id", ""))).strip(),
         "improvement_guidance": data.get("improvement_guidance", []),
         "evidence_points": data.get("evidence_points", []),
         "raw": data,
@@ -7296,12 +7390,140 @@ def get_opportunity_evidence_lines(entry: dict[str, object], limit: int = 4) -> 
     return compact_lines[:limit]
 
 
-def navigate_to_recommendations() -> None:
-    """Use the existing sidebar navigation state to open the action workspace."""
+def clear_recommendation_focus() -> None:
+    """Clear only the temporary opportunity-to-action-plan navigation context."""
+    for key in [
+        "selected_opportunity_id",
+        "selected_opportunity_context",
+        "selected_recommendation_id",
+        "recommendation_focus_mode",
+        "recommendation_focus_navigation_pending",
+        "recommendation_focus_run_id",
+    ]:
+        st.session_state.pop(key, None)
+
+
+def get_opportunity_recommendation_tab(entry: dict[str, object]) -> str:
+    """Map an existing opportunity category to the matching recommendation workspace area."""
+    group = str(entry.get("group", "")).strip()
+    diagnosis = str(entry.get("diagnosis", "")).lower()
+    if group == "Social":
+        return "Social"
+    if group == "Local SEO":
+        return "Local SEO"
+    if group == "Pages":
+        return "UX/CRO" if any(token in diagnosis for token in ["ux", "conversion", "cta", "trust"]) else "SEO"
+    return "SEO"
+
+
+def build_all_recommendation_workspace_items(results: dict) -> list[dict[str, object]]:
+    """Reuse the existing workspace sources for matching without changing their rank or content."""
+    return (
+        build_recommendation_workspace_items(results)
+        + build_priority_queue_workspace_items(results)
+        + build_what_next_workspace_items(results)
+    )
+
+
+def normalize_context_match_value(value: object) -> str:
+    """Normalize stable labels for conservative subject matching."""
+    return normalize_recommendation_plain_text(str(value or "")).strip().lower()
+
+
+def find_related_recommendation(
+    opportunity: dict[str, object],
+    recommendation_items: list[dict[str, object]],
+) -> tuple[dict[str, object] | None, str]:
+    """Return an exact or same-area related recommendation, never an unrelated fallback."""
+    rule_id = str(opportunity.get("rule_id", "")).strip()
+    target = normalize_context_match_value(opportunity.get("target"))
+    expected_tab = get_opportunity_recommendation_tab(opportunity)
+
+    if rule_id:
+        exact_rule_matches = [
+            item for item in recommendation_items
+            if str(item.get("rule_id", "")).strip() == rule_id
+        ]
+        if exact_rule_matches:
+            return sort_recommendation_workspace_items(exact_rule_matches)[0], "exact_rule"
+
+    if target:
+        subject_matches = []
+        for item in recommendation_items:
+            subject = normalize_context_match_value(item.get("subject"))
+            if subject and (subject == target or subject in target or target in subject):
+                subject_matches.append(item)
+        if subject_matches:
+            return sort_recommendation_workspace_items(subject_matches)[0], "exact_subject"
+
+    related_matches = [
+        item for item in recommendation_items
+        if str(item.get("tab", "")).strip() == expected_tab
+    ]
+    if related_matches:
+        return sort_recommendation_workspace_items(related_matches)[0], "related_area"
+
+    return None, "no_match"
+
+
+def build_selected_opportunity_context(entry: dict[str, object]) -> dict[str, object]:
+    """Keep only display-ready opportunity context in session state for the focused action plan."""
+    return {
+        "opportunity_id": str(entry.get("opportunity_id", "")).strip(),
+        "title": get_opportunity_display_title(entry),
+        "diagnosis": normalize_recommendation_plain_text(str(entry.get("diagnosis", ""))).strip(),
+        "why_it_matters": normalize_recommendation_plain_text(str(entry.get("why_it_matters", ""))).strip(),
+        "recommended_action": normalize_recommendation_plain_text(str(entry.get("recommended_action", ""))).strip(),
+        "improvement_guidance": get_opportunity_improvement_guidance(entry),
+        "evidence_lines": get_opportunity_evidence_lines(entry),
+        "priority": str(entry.get("priority", "")).strip(),
+        "source": str(entry.get("source", "")).strip(),
+    }
+
+
+def open_opportunity_action_plan(entry: dict[str, object], results: dict) -> None:
+    """Open Recommendations in focused mode for this opportunity's exact or related action plan."""
+    recommendation, _match_type = find_related_recommendation(
+        entry,
+        build_all_recommendation_workspace_items(results),
+    )
+    st.session_state["selected_opportunity_id"] = str(entry.get("opportunity_id", "")).strip()
+    st.session_state["selected_opportunity_context"] = build_selected_opportunity_context(entry)
+    st.session_state["selected_recommendation_id"] = (
+        str(recommendation.get("recommendation_id", "")).strip() if recommendation else ""
+    )
+    st.session_state["recommendation_focus_mode"] = True
+    st.session_state["recommendation_focus_navigation_pending"] = True
+    st.session_state["recommendation_focus_run_id"] = st.session_state.get("loaded_run_id", "")
     st.session_state["app_navigation"] = "🎯 Recommendations"
 
 
-def render_biggest_opportunity(entry: dict[str, object]) -> None:
+def open_recommendation_action_plan(item: dict[str, object]) -> None:
+    """Focus the current Recommendations page on an existing recommendation card."""
+    st.session_state["selected_opportunity_id"] = ""
+    st.session_state["selected_opportunity_context"] = {}
+    st.session_state["selected_recommendation_id"] = str(item.get("recommendation_id", "")).strip()
+    st.session_state["recommendation_focus_mode"] = True
+    st.session_state["recommendation_focus_navigation_pending"] = True
+    st.session_state["recommendation_focus_run_id"] = st.session_state.get("loaded_run_id", "")
+    st.session_state["app_navigation"] = "🎯 Recommendations"
+
+
+def return_to_opportunities() -> None:
+    """Return to the existing Opportunities page without rerunning the workflow."""
+    clear_recommendation_focus()
+    st.session_state["app_navigation"] = "🚀 Opportunities"
+
+
+def handle_sidebar_navigation_change() -> None:
+    """Keep focused action plans only when navigation was explicitly opened from an action CTA."""
+    if st.session_state.get("recommendation_focus_navigation_pending"):
+        st.session_state["recommendation_focus_navigation_pending"] = False
+        return
+    clear_recommendation_focus()
+
+
+def render_biggest_opportunity(entry: dict[str, object], results: dict) -> None:
     """Present the strongest existing opportunity as a diagnosis-first summary."""
     title = get_opportunity_display_title(entry)
     diagnosis = normalize_recommendation_plain_text(str(entry.get("diagnosis", ""))).strip()
@@ -7344,11 +7566,12 @@ def render_biggest_opportunity(entry: dict[str, object]) -> None:
             "See Action Plan →",
             key="biggest_opportunity_action_plan",
             type="primary",
-            on_click=navigate_to_recommendations,
+            on_click=open_opportunity_action_plan,
+            args=(entry, results),
         )
 
 
-def render_executive_opportunity_card(entry: dict[str, object], unique_key: str) -> None:
+def render_executive_opportunity_card(entry: dict[str, object], results: dict, unique_key: str) -> None:
     """Render a diagnosis-first opportunity card with secondary evidence collapsed."""
     priority = str(entry.get("priority", "Medium")).strip().title()
     pill_class = get_report_priority_pill_class(priority)
@@ -7395,7 +7618,8 @@ def render_executive_opportunity_card(entry: dict[str, object], unique_key: str)
         st.button(
             "View Action Plan →",
             key=f"opportunity_action_plan_{unique_key}",
-            on_click=navigate_to_recommendations,
+            on_click=open_opportunity_action_plan,
+            args=(entry, results),
         )
 
     detail_label = f"View supporting details for {title[:48] or unique_key}"
@@ -7484,7 +7708,7 @@ def render_opportunities_page(results: dict) -> None:
             render_dashboard_kpi_card(label, value, caption)
 
     biggest_opportunity = sort_executive_opportunities(all_entries)[0]
-    render_biggest_opportunity(biggest_opportunity)
+    render_biggest_opportunity(biggest_opportunity, results)
 
     tab_labels = [label for label in ["SEO", "Pages", "Local SEO", "Social"] if grouped_opportunities.get(label)]
     tab_objects = st.tabs(tab_labels)
@@ -7493,7 +7717,11 @@ def render_opportunities_page(results: dict) -> None:
         with tab_object:
             entries = grouped_opportunities.get(tab_label, [])
             for index, entry in enumerate(entries):
-                render_executive_opportunity_card(entry, f"{tab_label.lower().replace(' ', '_')}_{index}")
+                render_executive_opportunity_card(
+                    entry,
+                    results,
+                    f"{tab_label.lower().replace(' ', '_')}_{index}",
+                )
 
 
 def build_take_action_payload(card: dict, results: dict) -> dict | None:
@@ -8337,9 +8565,27 @@ def build_recommendation_workspace_items(results: dict) -> list[dict[str, object
         recommendation_text = str(recommendation.get("recommendation", "")).strip()
         why_it_matters = str(recommendation.get("why_it_matters", "")).strip()
         priority = str(recommendation.get("priority", "Medium")).strip().title()
+        rule_id = str(recommendation.get("rule_id", recommendation.get("source_rule_id", ""))).strip()
+        subject = str(recommendation.get("subject", recommendation.get("target", ""))).strip()
+        recommendation_id = str(recommendation.get("recommendation_id", "")).strip() or build_stable_context_identifier(
+            "recommendation",
+            rule_id,
+            action_type,
+            recommendation.get("category", ""),
+            subject,
+            title,
+            recommendation_text,
+        )
 
         workspace_items.append(
             {
+                "recommendation_id": recommendation_id,
+                "rule_id": rule_id,
+                "subject": subject,
+                "subject_type": str(recommendation.get("subject_type", "")).strip(),
+                "source": str(recommendation.get("source", "")).strip(),
+                "category": str(recommendation.get("category", "")).strip(),
+                "opportunity_type": str(recommendation.get("opportunity_type", "")).strip(),
                 "type": "recommendation",
                 "title": title,
                 "priority": priority,
@@ -8357,6 +8603,8 @@ def build_recommendation_workspace_items(results: dict) -> list[dict[str, object
                 "why_it_matters": why_it_matters,
                 "insight": issue,
                 "supporting_evidence": str(recommendation.get("supporting_evidence", "")).strip(),
+                "evidence": recommendation.get("evidence") if isinstance(recommendation.get("evidence"), dict) else {},
+                "action_steps": recommendation.get("action_steps", recommendation.get("improvement_guidance", [])),
                 "opportunity_score": to_comparison_number(recommendation.get("opportunity_score")),
                 "business_impact_score": to_comparison_number(recommendation.get("business_impact_score")),
                 "confidence_score": to_comparison_number(recommendation.get("confidence_score")),
@@ -8378,6 +8626,18 @@ def build_priority_queue_workspace_items(results: dict) -> list[dict[str, object
         issue = str(action.get("why_it_matters", "")).strip()
         items.append(
             {
+                "recommendation_id": build_stable_context_identifier(
+                    "recommendation",
+                    action.get("rule_id", ""),
+                    action.get("data_source", ""),
+                    action.get("title", ""),
+                    recommendation_text,
+                ),
+                "rule_id": str(action.get("rule_id", "")).strip(),
+                "subject": str(action.get("subject", "")).strip(),
+                "source": str(action.get("source") or action.get("data_source", "")).strip(),
+                "category": str(action.get("category", "")).strip(),
+                "opportunity_type": str(action.get("opportunity_type", "")).strip(),
                 "type": "priority_queue",
                 "title": title,
                 "priority": str(action.get("priority", "Medium")).strip().title(),
@@ -8391,6 +8651,8 @@ def build_priority_queue_workspace_items(results: dict) -> list[dict[str, object
                 "recommendation": recommendation_text,
                 "why_it_matters": issue,
                 "supporting_evidence": str(action.get("supporting_data", "")).strip(),
+                "evidence": action.get("evidence") if isinstance(action.get("evidence"), dict) else {},
+                "action_steps": action.get("action_steps", action.get("improvement_guidance", [])),
                 "impact_score": to_comparison_number(action.get("impact_score")),
                 "unique_key": f"priority_queue_{index}",
             }
@@ -8407,21 +8669,37 @@ def build_what_next_workspace_items(results: dict) -> list[dict[str, object]]:
         title = str(action.get("title", "Next Action")).strip()
         next_action_text = str(action.get("action", "")).strip()
         reason = str(action.get("reason", "")).strip()
+        action_type = str(action.get("action_type", "")).strip().lower()
         items.append(
             {
+                "recommendation_id": build_stable_context_identifier(
+                    "recommendation",
+                    action.get("rule_id", ""),
+                    action.get("data_source", ""),
+                    action.get("title", ""),
+                    next_action_text,
+                ),
+                "rule_id": str(action.get("rule_id", "")).strip(),
+                "subject": str(action.get("subject", "")).strip(),
+                "source": str(action.get("source", "")).strip(),
+                "category": str(action.get("category", "")).strip(),
+                "opportunity_type": str(action.get("opportunity_type", "")).strip(),
                 "type": "what_next",
                 "title": title,
                 "priority": str(action.get("priority", "Medium")).strip().title(),
                 "tab": map_recommendation_to_workspace_tab(
-                    action_type="social" if "social" in title.lower() else "",
+                    action_type=action_type or ("social" if "social" in title.lower() else ""),
                     title=title,
                     issue=reason,
                     recommendation_text=next_action_text,
                 ),
                 "issue": reason,
+                "action_type": action_type,
                 "recommendation": next_action_text,
                 "why_it_matters": reason,
                 "supporting_evidence": "",
+                "evidence": action.get("evidence") if isinstance(action.get("evidence"), dict) else {},
+                "action_steps": action.get("action_steps", action.get("improvement_guidance", [])),
                 "unique_key": f"what_next_{index}",
             }
         )
@@ -8616,7 +8894,196 @@ def render_recommended_next_action(item: dict[str, object]) -> None:
                 f'<div class="recommendation-value-row">{html.escape(expected_value_line)}</div>',
                 unsafe_allow_html=True,
             )
-        st.markdown("View full recommendation →")
+        st.button(
+            "View full recommendation →",
+            key="recommended_next_action_focus",
+            on_click=open_recommendation_action_plan,
+            args=(item,),
+        )
+
+
+def get_focused_recommendation_state(
+    recommendation_items: list[dict[str, object]],
+) -> tuple[dict[str, object] | None, dict[str, object] | None]:
+    """Resolve the selected recommendation only when it belongs to the currently loaded run."""
+    if not st.session_state.get("recommendation_focus_mode"):
+        return None, None
+
+    selected_run_id = str(st.session_state.get("recommendation_focus_run_id", "")).strip()
+    loaded_run_id = str(st.session_state.get("loaded_run_id", "")).strip()
+    if selected_run_id and loaded_run_id and selected_run_id != loaded_run_id:
+        clear_recommendation_focus()
+        return None, None
+
+    selected_recommendation_id = str(st.session_state.get("selected_recommendation_id", "")).strip()
+    context = st.session_state.get("selected_opportunity_context")
+    context = context if isinstance(context, dict) else {}
+    if not selected_recommendation_id:
+        return None, context
+
+    for item in recommendation_items:
+        if str(item.get("recommendation_id", "")).strip() == selected_recommendation_id:
+            return item, context
+
+    clear_recommendation_focus()
+    return None, None
+
+
+def get_focused_action_steps(
+    recommendation: dict[str, object] | None,
+    opportunity_context: dict[str, object] | None,
+) -> list[str]:
+    """Reuse structured actions from the selected opportunity or recommendation without inventing a plan."""
+    steps: list[str] = []
+    for source in [
+        (opportunity_context or {}).get("improvement_guidance", []),
+        (recommendation or {}).get("action_steps", []),
+    ]:
+        if not isinstance(source, list):
+            continue
+        for value in source:
+            text = normalize_recommendation_plain_text(str(value)).strip()
+            if text and text not in steps:
+                steps.append(text)
+
+    if not steps and recommendation:
+        text = normalize_recommendation_plain_text(str(recommendation.get("recommendation", ""))).strip()
+        if text:
+            steps.append(text)
+    if not steps and opportunity_context:
+        text = normalize_recommendation_plain_text(str(opportunity_context.get("recommended_action", ""))).strip()
+        if text:
+            steps.append(text)
+    return steps[:4]
+
+
+def get_focused_evidence_lines(
+    recommendation: dict[str, object] | None,
+    opportunity_context: dict[str, object] | None,
+) -> list[str]:
+    """Present compact existing evidence from the selected opportunity before recommendation fallbacks."""
+    context_lines = (opportunity_context or {}).get("evidence_lines", [])
+    if isinstance(context_lines, list) and context_lines:
+        return [str(item).strip() for item in context_lines if str(item).strip()][:4]
+
+    supporting_evidence = normalize_recommendation_plain_text(
+        str((recommendation or {}).get("supporting_evidence", ""))
+    ).strip()
+    if supporting_evidence:
+        return [part.strip() for part in supporting_evidence.split("|") if part.strip()][:4]
+
+    evidence = (recommendation or {}).get("evidence", {})
+    if not isinstance(evidence, dict):
+        return []
+    labels = {
+        "impressions": "Impressions",
+        "clicks": "Clicks",
+        "ctr": "CTR",
+        "position": "Position",
+        "sessions": "Sessions",
+        "engagement_rate": "Engagement rate",
+        "reach": "Reach",
+        "saves": "Saves",
+        "shares": "Shares",
+    }
+    return [
+        f"{labels.get(key, str(key).replace('_', ' ').title())}: {value}"
+        for key, value in evidence.items()
+        if key in labels and value not in (None, "")
+    ][:4]
+
+
+def render_focused_recommendation_plan(
+    recommendation: dict[str, object] | None,
+    opportunity_context: dict[str, object] | None,
+    results: dict,
+    priority_class_map: dict[str, str],
+) -> None:
+    """Render the selected action plan first, before the normal recommendation workspace."""
+    context = opportunity_context or {}
+    context_title = normalize_recommendation_plain_text(str(context.get("title", ""))).strip()
+    recommendation_title = normalize_recommendation_plain_text(
+        str((recommendation or {}).get("title", ""))
+    ).strip()
+    plan_title = context_title or recommendation_title or "Selected opportunity"
+
+    st.button(
+        "← Back to Opportunities",
+        key="focused_recommendation_back",
+        on_click=return_to_opportunities,
+    )
+    st.markdown("<div class='panel-title'>Action Plan for:</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='recommendation-action-title'>{html.escape(plan_title)}</div>",
+        unsafe_allow_html=True,
+    )
+
+    if recommendation is None:
+        st.info("No specific action plan is linked to this opportunity yet. Review the current recommendations below.")
+        return
+
+    priority = str(recommendation.get("priority") or context.get("priority") or "Medium").strip().title()
+    pill_class = priority_class_map.get(priority, "priority-medium-pill")
+    source = str(context.get("source") or recommendation.get("source") or "").strip()
+    action = normalize_recommendation_plain_text(
+        str(recommendation.get("recommendation", "") or context.get("recommended_action", ""))
+    ).strip()
+    opportunity_context_text = normalize_recommendation_plain_text(
+        str(context.get("diagnosis", "") or context.get("why_it_matters", "") or recommendation.get("issue", ""))
+    ).strip()
+    why = normalize_recommendation_plain_text(
+        str(context.get("why_it_matters", "") or recommendation.get("why_it_matters", ""))
+    ).strip()
+    action_steps = get_focused_action_steps(recommendation, context)
+    evidence_lines = get_focused_evidence_lines(recommendation, context)
+    expected_value_line = build_recommendation_expected_value_line(recommendation)
+
+    focused_card = st.container()
+    with focused_card:
+        st.markdown('<div class="recommendation-action-marker"></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="{pill_class}">{"🔴" if priority == "High" else "🟠" if priority == "Medium" else "🟢"} {priority} Priority</div>',
+            unsafe_allow_html=True,
+        )
+        if source:
+            st.caption(f"Source: {source}")
+        if opportunity_context_text:
+            st.markdown("**Opportunity context**")
+            st.write(opportunity_context_text)
+        if action:
+            st.markdown("**What to do**")
+            st.write(action)
+        if why:
+            st.markdown("**Why**")
+            st.write(why)
+        if action_steps:
+            st.markdown("**Action steps**")
+            for index, step in enumerate(action_steps, start=1):
+                st.markdown(f"{index}. {step}")
+        if evidence_lines:
+            st.markdown("**Evidence**")
+            st.caption(" · ".join(evidence_lines))
+        if expected_value_line:
+            st.markdown("**Expected value**")
+            st.caption(expected_value_line)
+
+    if recommendation.get("type") == "recommendation":
+        action_type = str(recommendation.get("action_type", "")).strip().lower()
+        render_recommendation_take_action_component(
+            {
+                "category": action_type,
+                "action_type": action_type,
+                "issue": str(recommendation.get("issue", "")),
+                "recommendation": action,
+                "why_it_matters": why,
+                "priority": priority,
+            },
+            results,
+            f"focused_{slugify_recommendation_key(str(recommendation.get('recommendation_id', 'plan')))}",
+            get_first_value_fn=get_first_value,
+            build_semrush_opportunity_cards_fn=build_semrush_opportunity_cards,
+            humanize_social_topic_fn=humanize_social_topic,
+        )
 
 
 def render_recommendation_empty_state(tab_label: str) -> None:
@@ -8657,9 +9124,34 @@ def render_recommendations_page(results: dict) -> None:
     high_count = sum(str(item.get("priority", "")).strip().lower() == "high" for item in recommendation_items)
     all_workspace_items = recommendation_items + priority_queue_items + what_next_items
     sorted_recommendations = sort_recommendation_workspace_items(recommendation_items)
+    focused_recommendation, focused_opportunity_context = get_focused_recommendation_state(all_workspace_items)
+    focused_mode = bool(
+        st.session_state.get("recommendation_focus_mode")
+        and (focused_recommendation is not None or focused_opportunity_context)
+    )
+    display_workspace_items = list(all_workspace_items)
+
+    if focused_mode:
+        render_focused_recommendation_plan(
+            focused_recommendation,
+            focused_opportunity_context,
+            results,
+            priority_class_map,
+        )
+        selected_recommendation_id = str(st.session_state.get("selected_recommendation_id", "")).strip()
+        if selected_recommendation_id:
+            display_workspace_items = [
+                item
+                for item in all_workspace_items
+                if str(item.get("recommendation_id", "")).strip() != selected_recommendation_id
+            ]
+        st.markdown('<div class="panel-title">Other Recommendations</div>', unsafe_allow_html=True)
+        # The pending flag only protects the CTA-driven navigation; later sidebar navigation returns to normal mode.
+        st.session_state["recommendation_focus_navigation_pending"] = False
 
     if sorted_recommendations:
-        render_recommended_next_action(sorted_recommendations[0])
+        if not focused_mode:
+            render_recommended_next_action(sorted_recommendations[0])
 
         affected_areas = []
         for tab_label in ["SEO", "UX/CRO", "Local SEO", "Social", "Analytics"]:
@@ -8683,14 +9175,14 @@ def render_recommendations_page(results: dict) -> None:
         for index, (label, value, caption) in enumerate(summary_values):
             with summary_columns[index]:
                 render_dashboard_kpi_card(label, value, caption)
-    else:
+    elif not focused_mode:
         st.info("No prioritized actions are available for this run yet.")
 
     tab_labels = []
-    if all_workspace_items:
+    if display_workspace_items:
         tab_labels.append("All")
     for tab_label in ["SEO", "UX/CRO", "Local SEO", "Social", "Analytics"]:
-        if any(item.get("tab") == tab_label for item in all_workspace_items):
+        if any(item.get("tab") == tab_label for item in display_workspace_items):
             tab_labels.append(tab_label)
     if suggested_change_cards:
         tab_labels.append("Execution Assets")
@@ -8734,8 +9226,8 @@ def render_recommendations_page(results: dict) -> None:
                     st.write("")
                 continue
 
-            filtered_items = all_workspace_items if tab_label == "All" else [
-                item for item in all_workspace_items if item.get("tab") == tab_label
+            filtered_items = display_workspace_items if tab_label == "All" else [
+                item for item in display_workspace_items if item.get("tab") == tab_label
             ]
 
             if not filtered_items:
@@ -8764,6 +9256,13 @@ def get_report_recommendations(results: dict) -> list[dict]:
         priority_bundle = item.get("priority_bundle", {}) if isinstance(item.get("priority_bundle"), dict) else {}
         recommendations.append(
             {
+                "rule_id": item.get("rule_id"),
+                "subject": item.get("subject", item.get("label", "")),
+                "subject_type": item.get("subject_type"),
+                "source": item.get("source"),
+                "category": item.get("category"),
+                "opportunity_type": item.get("opportunity_type"),
+                "evidence": item.get("evidence") if isinstance(item.get("evidence"), dict) else {},
                 "title": item.get("title"),
                 "insight": item.get("insight"),
                 "why_it_matters": item.get("why_it_matters"),
@@ -10428,6 +10927,7 @@ with st.sidebar:
             "🤖 Chat with AI Agent",
         ],
         key="app_navigation",
+        on_change=handle_sidebar_navigation_change,
     )
 
     show_debug = st.checkbox("Show debug data", value=False)
@@ -10458,6 +10958,7 @@ if page == "📂 Data Sources":
             st.session_state["comparison_mode"] = False
             st.session_state["selected_current_run_id"] = None
             st.session_state["selected_previous_run_id"] = None
+            clear_recommendation_focus()
             current_results = loaded_run["results"]
             st.success(f"Loaded saved run: {loaded_run['run_id']}")
         else:
@@ -10483,6 +10984,7 @@ if page == "📂 Data Sources":
                 st.session_state["comparison_mode"] = True
                 st.session_state["selected_current_run_id"] = current_run_id
                 st.session_state["selected_previous_run_id"] = comparison_run_id
+                clear_recommendation_focus()
                 current_results = loaded_run["results"]
                 st.success(f"Comparison ready: {current_run_id} vs {comparison_run_id}")
             else:
@@ -10547,6 +11049,7 @@ if page == "📂 Data Sources":
         st.session_state["comparison_mode"] = False
         st.session_state["selected_current_run_id"] = None
         st.session_state["selected_previous_run_id"] = None
+        clear_recommendation_focus()
         current_results = results
 
         st.success("Workflow complete. Results were saved and can now be loaded from Saved Runs.")
