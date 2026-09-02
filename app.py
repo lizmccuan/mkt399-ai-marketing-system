@@ -1347,6 +1347,202 @@ st.markdown(
         padding: 0.9rem 1rem;
         margin-top: 0.35rem;
     }
+    .pulse-page-marker,
+    .pulse-main-column-marker,
+    .pulse-quick-card-marker,
+    .pulse-rail-card-marker {
+        display: none !important;
+    }
+    .pulse-welcome {
+        color: #162033 !important;
+        font-size: clamp(1.65rem, 3vw, 2.35rem);
+        font-weight: 780;
+        letter-spacing: -0.04em;
+        line-height: 1.18;
+        margin: 1.1rem auto 0.55rem;
+        max-width: 640px;
+        text-align: center;
+    }
+    .pulse-welcome-copy {
+        color: #667085 !important;
+        font-size: 1rem;
+        line-height: 1.6;
+        margin: 0 auto 1.5rem;
+        max-width: 560px;
+        text-align: center;
+    }
+    [data-testid="stVerticalBlock"]:has(.pulse-quick-card-marker) {
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 16px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+        box-sizing: border-box;
+        height: auto;
+        max-width: 100%;
+        min-width: 0;
+        overflow: visible;
+        padding: 0.85rem 0.9rem;
+        width: 100%;
+    }
+    .pulse-quick-icon {
+        align-items: center;
+        background: #F3EDFF;
+        border-radius: 10px;
+        color: #7C3AED !important;
+        display: inline-flex;
+        font-size: 0.86rem;
+        font-weight: 800;
+        height: 30px;
+        justify-content: center;
+        margin-bottom: 0.7rem;
+        width: 30px;
+    }
+    .pulse-quick-copy {
+        color: #667085 !important;
+        font-size: 0.86rem;
+        line-height: 1.5;
+        margin: -0.1rem 0 0.55rem;
+    }
+    [data-testid="stVerticalBlock"]:has(.pulse-rail-card-marker) {
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        box-sizing: border-box;
+        height: auto !important;
+        max-width: 100%;
+        min-width: 0;
+        overflow: visible !important;
+        padding: 1.25rem 1.3rem;
+        width: 100%;
+    }
+    [data-testid="stVerticalBlock"]:has(.pulse-rail-card-marker) [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlock"]:has(.pulse-rail-card-marker) [data-testid="element-container"] {
+        box-sizing: border-box;
+        max-width: 100%;
+        min-width: 0;
+        width: 100%;
+    }
+    [data-testid="stVerticalBlock"]:has(.pulse-rail-card-marker) p,
+    [data-testid="stVerticalBlock"]:has(.pulse-rail-card-marker) span,
+    [data-testid="stVerticalBlock"]:has(.pulse-rail-card-marker) div {
+        height: auto;
+        max-width: 100%;
+        min-width: 0;
+        overflow-wrap: break-word;
+        white-space: normal;
+        word-break: normal;
+    }
+    .pulse-rail-subtitle {
+        color: #667085 !important;
+        font-size: 0.86rem;
+        line-height: 1.5;
+        margin: -0.35rem 0 0.9rem;
+    }
+    .pulse-rail-item {
+        border-bottom: 1px solid #EEF0F5;
+        padding: 0.8rem 0;
+    }
+    .pulse-rail-item:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+    .pulse-rail-item-title {
+        color: #162033 !important;
+        font-size: 0.91rem;
+        font-weight: 740;
+        line-height: 1.4;
+        margin-bottom: 0.25rem;
+    }
+    .pulse-rail-item-copy {
+        color: #667085 !important;
+        font-size: 0.86rem;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+    .pulse-rail-item-meta {
+        color: #6D28D9 !important;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.45;
+        margin-top: 0.45rem;
+    }
+    .pulse-empty-state {
+        background: #FAF9FF;
+        border: 1px solid #E5DAFF;
+        border-radius: 14px;
+        color: #52607A !important;
+        line-height: 1.55;
+        margin: 1rem 0 0.5rem;
+        padding: 0.9rem 1rem;
+    }
+    body:has(.pulse-page-marker) [data-testid="stChatInput"] {
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 18px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        box-sizing: border-box;
+        max-width: 100%;
+        min-width: 0;
+        overflow: visible;
+        width: 100%;
+    }
+    body:has(.pulse-page-marker) [data-testid="stChatInput"] textarea,
+    body:has(.pulse-page-marker) [data-testid="stChatInput"] textarea:focus {
+        background: #FFFFFF !important;
+        color: #111827 !important;
+        min-height: 52px !important;
+    }
+    body:has(.pulse-page-marker) [data-testid="stChatInput"] button {
+        background: #7C3AED !important;
+        border-color: #7C3AED !important;
+        border-radius: 12px !important;
+        color: #FFFFFF !important;
+    }
+    body:has(.pulse-page-marker) [data-testid="stChatInput"] button svg {
+        color: #FFFFFF !important;
+        fill: #FFFFFF !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.pulse-main-column-marker),
+    [data-testid="stHorizontalBlock"]:has(.pulse-main-column-marker) [data-testid="column"] {
+        box-sizing: border-box;
+        max-width: 100%;
+        min-width: 0;
+    }
+    @media (min-width: 1041px) and (max-width: 1280px) {
+        [data-testid="stHorizontalBlock"]:has(.pulse-main-column-marker) > [data-testid="column"]:first-child {
+            flex: 1.8 1 0 !important;
+            width: auto !important;
+        }
+        [data-testid="stHorizontalBlock"]:has(.pulse-main-column-marker) > [data-testid="column"]:nth-child(2) {
+            flex: 1 1 0 !important;
+            width: auto !important;
+        }
+    }
+    @media (max-width: 1040px) {
+        [data-testid="stHorizontalBlock"]:has(.pulse-main-column-marker) {
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        [data-testid="stHorizontalBlock"]:has(.pulse-main-column-marker) [data-testid="column"] {
+            flex: 1 1 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+    }
+    @media (max-width: 620px) {
+        [data-testid="stHorizontalBlock"]:has(.pulse-quick-card-marker) {
+            flex-wrap: wrap;
+            gap: 0.85rem;
+        }
+        [data-testid="stHorizontalBlock"]:has(.pulse-quick-card-marker) [data-testid="column"] {
+            flex: 1 1 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+    }
 
     /* GLOBAL TEXT FIX */
     body, p, span, div, label {
@@ -6002,6 +6198,37 @@ def render_data_sources() -> dict[str, object]:
     }
 
 
+def build_social_save_opportunity_evidence(social_insights: dict) -> list[str]:
+    """Summarize the existing top save pattern without exposing a full post caption."""
+    workspace = social_insights.get("workspace") if isinstance(social_insights, dict) else {}
+    content_records = workspace.get("content_records", []) if isinstance(workspace, dict) else []
+    save_records = [
+        record
+        for record in content_records
+        if isinstance(record, dict) and to_comparison_number(record.get("saves")) is not None
+    ]
+    if not save_records:
+        return []
+
+    top_record = max(save_records, key=lambda record: to_comparison_number(record.get("saves")) or 0)
+    evidence = []
+    content_format = str(top_record.get("format", "")).strip()
+    topic = humanize_social_topic(str(top_record.get("topic", "")).strip())
+    if content_format and topic:
+        evidence.append(f"{content_format} · {topic}")
+    elif content_format or topic:
+        evidence.append(content_format or topic)
+
+    saves = to_comparison_number(top_record.get("saves"))
+    if saves is not None:
+        evidence.append(f"{format_social_number(saves)} saves on the top supporting post")
+
+    save_rate = to_comparison_number(top_record.get("save_rate"))
+    if save_rate is not None:
+        evidence.append(f"{save_rate:.2f}% save rate")
+    return evidence
+
+
 def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
     """Build social opportunity cards from Meta social insight summaries."""
     social_insights = results.get("social_insights", {})
@@ -6012,6 +6239,7 @@ def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
     balance_problems = social_insights.get("balance_problems", [])
     what_drives_saves = social_insights.get("what_drives_saves", "Not available")
     what_drives_follows = social_insights.get("what_drives_follows", "Not available")
+    save_evidence = build_social_save_opportunity_evidence(social_insights)
 
     cards = []
 
@@ -6098,19 +6326,26 @@ def build_social_opportunity_cards(results: dict) -> list[dict[str, str]]:
     if what_drives_saves and what_drives_saves != "Not available":
         cards.append(
             {
-                "title": "Turn save-worthy content into conversion content",
-                "opportunity_type": "Social Conversion Opportunity",
+                "title": "Turn save-worthy content into clearer next steps",
+                "opportunity_type": "Audience Action Opportunity",
                 "target": "Save-driving content",
-                "supporting_data": what_drives_saves,
+                "supporting_data": " | ".join(save_evidence),
+                "evidence_points": save_evidence,
                 "why_it_matters": (
-                    "Content that earns saves already shows strong audience value, but it needs a clearer next-step path to drive business outcomes."
+                    "Content that earns saves already shows audience value. This export does not show whether those interactions lead to a business conversion, so the next opportunity is to make a relevant next step clearer."
                 ),
                 "recommended_action": (
-                    "Add a clearer next-step prompt such as booking, quiz, or consultation guidance so high-value content also moves users toward action."
+                    "Test one clear next-step prompt that fits the post topic, then compare available saves, shares, follows, or click signals after the change."
                 ),
                 "why_recommendation_works": (
-                    "This should work because the content already has strong audience value, so improving conversion guidance is usually more effective than replacing the topic."
+                    "This preserves the educational value that is already earning saves while giving interested people a clearer path to continue."
                 ),
+                "improvement_guidance": [
+                    "Add one next step that naturally follows the educational topic instead of a generic promotional message.",
+                    "Match the CTA to the audience intent, such as a related resource, quiz, service page, or follow prompt when one is available.",
+                    "Place the next step in both the caption and creative so people who save the post can still find it later.",
+                    "Compare saves, shares, follows, or available click signals after testing before treating the change as a lasting pattern.",
+                ],
                 "priority": "High",
             }
         )
@@ -6955,6 +7190,8 @@ def build_executive_opportunity_entry(group: str, title: str, data: dict[str, st
         "why_recommendation_works": str(data.get("why_recommendation_works", "")).strip(),
         "diagnosis": str(data.get("diagnosis", data.get("opportunity_type", ""))).strip(),
         "source": str(data.get("source") or source_by_group.get(group, "")).strip(),
+        "improvement_guidance": data.get("improvement_guidance", []),
+        "evidence_points": data.get("evidence_points", []),
         "raw": data,
     }
 
@@ -7012,6 +7249,58 @@ def build_opportunity_metadata(entry: dict[str, object]) -> str:
     return " · ".join(metadata)
 
 
+def get_opportunity_improvement_guidance(entry: dict[str, object], limit: int = 4) -> list[str]:
+    """Use existing structured guidance first, then a conservative next-step fallback."""
+    raw_guidance = entry.get("improvement_guidance")
+    if not isinstance(raw_guidance, list):
+        raw = entry.get("raw") if isinstance(entry.get("raw"), dict) else {}
+        raw_guidance = raw.get("improvement_guidance", [])
+
+    guidance = [
+        normalize_recommendation_plain_text(str(item)).strip()
+        for item in raw_guidance
+        if is_meaningful_supporting_value(item)
+    ]
+    if guidance:
+        return guidance[:limit]
+
+    recommended_action = normalize_recommendation_plain_text(
+        str(entry.get("recommended_action", ""))
+    ).strip()
+    return [recommended_action] if recommended_action else []
+
+
+def get_opportunity_evidence_lines(entry: dict[str, object], limit: int = 4) -> list[str]:
+    """Keep evidence concise and avoid displaying raw social post captions as the headline proof."""
+    raw_points = entry.get("evidence_points")
+    if not isinstance(raw_points, list):
+        raw = entry.get("raw") if isinstance(entry.get("raw"), dict) else {}
+        raw_points = raw.get("evidence_points", [])
+
+    evidence_lines = [
+        normalize_recommendation_plain_text(str(item)).strip()
+        for item in raw_points
+        if is_meaningful_supporting_value(item)
+    ]
+    if not evidence_lines:
+        key_metrics = normalize_recommendation_plain_text(str(entry.get("key_metrics", ""))).strip()
+        evidence_lines = [
+            part.strip()
+            for part in key_metrics.split("|")
+            if is_meaningful_supporting_value(part)
+        ]
+
+    compact_lines = []
+    for item in evidence_lines:
+        compact_lines.append(item if len(item) <= 150 else f"{item[:147].rstrip()}...")
+    return compact_lines[:limit]
+
+
+def navigate_to_recommendations() -> None:
+    """Use the existing sidebar navigation state to open the action workspace."""
+    st.session_state["app_navigation"] = "🎯 Recommendations"
+
+
 def render_biggest_opportunity(entry: dict[str, object]) -> None:
     """Present the strongest existing opportunity as a diagnosis-first summary."""
     title = get_opportunity_display_title(entry)
@@ -7020,8 +7309,9 @@ def render_biggest_opportunity(entry: dict[str, object]) -> None:
     business_meaning = normalize_recommendation_plain_text(
         str(entry.get("why_recommendation_works", ""))
     ).strip()
-    evidence = normalize_recommendation_plain_text(str(entry.get("key_metrics", ""))).strip()
+    evidence_lines = get_opportunity_evidence_lines(entry)
     metadata = build_opportunity_metadata(entry)
+    improvement_guidance = get_opportunity_improvement_guidance(entry)
 
     hero = st.container()
     with hero:
@@ -7038,11 +7328,24 @@ def render_biggest_opportunity(entry: dict[str, object]) -> None:
             st.write(why_it_matters)
         if business_meaning:
             st.caption(business_meaning)
-        if evidence:
-            st.markdown(f'<div class="opportunity-evidence-row">Evidence: {html.escape(evidence)}</div>', unsafe_allow_html=True)
+        if improvement_guidance:
+            st.markdown("**How to improve**")
+            for action in improvement_guidance:
+                st.markdown(f"- {action}")
+        if evidence_lines:
+            st.markdown("**Evidence**")
+            st.markdown(
+                f'<div class="opportunity-evidence-row">{" · ".join(html.escape(item) for item in evidence_lines)}</div>',
+                unsafe_allow_html=True,
+            )
         if metadata:
             st.caption(metadata)
-        st.markdown("View Opportunity →")
+        st.button(
+            "See Action Plan →",
+            key="biggest_opportunity_action_plan",
+            type="primary",
+            on_click=navigate_to_recommendations,
+        )
 
 
 def render_executive_opportunity_card(entry: dict[str, object], unique_key: str) -> None:
@@ -7054,8 +7357,9 @@ def render_executive_opportunity_card(entry: dict[str, object], unique_key: str)
     title = get_opportunity_display_title(entry)
     diagnosis = normalize_recommendation_plain_text(str(entry.get("diagnosis", ""))).strip()
     why_text = normalize_recommendation_plain_text(str(entry.get("why_it_matters", ""))).strip()
-    key_metrics = normalize_recommendation_plain_text(str(entry.get("key_metrics", ""))).strip()
+    evidence_lines = get_opportunity_evidence_lines(entry, limit=2)
     source = str(entry.get("source", "")).strip()
+    improvement_guidance = get_opportunity_improvement_guidance(entry, limit=2)
 
     card = st.container()
     with card:
@@ -7077,14 +7381,22 @@ def render_executive_opportunity_card(entry: dict[str, object], unique_key: str)
         if why_text:
             st.markdown("**Why this matters**")
             st.write(why_text)
-        if key_metrics:
+        if improvement_guidance:
+            st.markdown("**How to improve**")
+            for action in improvement_guidance:
+                st.markdown(f"- {action}")
+        if evidence_lines:
             st.markdown("**Evidence**")
-            st.caption(key_metrics)
+            st.caption(" · ".join(evidence_lines))
         if source:
             st.caption(f"Source: {source}")
         if score_value is not None:
             st.caption(f"{score_label}: {round(score_value, 2)}")
-        st.markdown("View Opportunity →")
+        st.button(
+            "View Action Plan →",
+            key=f"opportunity_action_plan_{unique_key}",
+            on_click=navigate_to_recommendations,
+        )
 
     detail_label = f"View supporting details for {title[:48] or unique_key}"
     with st.expander(detail_label, expanded=False):
@@ -9208,6 +9520,74 @@ def render_reports_page(results: dict) -> None:
     render_reports_export_section(results)
 
 
+def render_pulse_insights(results: dict | None) -> None:
+    """Present existing grounded insight cards in the Pulse rail."""
+    if not results:
+        return
+
+    insight_cards = [
+        card
+        for card in build_ai_insight_feed(results)
+        if str(card.get("title", "")).strip().lower() != "no data loaded"
+    ][:3]
+    if not insight_cards:
+        return
+
+    rail_card = st.container()
+    with rail_card:
+        st.markdown('<div class="pulse-rail-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Pulse Insights</div>', unsafe_allow_html=True)
+        st.markdown('<div class="pulse-rail-subtitle">Key takeaways from your latest analysis</div>', unsafe_allow_html=True)
+        for card in insight_cards:
+            title = html.escape(normalize_recommendation_plain_text(str(card.get("title", "Insight"))))
+            message = html.escape(normalize_recommendation_plain_text(str(card.get("message", ""))))
+            st.markdown(
+                f"""
+                <div class="pulse-rail-item">
+                    <div class="pulse-rail-item-title">{title}</div>
+                    <div class="pulse-rail-item-copy">{message}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+def render_pulse_recommendations(results: dict | None) -> None:
+    """Present existing prioritized recommendations in the Pulse rail."""
+    if not results:
+        return
+
+    recommendation_items = sort_recommendation_workspace_items(
+        build_recommendation_workspace_items(results)
+    )[:3]
+    rail_card = st.container()
+    with rail_card:
+        st.markdown('<div class="pulse-rail-card-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Pulse Recommendations</div>', unsafe_allow_html=True)
+        st.markdown('<div class="pulse-rail-subtitle">Prioritized from your latest marketing data</div>', unsafe_allow_html=True)
+        if not recommendation_items:
+            st.caption("No prioritized recommendations are available for this run yet.")
+            return
+
+        for item in recommendation_items:
+            title = html.escape(normalize_recommendation_plain_text(str(item.get("title", "Recommendation"))))
+            explanation = normalize_recommendation_plain_text(
+                str(item.get("why_it_matters", "") or item.get("issue", "") or item.get("recommendation", ""))
+            )
+            expected_value = build_recommendation_expected_value_line(item)
+            meta = f"{expected_value}  →" if expected_value else "→"
+            st.markdown(
+                f"""
+                <div class="pulse-rail-item">
+                    <div class="pulse-rail-item-title">{title}</div>
+                    <div class="pulse-rail-item-copy">{html.escape(explanation)}</div>
+                    <div class="pulse-rail-item-meta">{html.escape(meta)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
 def render_ai_chat_page(results: dict | None) -> None:
     """Render the dedicated Chat with AI Agent page."""
     if "ai_chat_messages" not in st.session_state:
@@ -9221,40 +9601,9 @@ def render_ai_chat_page(results: dict | None) -> None:
             }
         ]
 
-    st.title("🤖 Chat with AI Agent")
-    st.caption("Ask your AI Marketing Strategist about your loaded website, SEO, and social data.")
-    st.write("Choose a suggested prompt or type your own question.")
-
-    insight_patterns = []
-    if results:
-        insight_patterns = results.get("insight", {}).get("patterns", [])[:3]
-
-    if insight_patterns:
-        insights_feed_card = st.container()
-        with insights_feed_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">🧠 AI Insights Feed</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="dashboard-card-helper">A quick strategist read on the strongest patterns in the current run.</div>',
-                unsafe_allow_html=True,
-            )
-            for index, pattern in enumerate(insight_patterns, start=1):
-                st.markdown(f"**Insight {index}**")
-                st.write(pattern)
-                if index < len(insight_patterns):
-                    st.markdown('<div class="insight-divider"></div>', unsafe_allow_html=True)
-        st.write("")
-
-    suggested_prompts = [
-        "What are my biggest SEO opportunities?",
-        "Which queries have high impressions but low CTR?",
-        "What pages should I update first?",
-        "What content topics could drive more traffic?",
-        "What are the biggest issues in my social content?",
-        "Summarize the top recommendations from this dataset.",
-        "Which queries should I prioritize for quick wins?",
-        "Compare website insights vs social insights.",
-    ]
+    st.markdown('<div class="pulse-page-marker"></div>', unsafe_allow_html=True)
+    st.title("✨ Pulse AI")
+    st.caption("AI Marketing Intelligence Assistant")
 
     def submit_chat_message(prompt_text: str) -> None:
         prompt = str(prompt_text).strip()
@@ -9326,47 +9675,90 @@ def render_ai_chat_page(results: dict | None) -> None:
 
         return f'<div class="chat-message-body">{sanitize_chat_render_text(content)}</div>'
 
-    prompt_columns = st.columns(2)
-    for index, prompt in enumerate(suggested_prompts):
-        with prompt_columns[index % 2]:
-            if st.button(prompt, key=f"chat_page_prompt_chip_{index}"):
-                submit_chat_message(prompt)
+    main_column, rail_column = st.columns([2.15, 1], gap="large")
+    with main_column:
+        st.markdown('<div class="pulse-main-column-marker"></div>', unsafe_allow_html=True)
+        has_user_messages = any(
+            str(message.get("role", "")).strip().lower() == "user"
+            for message in st.session_state["ai_chat_messages"]
+            if isinstance(message, dict)
+        )
+        if not has_user_messages:
+            st.markdown('<div class="pulse-welcome">What can Pulse help you uncover?</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="pulse-welcome-copy">Ask about your performance, opportunities, trends, or next steps.</div>',
+                unsafe_allow_html=True,
+            )
+            quick_actions = [
+                ("◈", "Analyze Performance", "Summarize the most important performance signals in my loaded marketing data."),
+                ("◈", "Find Opportunities", "What are the biggest actionable opportunities in this loaded run?"),
+                ("◈", "Explain Trends", "Explain the most important patterns or changes in my marketing data."),
+                ("◈", "What Should I Do Next?", "Based on this data, what should I prioritize next?"),
+            ]
+            quick_columns = st.columns(2)
+            for index, (icon, label, prompt) in enumerate(quick_actions):
+                with quick_columns[index % 2]:
+                    quick_card = st.container()
+                    with quick_card:
+                        st.markdown('<div class="pulse-quick-card-marker"></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="pulse-quick-icon">{icon}</div>', unsafe_allow_html=True)
+                        st.markdown(f"**{label}**")
+                        st.markdown(
+                            '<div class="pulse-quick-copy">Start a focused conversation with your loaded marketing intelligence.</div>',
+                            unsafe_allow_html=True,
+                        )
+                        if st.button(label, key=f"pulse_quick_action_{index}", use_container_width=True):
+                            submit_chat_message(prompt)
 
-    if not results:
-        st.info("Load a saved run or upload data first, then ask the AI agent about your marketing performance.")
-
-    for message in st.session_state["ai_chat_messages"]:
-        with st.chat_message(message["role"]):
-            role = str(message["role"])
-            if role == "assistant":
-                st.markdown(
-                    f"""
-                    <div class="chat-message-wrap">
-                        <div class="chat-message-card chat-message-assistant">
-                            <div class="chat-message-label">AI Marketing Strategist</div>
-                            {format_assistant_response(str(message["content"]))}
+        conversation_has_user_messages = any(
+            str(message.get("role", "")).strip().lower() == "user"
+            for message in st.session_state["ai_chat_messages"]
+            if isinstance(message, dict)
+        )
+        for message in st.session_state["ai_chat_messages"]:
+            role = str(message.get("role", ""))
+            if role == "assistant" and not conversation_has_user_messages:
+                continue
+            with st.chat_message(role):
+                if role == "assistant":
+                    st.markdown(
+                        f"""
+                        <div class="chat-message-wrap">
+                            <div class="chat-message-card chat-message-assistant">
+                                <div class="chat-message-label">Pulse AI</div>
+                                {format_assistant_response(str(message.get("content", "")))}
+                            </div>
                         </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown(
-                    f"""
-                    <div class="chat-message-wrap">
-                        <div class="chat-message-card chat-message-user">
-                            <div class="chat-message-label">You</div>
-                            <div class="chat-message-body">{sanitize_chat_render_text(str(message["content"]))}</div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        f"""
+                        <div class="chat-message-wrap">
+                            <div class="chat-message-card chat-message-user">
+                                <div class="chat-message-label">You</div>
+                                <div class="chat-message-body">{sanitize_chat_render_text(str(message.get("content", "")))}</div>
+                            </div>
                         </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
-    user_prompt = st.chat_input("Ask about your marketing data...")
-    if user_prompt:
-        submit_chat_message(user_prompt)
-        st.rerun()
+        if not results:
+            st.markdown(
+                '<div class="pulse-empty-state">Load a saved run or upload marketing data to start asking Pulse about your performance.</div>',
+                unsafe_allow_html=True,
+            )
+
+        user_prompt = st.chat_input("Describe or ask about your marketing data...")
+        if user_prompt:
+            submit_chat_message(user_prompt)
+            st.rerun()
+
+    with rail_column:
+        render_pulse_insights(results)
+        render_pulse_recommendations(results)
 
 
 def build_ai_insight_feed(results: dict | None) -> list[dict[str, str]]:
@@ -10035,6 +10427,7 @@ with st.sidebar:
             "📄 Reports",
             "🤖 Chat with AI Agent",
         ],
+        key="app_navigation",
     )
 
     show_debug = st.checkbox("Show debug data", value=False)
