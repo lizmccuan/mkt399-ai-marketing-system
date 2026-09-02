@@ -870,6 +870,118 @@ st.markdown(
         max-width: 100%;
         box-sizing: border-box;
     }
+    .reports-page-marker {
+        display: none !important;
+    }
+    .report-executive-brief-marker,
+    .report-brief-grid-marker,
+    .report-brief-item-marker,
+    .report-snapshot-grid-marker,
+    .report-snapshot-card-marker {
+        display: none !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.reports-page-marker),
+    [data-testid="stVerticalBlock"]:has(.report-brief-grid-marker),
+    [data-testid="stVerticalBlock"]:has(.report-snapshot-grid-marker) {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    [data-testid="stVerticalBlock"]:has(.report-executive-brief-marker),
+    [data-testid="stVerticalBlock"]:has(.report-brief-item-marker),
+    [data-testid="stVerticalBlock"]:has(.report-snapshot-card-marker) {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        height: auto;
+        box-sizing: border-box;
+        overflow: visible;
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+    [data-testid="stVerticalBlock"]:has(.report-brief-grid-marker) [data-testid="stHorizontalBlock"],
+    [data-testid="stVerticalBlock"]:has(.report-snapshot-grid-marker) [data-testid="stHorizontalBlock"] {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+    [data-testid="stVerticalBlock"]:has(.report-brief-grid-marker) [data-testid="column"],
+    [data-testid="stVerticalBlock"]:has(.report-snapshot-grid-marker) [data-testid="column"] {
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-metric-line {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.42rem 0;
+        border-bottom: 1px solid #F0F0F4;
+        color: #4A5565;
+        font-size: 0.87rem;
+        line-height: 1.35;
+    }
+    [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-metric-line:last-child {
+        border-bottom: 0;
+    }
+    [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-metric-line strong {
+        color: #162033;
+        font-weight: 700;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-metric-line span {
+        color: #4D3CEF;
+        font-weight: 750;
+        flex: 0 0 auto;
+        min-width: 0;
+        white-space: nowrap;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+    [data-testid="stVerticalBlock"]:has(.report-snapshot-card-marker) .report-channel-interpretation {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        margin-top: 0.85rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #F0F0F4;
+        color: #667085;
+        font-size: 0.84rem;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    /* Account for the sidebar so report callouts do not squeeze at normal desktop widths. */
+    @media (max-width: 1500px) {
+        [data-testid="stVerticalBlock"]:has(.report-brief-grid-marker) [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap;
+            gap: 0.85rem;
+        }
+        [data-testid="stVerticalBlock"]:has(.report-brief-grid-marker) [data-testid="column"] {
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+    }
+    @media (max-width: 640px) {
+        [data-testid="stVerticalBlock"]:has(.report-snapshot-grid-marker) [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap;
+            gap: 0.85rem;
+        }
+        [data-testid="stVerticalBlock"]:has(.report-snapshot-grid-marker) [data-testid="column"] {
+            flex: 1 1 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+    }
     .opportunities-page-marker,
     .recommendations-page-marker,
     .opportunity-hero-marker,
@@ -10019,6 +10131,371 @@ def render_reports_page(results: dict) -> None:
     render_reports_export_section(results)
 
 
+def navigate_to_report_destination(destination: str) -> None:
+    """Use the existing sidebar state for report CTAs without introducing another router."""
+    st.session_state["app_navigation"] = destination
+
+
+def get_report_context(results: dict) -> tuple[dict, list[str], str]:
+    """Return existing saved-run metadata plus only the sources present in the current run."""
+    run_id = str(st.session_state.get("loaded_run_id", "")).strip()
+    metadata = get_saved_run_metadata(run_id) or {}
+    source_labels = get_saved_run_source_labels(metadata)
+    if not source_labels:
+        summary = results.get("data_intake", {}).get("summary", {})
+        if not get_report_ga4_pages_dataframe(results).empty or summary.get("ga4_sources", {}).get("rows"):
+            source_labels.append("GA4")
+        if results.get("insight", {}).get("query_analysis"):
+            source_labels.append("GSC")
+        if results.get("meta_posts_data") is not None and not getattr(results.get("meta_posts_data"), "empty", True):
+            source_labels.append("Meta")
+        if any(
+            dataframe is not None and not getattr(dataframe, "empty", True)
+            for dataframe in [
+                results.get("semrush_positions_data"),
+                results.get("semrush_pages_data"),
+                results.get("semrush_topics_data"),
+            ]
+        ):
+            source_labels.append("SEMrush")
+    return metadata, source_labels, str(metadata.get("date_range_label", "")).strip()
+
+
+def report_metric_values(results: dict) -> dict[str, dict[str, object]]:
+    """Organize already-normalized channel metrics for report presentation without creating scores."""
+    values: dict[str, dict[str, object]] = {}
+    ga4_pages = get_report_ga4_pages_dataframe(results)
+    if not ga4_pages.empty:
+        website_metrics: list[tuple[str, str]] = []
+        for column, label in [("active_users", "Users"), ("total_users", "Users"), ("sessions", "Sessions")]:
+            if column in ga4_pages.columns and ga4_pages[column].notna().any() and not any(name == label for name, _ in website_metrics):
+                website_metrics.append((label, f"{int(ga4_pages[column].dropna().sum()):,}"))
+        if "average_engagement_time_per_session" in ga4_pages.columns and ga4_pages["average_engagement_time_per_session"].notna().any():
+            website_metrics.append(("Avg. Engagement Time", f"{ga4_pages['average_engagement_time_per_session'].dropna().mean():.0f} sec"))
+        if "engagement_rate" in ga4_pages.columns and ga4_pages["engagement_rate"].notna().any():
+            website_metrics.append(("Engagement Rate", format_report_percent(ga4_pages["engagement_rate"].dropna().mean())))
+        if website_metrics:
+            values["website"] = {"title": "🌐 Website", "metrics": website_metrics[:4]}
+
+    query_analysis = results.get("insight", {}).get("query_analysis", []) or []
+    if query_analysis:
+        click_values = [to_comparison_number(item.get("clicks")) for item in query_analysis]
+        impression_values = [to_comparison_number(item.get("impressions")) for item in query_analysis]
+        ctr_values = [normalize_gsc_ctr_percent(item.get("ctr")) for item in query_analysis]
+        position_values = [to_comparison_number(item.get("position")) for item in query_analysis]
+        click_values = [value for value in click_values if value is not None]
+        impression_values = [value for value in impression_values if value is not None]
+        ctr_values = [value for value in ctr_values if value is not None]
+        position_values = [value for value in position_values if value is not None]
+        search_metrics: list[tuple[str, str]] = []
+        if click_values:
+            search_metrics.append(("Clicks", f"{int(sum(click_values)):,}"))
+        if impression_values:
+            search_metrics.append(("Impressions", f"{int(sum(impression_values)):,}"))
+        if click_values and impression_values and sum(impression_values) > 0:
+            search_metrics.append(("CTR", format_gsc_ctr_percent(sum(click_values) / sum(impression_values) * 100)))
+        elif ctr_values:
+            search_metrics.append(("CTR", format_gsc_ctr_percent(sum(ctr_values) / len(ctr_values))))
+        if position_values:
+            search_metrics.append(("Avg. Position", f"{sum(position_values) / len(position_values):.1f}"))
+        if search_metrics:
+            values["search"] = {"title": "🔎 Search", "metrics": search_metrics}
+
+    social_workspace = (results.get("social_insights", {}) or {}).get("workspace", {}) or {}
+    social_metrics = social_workspace.get("metrics", {}) or {}
+    social_card_metrics: list[tuple[str, str]] = []
+    for key, label, formatter in [
+        ("total_reach", "Reach", format_social_number),
+        ("total_views", "Views", format_social_number),
+        ("engagement_rate", "Engagement Rate", lambda value: f"{float(value):.2f}%"),
+        ("posts_published", "Posts Analyzed", format_social_number),
+    ]:
+        if social_metrics.get(key) is not None:
+            formatted = formatter(social_metrics[key])
+            if formatted:
+                social_card_metrics.append((label, formatted))
+    if social_card_metrics:
+        values["social"] = {"title": "📱 Social", "metrics": social_card_metrics}
+
+    semrush_metrics: list[tuple[str, str]] = []
+    semrush_positions = results.get("semrush_positions_data")
+    semrush_pages = results.get("semrush_pages_data")
+    semrush_topics = results.get("semrush_topics_data")
+    if semrush_positions is not None and not getattr(semrush_positions, "empty", True):
+        semrush_metrics.append(("Keywords Analyzed", f"{len(semrush_positions):,}"))
+        semrush_metrics.append(("Keyword Opportunities", str(len(build_semrush_opportunity_cards(semrush_positions)))))
+    if semrush_pages is not None and not getattr(semrush_pages, "empty", True):
+        semrush_metrics.append(("Pages Analyzed", f"{len(semrush_pages):,}"))
+    if semrush_topics is not None and not getattr(semrush_topics, "empty", True):
+        semrush_metrics.append(("Topics Analyzed", f"{len(semrush_topics):,}"))
+    if semrush_metrics:
+        values["seo"] = {"title": "📈 SEO / Competitive", "metrics": semrush_metrics[:4]}
+    return values
+
+
+def render_executive_reports_page(results: dict) -> None:
+    """Present the current run as a concise executive report using existing intelligence outputs."""
+    st.markdown('<div class="reports-page-marker"></div>', unsafe_allow_html=True)
+    st.title("📄 Marketing Performance Report")
+    st.caption("Your marketing performance, key findings, and recommended next steps from this analysis run.")
+    if not results:
+        st.info("Run the workflow first on the Data Sources page.")
+        return
+
+    metadata, source_labels, date_label = get_report_context(results)
+    strategy = results.get("strategy", {}).get("strategy", {}) or {}
+    insight = results.get("insight", {}) or {}
+    social_insights = results.get("social_insights", {}) or {}
+    opportunities = collect_report_opportunities(results)
+    recommendation_items = sort_recommendation_workspace_items(build_recommendation_workspace_items(results))
+    channel_metrics = report_metric_values(results)
+
+    if date_label:
+        st.caption(f"Analysis period: {date_label}")
+    if source_labels:
+        st.caption("Data analyzed: " + " · ".join(source_labels))
+    header_actions = st.columns(2)
+    with header_actions[0]:
+        st.download_button(
+            "Export PDF",
+            data=build_pdf_report_bytes(results),
+            file_name="insightrx_marketing_performance_report.pdf",
+            mime="application/pdf",
+            key="report_header_export_pdf",
+        )
+    with header_actions[1]:
+        if st.session_state.get("loaded_run_id"):
+            st.caption("This analysis is saved with the current run.")
+
+    top_opportunity = strategy.get("top_opportunity", {}) if isinstance(strategy.get("top_opportunity"), dict) else {}
+    top_recommendation = recommendation_items[0] if recommendation_items else {}
+    overall_parts = []
+    if top_opportunity.get("business_summary"):
+        overall_parts.append(normalize_recommendation_plain_text(str(top_opportunity["business_summary"])))
+    elif insight.get("patterns"):
+        overall_parts.append(condense_chat_text(str(insight["patterns"][0]), max_sentences=1))
+    if top_recommendation.get("why_it_matters"):
+        overall_parts.append(normalize_recommendation_plain_text(str(top_recommendation["why_it_matters"])))
+    if not overall_parts:
+        overall_parts.append("This report summarizes the marketing signals available in the current analysis run.")
+
+    executive_brief = st.container()
+    with executive_brief:
+        st.markdown('<div class="report-executive-brief-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">✨ Executive Brief</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dashboard-card-helper">The most important takeaways from this analysis.</div>', unsafe_allow_html=True)
+        st.write(" ".join(overall_parts[:2]))
+        brief_grid = st.container()
+        with brief_grid:
+            st.markdown('<div class="report-brief-grid-marker"></div>', unsafe_allow_html=True)
+            brief_columns = st.columns(3)
+            brief_items = [
+                ("What’s Working", top_opportunity.get("business_summary") or (insight.get("patterns") or [""])[0]),
+                ("Needs Attention", top_opportunity.get("why_it_matters") or top_recommendation.get("why_it_matters", "")),
+                ("Best Next Move", top_opportunity.get("recommended_next_step") or top_recommendation.get("recommendation", "")),
+            ]
+            for column, (label, value) in zip(brief_columns, brief_items):
+                with column:
+                    st.markdown('<div class="report-brief-item-marker"></div>', unsafe_allow_html=True)
+                    st.markdown(f"**{label}**")
+                    text = normalize_recommendation_plain_text(str(value)).strip()
+                    if text:
+                        st.caption(text)
+
+    st.markdown('<div class="panel-title">Performance Snapshot</div>', unsafe_allow_html=True)
+    snapshot_grid = st.container()
+    with snapshot_grid:
+        st.markdown('<div class="report-snapshot-grid-marker"></div>', unsafe_allow_html=True)
+        channels = list(channel_metrics.values())
+        for row_start in range(0, len(channels), 2):
+            channel_row = channels[row_start : row_start + 2]
+            snapshot_columns = st.columns(len(channel_row))
+            for column, channel in zip(snapshot_columns, channel_row):
+                with column:
+                    st.markdown('<div class="report-snapshot-card-marker"></div>', unsafe_allow_html=True)
+                    st.markdown(f"**{channel['title']}**")
+                    for label, value in channel.get("metrics", []):
+                        st.markdown(
+                            f"<div class='report-metric-line'><strong>{html.escape(label)}</strong><span>{html.escape(value)}</span></div>",
+                            unsafe_allow_html=True,
+                        )
+                    interpretation = ""
+                    if channel["title"].endswith("Search") and top_opportunity.get("why_it_matters"):
+                        interpretation = normalize_recommendation_plain_text(str(top_opportunity["why_it_matters"]))
+                    elif channel["title"].endswith("Social") and social_insights.get("best_post_type") not in (None, "", "Not available"):
+                        interpretation = f"{social_insights.get('best_post_type')} is the strongest available content format in this run."
+                    if interpretation:
+                        st.markdown(
+                            f"<div class='report-channel-interpretation'>{html.escape(interpretation)}</div>",
+                            unsafe_allow_html=True,
+                        )
+
+    findings: list[dict[str, str]] = []
+    if top_opportunity:
+        evidence = top_opportunity.get("evidence", {}) if isinstance(top_opportunity.get("evidence"), dict) else {}
+        evidence_text = " · ".join(f"{key.replace('_', ' ').title()}: {value}" for key, value in evidence.items() if value not in (None, ""))
+        findings.append({
+            "title": str(top_opportunity.get("diagnosis") or top_opportunity.get("opportunity_type") or "Priority opportunity"),
+            "finding": str(top_opportunity.get("business_summary", "")),
+            "evidence": evidence_text,
+            "meaning": str(top_opportunity.get("why_it_matters", "")),
+            "source": str(top_opportunity.get("source", "")),
+            "destination": "🚀 Opportunities",
+            "cta": "View Opportunity →",
+        })
+    for item in (strategy.get("rule_grounded_priorities", []) or [])[:2]:
+        if not isinstance(item, dict):
+            continue
+        evidence = item.get("evidence", {}) if isinstance(item.get("evidence"), dict) else {}
+        findings.append({
+            "title": str(item.get("issue", "Key finding")),
+            "finding": str(item.get("issue", "")),
+            "evidence": " · ".join(f"{key.replace('_', ' ').title()}: {value}" for key, value in evidence.items() if value not in (None, "")),
+            "meaning": str(item.get("why_it_matters", "")),
+            "source": str(item.get("source", "")),
+            "destination": "📈 Analysis",
+            "cta": "Explore Analysis →",
+        })
+    for item in ((social_insights.get("workspace", {}) or {}).get("key_insights", []) or [])[:2]:
+        if isinstance(item, dict):
+            findings.append({
+                "title": str(item.get("title", "Social finding")),
+                "finding": str(item.get("conclusion", "")),
+                "evidence": str(item.get("evidence", "")),
+                "meaning": str(item.get("conclusion", "")),
+                "source": "Meta",
+                "destination": "📱 Social Analysis",
+                "cta": "Explore Social Analysis →",
+            })
+    if findings:
+        st.markdown('<div class="panel-title">Key Findings</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dashboard-card-helper">The most important patterns InsightRx identified across your marketing data.</div>', unsafe_allow_html=True)
+        for index, finding in enumerate(findings[:5]):
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown(f"**{normalize_recommendation_plain_text(finding['title'])}**")
+            if finding["finding"]:
+                st.write(normalize_recommendation_plain_text(finding["finding"]))
+            if finding["evidence"]:
+                st.caption(f"Evidence: {normalize_recommendation_plain_text(finding['evidence'])}")
+            if finding["meaning"]:
+                st.caption(f"What it means: {normalize_recommendation_plain_text(finding['meaning'])}")
+            if finding["source"]:
+                st.caption(f"Source: {finding['source']}")
+            st.button(finding["cta"], key=f"report_finding_navigation_{index}", on_click=navigate_to_report_destination, args=(finding["destination"],))
+
+    trend_charts = []
+    query_analysis = insight.get("query_analysis", []) or []
+    if query_analysis:
+        trend_charts.append("search")
+    format_performance = ((social_insights.get("workspace", {}) or {}).get("format_performance", []) or [])
+    if len(format_performance) >= 2:
+        trend_charts.append("social")
+    if trend_charts:
+        st.markdown('<div class="panel-title">Performance Trends</div>', unsafe_allow_html=True)
+        trend_columns = st.columns(min(2, len(trend_charts)))
+        for column, chart_type in zip(trend_columns, trend_charts[:2]):
+            with column:
+                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                if chart_type == "search":
+                    trend_df = pd.DataFrame(query_analysis)
+                    if {"query", "impressions"}.issubset(trend_df.columns):
+                        trend_df["impressions"] = pd.to_numeric(trend_df["impressions"], errors="coerce")
+                        chart_df = trend_df.dropna(subset=["impressions"]).sort_values("impressions", ascending=False).head(5)
+                        if not chart_df.empty:
+                            fig = px.bar(chart_df, x="impressions", y="query", orientation="h", color_discrete_sequence=["#7C3AED"], title="Search visibility by query")
+                            fig.update_layout(plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF", font={"color": "#374151"}, height=280, margin={"l": 8, "r": 8, "t": 42, "b": 20}, showlegend=False)
+                            fig.update_xaxes(gridcolor="#EEF2F7", tickfont={"color": "#374151"}, title_font={"color": "#111827"})
+                            fig.update_yaxes(automargin=True, tickfont={"color": "#374151"})
+                            st.plotly_chart(fig, use_container_width=True)
+                else:
+                    chart_df = pd.DataFrame(format_performance).sort_values("engagement_rate", ascending=True)
+                    if {"format", "engagement_rate"}.issubset(chart_df.columns):
+                        fig = px.bar(chart_df, x="engagement_rate", y="format", orientation="h", color_discrete_sequence=["#7C3AED"], title="Social engagement by format")
+                        fig.update_layout(plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF", font={"color": "#374151"}, height=280, margin={"l": 8, "r": 8, "t": 42, "b": 20}, showlegend=False)
+                        fig.update_xaxes(ticksuffix="%", gridcolor="#EEF2F7", tickfont={"color": "#374151"}, title_font={"color": "#111827"})
+                        fig.update_yaxes(automargin=True, tickfont={"color": "#374151"})
+                        st.plotly_chart(fig, use_container_width=True)
+
+    if recommendation_items:
+        st.markdown('<div class="panel-title">Recommended Next Steps</div>', unsafe_allow_html=True)
+        for index, item in enumerate(recommendation_items[:3], start=1):
+            priority = str(item.get("priority", "Medium")).title()
+            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+            st.markdown(f"**{index}. {normalize_recommendation_plain_text(str(item.get('title', 'Recommendation')))}**")
+            st.caption(f"{priority} priority")
+            if item.get("recommendation"):
+                st.markdown("**What to do**")
+                st.write(normalize_recommendation_plain_text(str(item["recommendation"])))
+            if item.get("why_it_matters"):
+                st.caption("Why: " + normalize_recommendation_plain_text(str(item["why_it_matters"])))
+            value_line = build_recommendation_expected_value_line(item)
+            if value_line:
+                st.caption(value_line)
+            st.button("View Recommendation →", key=f"report_recommendation_focus_{index}", on_click=open_recommendation_action_plan, args=(item,))
+
+    if opportunities:
+        area_counts: dict[str, int] = {}
+        for card in opportunities:
+            opportunity_type = str(card.get("opportunity_type", "")).lower()
+            area = "Social" if "social" in opportunity_type or "audience" in opportunity_type else "SEO"
+            if "page" in opportunity_type or "ux" in opportunity_type:
+                area = "Pages"
+            if "local" in opportunity_type or "geo" in opportunity_type:
+                area = "Local SEO"
+            area_counts[area] = area_counts.get(area, 0) + 1
+        largest_area = max(area_counts, key=area_counts.get) if area_counts else ""
+        high_opportunities = sum(str(item.get("priority", "")).strip().lower() == "high" for item in opportunities)
+        overview_columns = st.columns(4)
+        overview_values = [("Total Opportunities", str(len(opportunities))), ("High Priority", str(high_opportunities)), ("Largest Opportunity Area", largest_area), ("Recommended Actions Ready", str(len(recommendation_items)))]
+        st.markdown('<div class="panel-title">Opportunities Identified</div>', unsafe_allow_html=True)
+        for column, (label, value) in zip(overview_columns, overview_values):
+            with column:
+                render_dashboard_kpi_card(label, value, "Current analysis run")
+        st.button("Explore All Opportunities →", key="report_opportunities_navigation", on_click=navigate_to_report_destination, args=("🚀 Opportunities",))
+
+    if channel_metrics:
+        st.markdown('<div class="panel-title">By Marketing Area</div>', unsafe_allow_html=True)
+        takeaway_columns = st.columns(min(4, len(channel_metrics)))
+        for column, (channel_key, channel) in zip(takeaway_columns, channel_metrics.items()):
+            with column:
+                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+                status = "Data available"
+                focus = "Review the available channel details."
+                if channel_key == "search" and top_opportunity:
+                    status, focus = "Opportunity", str(top_opportunity.get("recommended_next_step") or focus)
+                elif channel_key == "social" and social_insights.get("best_post_type") not in (None, "", "Not available"):
+                    status, focus = "Promising", f"Build on {social_insights.get('best_post_type')} content while monitoring additional posts."
+                elif channel_key == "seo" and opportunities:
+                    status, focus = "Opportunity", "Review the highest-priority search and content opportunities."
+                st.markdown(f"**{channel['title']}**")
+                st.caption(f"Status: {status}")
+                st.write(normalize_recommendation_plain_text(focus))
+
+    limitations = []
+    if "Meta" in source_labels:
+        limitations.append("Meta findings reflect the interaction fields included in this export; post-engagement outcomes are not inferred when they are not supplied.")
+    if not st.session_state.get("comparison_mode"):
+        limitations.append("No prior-run comparison is active, so this report does not claim period-over-period change.")
+    if str(metadata.get("run_version", "")).strip().lower() == "legacy":
+        limitations.append("This saved run uses an older data schema, so some structured evidence may be reduced.")
+    if "SEMrush" in source_labels:
+        limitations.append("SEMrush findings reflect the uploaded export snapshot.")
+    st.markdown('<div class="panel-title">About This Report</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
+    if source_labels:
+        st.write("Data analyzed: " + ", ".join(source_labels))
+    if date_label:
+        st.caption(f"Analysis period: {date_label}")
+    if limitations:
+        st.markdown("**Data limitations**")
+        for limitation in limitations:
+            st.caption(limitation)
+
+    st.markdown('<div class="panel-title">Ready to share?</div>', unsafe_allow_html=True)
+    render_reports_export_section(results)
+    st.button("Compare With Previous Run →", key="report_compare_navigation", on_click=navigate_to_report_destination, args=("📂 Data Sources",))
+
+
 def render_pulse_insights(results: dict | None) -> None:
     """Present existing grounded insight cards in the Pulse rail."""
     if not results:
@@ -11077,7 +11554,7 @@ elif page == "🎯 Recommendations":
 
 elif page == "📄 Reports":
     results = st.session_state.get("results")
-    render_reports_page(results)
+    render_executive_reports_page(results)
 
 elif page == "🤖 Chat with AI Agent":
     results = st.session_state.get("results")
