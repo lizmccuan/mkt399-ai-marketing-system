@@ -83,10 +83,12 @@ st.markdown(
     [data-testid="stAppViewContainer"] > .main {
         background: var(--page-bg);
     }
-    .main .block-container {
-        padding-top: 2.8rem;
-        padding-bottom: 3rem;
-        max-width: 1400px;
+    .main .block-container,
+    [data-testid="stMainBlockContainer"] {
+        box-sizing: border-box;
+        max-width: none !important;
+        padding: 2.8rem 24px 3rem !important;
+        width: 100% !important;
     }
     h1, h2, h3, h4, h5, h6 {
         color: var(--text-main);
@@ -120,46 +122,138 @@ st.markdown(
         min-height: 0 !important;
     }
     [data-testid="stSidebar"] {
-        background: var(--panel-bg);
-        border-right: 1px solid var(--border-soft);
-        box-shadow: 10px 0 30px rgba(16, 24, 40, 0.03);
+        background: #F7F9FB;
+        border-right: 1px solid #D9DEE7;
+        box-shadow: none;
     }
-    [data-testid="stSidebar"] > div:first-child {
-        background: var(--panel-bg);
+    [data-testid="stSidebar"][aria-expanded="true"] {
+        flex-basis: 268px !important;
+        min-width: 268px !important;
+        width: 268px !important;
+    }
+    [data-testid="stSidebar"][aria-expanded="false"] {
+        border-right: 0 !important;
+        flex-basis: 0 !important;
+        max-width: 0 !important;
+        min-width: 0 !important;
+        width: 0 !important;
+    }
+    [data-testid="stSidebar"][aria-expanded="true"] > div:first-child,
+    [data-testid="stSidebar"][aria-expanded="true"] > div:first-child > div {
+        background: #F7F9FB;
+        min-width: 268px !important;
+        width: 268px !important;
     }
     [data-testid="stSidebar"] label,
     [data-testid="stSidebar"] p,
     [data-testid="stSidebar"] span,
     [data-testid="stSidebar"] div {
-        color: var(--text-main);
+        color: #111721;
     }
     [data-testid="stSidebar"] .block-container {
-        padding-top: 1.4rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
+        box-sizing: border-box;
+        padding: 51px 20px 24px !important;
+        width: 268px !important;
+    }
+    .sidebar-logo-lockup {
+        margin: 0 auto 38px;
+        text-align: center;
+        width: 100%;
+    }
+    .sidebar-logo-wordmark {
+        color: #111721 !important;
+        font-size: 1.58rem;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    .sidebar-logo-wordmark span {
+        color: #6A41FF !important;
+    }
+    .sidebar-logo-tagline {
+        color: #667085 !important;
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.10em;
+        line-height: 1.35;
+        margin-top: 0.42rem;
+        text-transform: uppercase;
     }
     [data-testid="stSidebar"] [role="radiogroup"] label {
-        border-radius: 16px;
-        padding: 0.72rem 0.8rem;
-        margin-bottom: 0.38rem;
-        border: 1px solid #EFF2F7;
-        transition: all 0.2s ease;
-        background: #FCFCFD;
+        align-items: center;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 0;
+        box-shadow: none;
+        box-sizing: border-box;
+        color: #111721 !important;
+        display: flex;
+        font-size: 1.18rem;
+        font-weight: 400;
+        height: 49px;
+        line-height: 1.2;
+        margin: 0 0 4px;
+        opacity: 0.9;
+        padding: 8px;
+        transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+        width: 100%;
+    }
+    [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(4),
+    [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(7) {
+        box-shadow: 0 14px 0 -13px #EAEDF4;
+        margin-bottom: 24px;
+    }
+    [data-testid="stSidebar"] [role="radiogroup"] label > div:first-child {
+        display: none !important;
+    }
+    [data-testid="stSidebar"] [role="radiogroup"] input[type="radio"] {
+        display: none !important;
     }
     [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
-        background: var(--accent-purple-soft);
-        color: var(--accent-purple);
-        border: 1px solid rgba(124, 58, 237, 0.22);
-        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.03), 0 6px 16px rgba(124, 58, 237, 0.08);
+        background: #F5F4FF;
+        border: 1px solid #E1DEFF;
+        border-radius: 6px;
+        box-shadow: none;
+        color: #4D3CEF !important;
+        font-weight: 600;
     }
     [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) * {
-        color: var(--accent-purple);
+        color: #4D3CEF !important;
         font-weight: 600;
     }
     [data-testid="stSidebar"] [role="radiogroup"] label:hover {
-        background: #FFFFFF;
-        border-color: var(--border-strong);
-        box-shadow: 0 4px 14px rgba(16, 24, 40, 0.04);
+        background: rgba(245, 244, 255, 0.55);
+        border-color: transparent;
+        box-shadow: none;
+        color: #4D3CEF !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stExpander"] {
+        background: transparent;
+        border: 1px solid #EAEDF4;
+        border-radius: 8px;
+        box-shadow: none;
+        margin-top: 18px;
+    }
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+        color: #4A5565 !important;
+        font-size: 0.82rem;
+        font-weight: 650;
+        min-height: 2.1rem;
+        padding: 0.35rem 0.5rem;
+    }
+    [data-testid="stSidebar"] [data-testid="stExpander"] label {
+        font-size: 0.82rem !important;
+        height: auto;
+        margin-bottom: 0.4rem;
+        padding: 0;
+    }
+    [data-testid="stSidebar"] [data-testid="stExpander"] p,
+    [data-testid="stSidebar"] [data-testid="stExpander"] span,
+    [data-testid="stSidebar"] [data-testid="stExpander"] div {
+        color: #4A5565 !important;
+        font-size: 0.8rem;
+        line-height: 1.35;
     }
     .stButton > button,
     [data-testid="baseButton-secondary"] {
@@ -1482,70 +1576,120 @@ st.markdown(
     .pulse-page-marker,
     .pulse-main-column-marker,
     .pulse-quick-card-marker,
-    .pulse-rail-card-marker {
+    .pulse-rail-card-marker,
+    .pulse-conversation-marker {
         display: none !important;
     }
+    body:has(.pulse-page-marker) .stApp,
+    body:has(.pulse-page-marker) [data-testid="stAppViewContainer"],
+    body:has(.pulse-page-marker) [data-testid="stAppViewContainer"] > .main {
+        background: #FAFAFA !important;
+    }
+    body:has(.pulse-page-marker) .main .block-container {
+        max-width: 1480px;
+        padding-top: 2rem;
+    }
+    body:has(.pulse-page-marker) h1 {
+        color: #111721 !important;
+        font-size: 2.25rem !important;
+        letter-spacing: 0 !important;
+        margin-bottom: 0.18rem !important;
+    }
+    body:has(.pulse-page-marker) h1::first-letter {
+        color: #6A41FF;
+    }
+    body:has(.pulse-page-marker) [data-testid="stCaptionContainer"] {
+        color: #111721 !important;
+        font-size: 1.02rem !important;
+        line-height: 1.45 !important;
+    }
     .pulse-welcome {
-        color: #162033 !important;
-        font-size: clamp(1.65rem, 3vw, 2.35rem);
-        font-weight: 780;
-        letter-spacing: -0.04em;
-        line-height: 1.18;
-        margin: 1.1rem auto 0.55rem;
+        color: #111721 !important;
+        font-size: 1.75rem;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 1.28;
+        margin: 4.25rem auto 0.1rem;
         max-width: 640px;
         text-align: center;
     }
+    .pulse-welcome-question {
+        color: #111721 !important;
+        font-size: 1.75rem;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 1.28;
+        margin: 0 auto 0.7rem;
+        max-width: 720px;
+        text-align: center;
+    }
     .pulse-welcome-copy {
-        color: #667085 !important;
-        font-size: 1rem;
+        color: #4A5565 !important;
+        font-size: 0.88rem;
         line-height: 1.6;
-        margin: 0 auto 1.5rem;
+        margin: 0 auto 1.9rem;
         max-width: 560px;
         text-align: center;
     }
     [data-testid="stVerticalBlock"]:has(.pulse-quick-card-marker) {
         background: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-radius: 16px;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+        border: 0.5px solid #EEEEEE;
+        border-radius: 20px;
+        box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.10), 0 1px 1px rgba(0, 0, 0, 0.10);
         box-sizing: border-box;
-        height: auto;
+        height: 104px;
         max-width: 100%;
         min-width: 0;
         overflow: visible;
-        padding: 0.85rem 0.9rem;
+        padding: 0.9rem 1rem 0.75rem;
         width: 100%;
     }
     .pulse-quick-icon {
         align-items: center;
-        background: #F3EDFF;
-        border-radius: 10px;
-        color: #7C3AED !important;
+        background: transparent;
+        border-radius: 0;
+        color: #6A41FF !important;
         display: inline-flex;
-        font-size: 0.86rem;
-        font-weight: 800;
-        height: 30px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        height: 24px;
         justify-content: center;
-        margin-bottom: 0.7rem;
-        width: 30px;
+        margin-bottom: 0.74rem;
+        width: 24px;
     }
-    .pulse-quick-copy {
-        color: #667085 !important;
-        font-size: 0.86rem;
-        line-height: 1.5;
-        margin: -0.1rem 0 0.55rem;
+    [data-testid="stVerticalBlock"]:has(.pulse-quick-card-marker) .stButton > button {
+        background: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        color: #383838 !important;
+        font-size: 0.86rem !important;
+        font-weight: 400 !important;
+        justify-content: flex-start !important;
+        line-height: 1.45 !important;
+        min-height: 1.7rem !important;
+        padding: 0 !important;
+        text-align: left !important;
+        white-space: normal !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.pulse-quick-card-marker) .stButton > button:hover {
+        color: #6A41FF !important;
+        transform: none !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.pulse-quick-card-marker) {
+        gap: 1rem;
     }
     [data-testid="stVerticalBlock"]:has(.pulse-rail-card-marker) {
         background: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-radius: 18px;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        border: 0.5px solid rgba(238, 238, 238, 0.9);
+        border-radius: 20px;
+        box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.10), 0 1px 1px rgba(0, 0, 0, 0.10);
         box-sizing: border-box;
         height: auto !important;
         max-width: 100%;
         min-width: 0;
         overflow: visible !important;
-        padding: 1.25rem 1.3rem;
+        padding: 1rem;
         width: 100%;
     }
     [data-testid="stVerticalBlock"]:has(.pulse-rail-card-marker) [data-testid="stElementContainer"],
@@ -1565,71 +1709,122 @@ st.markdown(
         white-space: normal;
         word-break: normal;
     }
+    [data-testid="stVerticalBlock"]:has(.pulse-rail-card-marker) .panel-title {
+        color: #101828 !important;
+        font-size: 1.12rem;
+        font-weight: 650;
+        line-height: 1.34;
+        margin-bottom: 0.05rem;
+    }
     .pulse-rail-subtitle {
-        color: #667085 !important;
-        font-size: 0.86rem;
-        line-height: 1.5;
-        margin: -0.35rem 0 0.9rem;
+        color: #4A5565 !important;
+        font-size: 0.75rem;
+        line-height: 1.35;
+        margin: 0 0 0.72rem;
+        padding-bottom: 0.55rem;
+        border-bottom: 1px solid #EEEEEE;
     }
     .pulse-rail-item {
-        border-bottom: 1px solid #EEF0F5;
-        padding: 0.8rem 0;
+        border-bottom: 1px solid #DDDDDD;
+        padding: 0.78rem 0;
     }
     .pulse-rail-item:last-child {
         border-bottom: 0;
         padding-bottom: 0;
     }
+    .pulse-rail-item-head {
+        align-items: flex-start;
+        display: flex;
+        gap: 0.62rem;
+        min-width: 0;
+        width: 100%;
+    }
+    .pulse-rail-glyph {
+        align-items: center;
+        background: #F5F4FF;
+        border: 1px solid #E1DEFF;
+        border-radius: 10px;
+        color: #6A41FF !important;
+        display: inline-flex;
+        flex: 0 0 34px;
+        font-size: 1rem;
+        height: 34px;
+        justify-content: center;
+        line-height: 1;
+        width: 34px;
+    }
+    .pulse-rail-item-content {
+        min-width: 0;
+        width: 100%;
+    }
     .pulse-rail-item-title {
-        color: #162033 !important;
-        font-size: 0.91rem;
-        font-weight: 740;
-        line-height: 1.4;
+        color: #101828 !important;
+        font-size: 0.88rem;
+        font-weight: 650;
+        line-height: 1.42;
         margin-bottom: 0.25rem;
     }
     .pulse-rail-item-copy {
-        color: #667085 !important;
-        font-size: 0.86rem;
+        color: #4A5565 !important;
+        font-size: 0.81rem;
         line-height: 1.5;
         overflow-wrap: anywhere;
     }
     .pulse-rail-item-meta {
-        color: #6D28D9 !important;
-        font-size: 0.78rem;
-        font-weight: 700;
+        color: #4A5565 !important;
+        font-size: 0.75rem;
+        font-weight: 500;
         line-height: 1.45;
-        margin-top: 0.45rem;
+        margin-top: 0.62rem;
+    }
+    .pulse-rail-item-meta strong {
+        color: #50B47A !important;
     }
     .pulse-empty-state {
-        background: #FAF9FF;
-        border: 1px solid #E5DAFF;
-        border-radius: 14px;
-        color: #52607A !important;
+        background: #F5F4FF;
+        border: 1px solid #E1DEFF;
+        border-radius: 16px;
+        color: #4A5565 !important;
         line-height: 1.55;
         margin: 1rem 0 0.5rem;
         padding: 0.9rem 1rem;
     }
     body:has(.pulse-page-marker) [data-testid="stChatInput"] {
-        background: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-radius: 18px;
-        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        background: #F6F7F8;
+        border: 0 !important;
+        border-radius: 20px;
+        box-shadow: none !important;
         box-sizing: border-box;
         max-width: 100%;
         min-width: 0;
         overflow: visible;
+        padding: 0.75rem;
         width: 100%;
+    }
+    body:has(.pulse-page-marker) [data-testid="stChatInput"] > div {
+        background: #FFFFFF !important;
+        border: 0.5px solid #EEEEEE !important;
+        border-radius: 16px !important;
+        box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.10), 0 1px 1px rgba(0, 0, 0, 0.10) !important;
+        min-height: 76px !important;
     }
     body:has(.pulse-page-marker) [data-testid="stChatInput"] textarea,
     body:has(.pulse-page-marker) [data-testid="stChatInput"] textarea:focus {
         background: #FFFFFF !important;
         color: #111827 !important;
-        min-height: 52px !important;
+        font-size: 0.88rem !important;
+        min-height: 56px !important;
+    }
+    body:has(.pulse-page-marker) [data-testid="stChatInput"] textarea::placeholder {
+        color: #9B9B9B !important;
     }
     body:has(.pulse-page-marker) [data-testid="stChatInput"] button {
-        background: #7C3AED !important;
-        border-color: #7C3AED !important;
-        border-radius: 12px !important;
+        background: #6A41FF !important;
+        border-color: #6A41FF !important;
+        border-radius: 10px !important;
         color: #FFFFFF !important;
+        height: 34px !important;
+        width: 34px !important;
     }
     body:has(.pulse-page-marker) [data-testid="stChatInput"] button svg {
         color: #FFFFFF !important;
@@ -1641,14 +1836,103 @@ st.markdown(
         max-width: 100%;
         min-width: 0;
     }
-    @media (min-width: 1041px) and (max-width: 1280px) {
+    .pulse-conversation {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin: 2.5rem 0 1.7rem;
+        width: 100%;
+    }
+    .pulse-message-row {
+        display: flex;
+        width: 100%;
+    }
+    .pulse-message-row-user {
+        justify-content: flex-end;
+    }
+    .pulse-message-row-assistant {
+        justify-content: flex-start;
+    }
+    body:has(.pulse-page-marker) .chat-message-card {
+        box-sizing: border-box;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    body:has(.pulse-page-marker) .chat-message-user {
+        background: #6A53E7;
+        border: 0;
+        border-radius: 19px 19px 0 19px;
+        box-shadow: none;
+        color: #FFFFFF !important;
+        font-size: 1.02rem;
+        line-height: 1.46;
+        max-width: min(437px, 78%);
+        padding: 0.92rem 1rem;
+    }
+    body:has(.pulse-page-marker) .chat-message-user .chat-message-body {
+        color: #FFFFFF !important;
+        font-size: 1.02rem;
+        line-height: 1.46;
+    }
+    body:has(.pulse-page-marker) .chat-message-assistant {
+        background: #FFFFFF;
+        border: 0;
+        border-radius: 19px 19px 19px 0;
+        box-shadow: none;
+        color: #111721 !important;
+        font-size: 0.94rem;
+        line-height: 1.5;
+        max-width: min(848px, 94%);
+        padding: 1.15rem 1rem;
+    }
+    body:has(.pulse-page-marker) .chat-message-label {
+        display: none;
+    }
+    body:has(.pulse-page-marker) .chat-response-section {
+        margin-bottom: 0.95rem;
+    }
+    body:has(.pulse-page-marker) .chat-response-title {
+        color: #111721 !important;
+        font-size: 0.88rem;
+        font-weight: 650;
+        letter-spacing: 0;
+        margin-bottom: 0.3rem;
+    }
+    body:has(.pulse-page-marker) .chat-response-text,
+    body:has(.pulse-page-marker) .chat-message-body {
+        color: #111721 !important;
+        font-size: 0.94rem;
+        line-height: 1.5;
+    }
+    body:has(.pulse-page-marker) .chat-response-next {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        margin-top: 0;
+        padding: 0;
+    }
+    body:has(.pulse-page-marker) .chat-response-text ul {
+        margin-top: 0.2rem;
+    }
+    @media (min-width: 1041px) {
         [data-testid="stHorizontalBlock"]:has(.pulse-main-column-marker) > [data-testid="column"]:first-child {
-            flex: 1.8 1 0 !important;
+            flex: 2.05 1 0 !important;
             width: auto !important;
         }
         [data-testid="stHorizontalBlock"]:has(.pulse-main-column-marker) > [data-testid="column"]:nth-child(2) {
             flex: 1 1 0 !important;
             width: auto !important;
+        }
+    }
+    @media (max-width: 1280px) and (min-width: 861px) {
+        [data-testid="stHorizontalBlock"]:has(.pulse-quick-card-marker) {
+            flex-wrap: wrap;
+        }
+        [data-testid="stHorizontalBlock"]:has(.pulse-quick-card-marker) [data-testid="column"] {
+            flex: 1 1 calc(50% - 0.5rem) !important;
+            max-width: calc(50% - 0.5rem) !important;
+            width: calc(50% - 0.5rem) !important;
         }
     }
     @media (max-width: 1040px) {
@@ -1663,7 +1947,7 @@ st.markdown(
             width: 100% !important;
         }
     }
-    @media (max-width: 620px) {
+    @media (max-width: 860px) {
         [data-testid="stHorizontalBlock"]:has(.pulse-quick-card-marker) {
             flex-wrap: wrap;
             gap: 0.85rem;
@@ -1673,6 +1957,16 @@ st.markdown(
             max-width: 100% !important;
             min-width: 0 !important;
             width: 100% !important;
+        }
+        .pulse-welcome,
+        .pulse-welcome-question {
+            font-size: 1.45rem;
+        }
+        body:has(.pulse-page-marker) .chat-message-user {
+            max-width: 92%;
+        }
+        body:has(.pulse-page-marker) .chat-message-assistant {
+            max-width: 100%;
         }
     }
 
@@ -1756,7 +2050,7 @@ st.markdown(
             border-bottom: 0 !important;
         }
         .main .block-container {
-            padding-top: 4.25rem;
+            padding: 4.25rem 1rem 3rem !important;
         }
         [data-testid="stSidebarCollapsedControl"] {
             position: fixed !important;
@@ -10498,30 +10792,36 @@ def render_executive_reports_page(results: dict) -> None:
 
 def render_pulse_insights(results: dict | None) -> None:
     """Present existing grounded insight cards in the Pulse rail."""
-    if not results:
-        return
-
-    insight_cards = [
-        card
-        for card in build_ai_insight_feed(results)
-        if str(card.get("title", "")).strip().lower() != "no data loaded"
-    ][:3]
-    if not insight_cards:
-        return
+    insight_cards = []
+    if results:
+        insight_cards = [
+            card
+            for card in build_ai_insight_feed(results)
+            if str(card.get("title", "")).strip().lower() != "no data loaded"
+        ][:3]
 
     rail_card = st.container()
     with rail_card:
         st.markdown('<div class="pulse-rail-card-marker"></div>', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">Pulse Insights</div>', unsafe_allow_html=True)
         st.markdown('<div class="pulse-rail-subtitle">Key takeaways from your latest analysis</div>', unsafe_allow_html=True)
+        if not insight_cards:
+            st.caption("Load a saved run or upload marketing data to activate grounded insights.")
+            return
+
         for card in insight_cards:
             title = html.escape(normalize_recommendation_plain_text(str(card.get("title", "Insight"))))
             message = html.escape(normalize_recommendation_plain_text(str(card.get("message", ""))))
             st.markdown(
                 f"""
                 <div class="pulse-rail-item">
-                    <div class="pulse-rail-item-title">{title}</div>
-                    <div class="pulse-rail-item-copy">{message}</div>
+                    <div class="pulse-rail-item-head">
+                        <div class="pulse-rail-glyph">⌁</div>
+                        <div class="pulse-rail-item-content">
+                            <div class="pulse-rail-item-title">{title}</div>
+                            <div class="pulse-rail-item-copy">{message}</div>
+                        </div>
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -10530,12 +10830,12 @@ def render_pulse_insights(results: dict | None) -> None:
 
 def render_pulse_recommendations(results: dict | None) -> None:
     """Present existing prioritized recommendations in the Pulse rail."""
-    if not results:
-        return
+    recommendation_items = []
+    if results:
+        recommendation_items = sort_recommendation_workspace_items(
+            build_recommendation_workspace_items(results)
+        )[:3]
 
-    recommendation_items = sort_recommendation_workspace_items(
-        build_recommendation_workspace_items(results)
-    )[:3]
     rail_card = st.container()
     with rail_card:
         st.markdown('<div class="pulse-rail-card-marker"></div>', unsafe_allow_html=True)
@@ -10551,17 +10851,40 @@ def render_pulse_recommendations(results: dict | None) -> None:
                 str(item.get("why_it_matters", "") or item.get("issue", "") or item.get("recommendation", ""))
             )
             expected_value = build_recommendation_expected_value_line(item)
-            meta = f"{expected_value}  →" if expected_value else "→"
+            meta = f"<div class='pulse-rail-item-meta'><strong>{html.escape(expected_value)}</strong></div>" if expected_value else ""
             st.markdown(
                 f"""
                 <div class="pulse-rail-item">
-                    <div class="pulse-rail-item-title">{title}</div>
-                    <div class="pulse-rail-item-copy">{html.escape(explanation)}</div>
-                    <div class="pulse-rail-item-meta">{html.escape(meta)}</div>
+                    <div class="pulse-rail-item-head">
+                        <div class="pulse-rail-glyph">⌁</div>
+                        <div class="pulse-rail-item-content">
+                            <div class="pulse-rail-item-title">{title}</div>
+                            <div class="pulse-rail-item-copy">{html.escape(explanation)}</div>
+                            {meta}
+                        </div>
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+
+
+def build_pulse_greeting() -> str:
+    """Build a time-aware Pulse greeting without inventing a user profile."""
+    current_hour = datetime.now().hour
+    if current_hour < 12:
+        greeting = "Good morning"
+    elif current_hour < 18:
+        greeting = "Good afternoon"
+    else:
+        greeting = "Good evening"
+
+    for key in ["user_first_name", "user_name", "first_name", "client_name"]:
+        value = str(st.session_state.get(key, "")).strip()
+        if value:
+            return f"{greeting}, {value.split()[0]}."
+
+    return f"{greeting}."
 
 
 def render_ai_chat_page(results: dict | None) -> None:
@@ -10640,18 +10963,18 @@ def render_ai_chat_page(results: dict | None) -> None:
                 else:
                     section_body = sanitize_chat_render_text(section_body)
                 html_sections.append(
-                    f"""
-                    <div class="{section_class}">
-                        <div class="chat-response-title">{section}</div>
-                        <div class="{body_class}">{section_body}</div>
-                    </div>
-                    """
+                    (
+                        f'<div class="{section_class}">'
+                        f'<div class="chat-response-title">{section}</div>'
+                        f'<div class="{body_class}">{section_body}</div>'
+                        '</div>'
+                    )
                 )
             return "".join(html_sections)
 
         return f'<div class="chat-message-body">{sanitize_chat_render_text(content)}</div>'
 
-    main_column, rail_column = st.columns([2.15, 1], gap="large")
+    main_column, rail_column = st.columns([2.05, 1], gap="large")
     with main_column:
         st.markdown('<div class="pulse-main-column-marker"></div>', unsafe_allow_html=True)
         has_user_messages = any(
@@ -10660,29 +10983,25 @@ def render_ai_chat_page(results: dict | None) -> None:
             if isinstance(message, dict)
         )
         if not has_user_messages:
-            st.markdown('<div class="pulse-welcome">What can Pulse help you uncover?</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="pulse-welcome">{html.escape(build_pulse_greeting())}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="pulse-welcome-question">What can Pulse help you uncover?</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="pulse-welcome-copy">Ask about your performance, opportunities, trends, or next steps.</div>',
                 unsafe_allow_html=True,
             )
             quick_actions = [
-                ("◈", "Analyze Performance", "Summarize the most important performance signals in my loaded marketing data."),
-                ("◈", "Find Opportunities", "What are the biggest actionable opportunities in this loaded run?"),
-                ("◈", "Explain Trends", "Explain the most important patterns or changes in my marketing data."),
-                ("◈", "What Should I Do Next?", "Based on this data, what should I prioritize next?"),
+                ("⌁", "Analyze Performance", "Summarize the most important performance signals in my loaded marketing data."),
+                ("◎", "Find Opportunities", "What are the biggest actionable opportunities in this loaded run?"),
+                ("↗", "Explain Trends", "Explain the most important patterns or changes in my marketing data."),
+                ("✣", "What Should I Do Next?", "Based on this data, what should I prioritize next?"),
             ]
-            quick_columns = st.columns(2)
+            quick_columns = st.columns(4)
             for index, (icon, label, prompt) in enumerate(quick_actions):
-                with quick_columns[index % 2]:
+                with quick_columns[index]:
                     quick_card = st.container()
                     with quick_card:
                         st.markdown('<div class="pulse-quick-card-marker"></div>', unsafe_allow_html=True)
                         st.markdown(f'<div class="pulse-quick-icon">{icon}</div>', unsafe_allow_html=True)
-                        st.markdown(f"**{label}**")
-                        st.markdown(
-                            '<div class="pulse-quick-copy">Start a focused conversation with your loaded marketing intelligence.</div>',
-                            unsafe_allow_html=True,
-                        )
                         if st.button(label, key=f"pulse_quick_action_{index}", use_container_width=True):
                             submit_chat_message(prompt)
 
@@ -10691,43 +11010,41 @@ def render_ai_chat_page(results: dict | None) -> None:
             for message in st.session_state["ai_chat_messages"]
             if isinstance(message, dict)
         )
-        for message in st.session_state["ai_chat_messages"]:
-            role = str(message.get("role", ""))
-            if role == "assistant" and not conversation_has_user_messages:
-                continue
-            with st.chat_message(role):
+        if conversation_has_user_messages:
+            st.markdown('<div class="pulse-conversation-marker"></div>', unsafe_allow_html=True)
+            for index, message in enumerate(st.session_state["ai_chat_messages"]):
+                role = str(message.get("role", ""))
+                content = str(message.get("content", ""))
+                if (
+                    index == 0
+                    and role == "assistant"
+                    and "I’m your AI Marketing Strategist" in content
+                ):
+                    continue
                 if role == "assistant":
                     st.markdown(
-                        f"""
-                        <div class="chat-message-wrap">
-                            <div class="chat-message-card chat-message-assistant">
-                                <div class="chat-message-label">Pulse AI</div>
-                                {format_assistant_response(str(message.get("content", "")))}
-                            </div>
-                        </div>
-                        """,
+                        (
+                            '<div class="pulse-message-row pulse-message-row-assistant">'
+                            '<div class="chat-message-card chat-message-assistant">'
+                            '<div class="chat-message-label">Pulse AI</div>'
+                            f'{format_assistant_response(content)}'
+                            '</div></div>'
+                        ),
                         unsafe_allow_html=True,
                     )
-                else:
+                elif role == "user":
                     st.markdown(
-                        f"""
-                        <div class="chat-message-wrap">
-                            <div class="chat-message-card chat-message-user">
-                                <div class="chat-message-label">You</div>
-                                <div class="chat-message-body">{sanitize_chat_render_text(str(message.get("content", "")))}</div>
-                            </div>
-                        </div>
-                        """,
+                        (
+                            '<div class="pulse-message-row pulse-message-row-user">'
+                            '<div class="chat-message-card chat-message-user">'
+                            '<div class="chat-message-label">You</div>'
+                            f'<div class="chat-message-body">{sanitize_chat_render_text(content)}</div>'
+                            '</div></div>'
+                        ),
                         unsafe_allow_html=True,
                     )
 
-        if not results:
-            st.markdown(
-                '<div class="pulse-empty-state">Load a saved run or upload marketing data to start asking Pulse about your performance.</div>',
-                unsafe_allow_html=True,
-            )
-
-        user_prompt = st.chat_input("Describe or ask about your marketing data...")
+        user_prompt = st.chat_input("Describe or ask for recommendations...")
         if user_prompt:
             submit_chat_message(user_prompt)
             st.rerun()
@@ -11379,11 +11696,9 @@ triggered_rules, generated_recommendations = evaluate_decision_rules(decision_ru
 with st.sidebar:
     st.markdown(
         """
-        <div style="text-align: center; margin-bottom: 1rem;">
-            <div style="font-size: 1.8rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em;">
-                <span style="color: #162033;">Insight</span><span style="background: linear-gradient(135deg, #7C3AED 0%, #60A5FA 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;">Rx</span>
-            </div>
-            <div style="margin-top: 0.35rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; color: #667085;">
+        <div class="sidebar-logo-lockup">
+            <div class="sidebar-logo-wordmark">Insight<span>Rx</span></div>
+            <div class="sidebar-logo-tagline">
                 AI-POWERED MARKETING INTELLIGENCE
             </div>
         </div>
@@ -11405,16 +11720,18 @@ with st.sidebar:
         ],
         key="app_navigation",
         on_change=handle_sidebar_navigation_change,
+        label_visibility="collapsed",
     )
 
-    show_debug = st.checkbox("Show debug data", value=False)
+    with st.expander("Developer Tools"):
+        show_debug = st.checkbox("Show debug data", value=False)
 
-    if st.sidebar.checkbox("Debug decision rules"):
-        st.sidebar.write("Decision rules loaded:", len(decision_rules))
-        st.sidebar.write("Decision rules version:", decision_rules_data.get("version"))
-        st.sidebar.write("Triggered rules:", len(triggered_rules))
-        for r in triggered_rules:
-            st.sidebar.write(r["title"])
+        if st.checkbox("Debug decision rules"):
+            st.write("Decision rules loaded:", len(decision_rules))
+            st.write("Decision rules version:", decision_rules_data.get("version"))
+            st.write("Triggered rules:", len(triggered_rules))
+            for r in triggered_rules:
+                st.write(r["title"])
 
 
 results = None
