@@ -142,6 +142,7 @@ def run_workflow(
         "run_id": datetime.now().strftime("run_%Y%m%d_%H%M%S"),
         "timestamp": datetime.now().isoformat(timespec="seconds"),
         "data_intake": data,
+        "ga4_aggregate_metrics": data.get("summary", {}).get("ga4_aggregate_metrics", {}),
         "insight": insights,
         "rule_matches": rule_matches,
         "metric_glossary": metric_glossary,

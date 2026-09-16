@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 
@@ -39,6 +40,8 @@ def to_numeric_score_value(value) -> float | None:
     if isinstance(value, bool):
         return float(value)
     if isinstance(value, (int, float)):
+        if isinstance(value, float) and math.isnan(value):
+            return None
         return float(value)
 
     text = str(value).strip()
@@ -77,8 +80,10 @@ def calculate_rule_scores(rule: dict, sample_data: dict) -> dict[str, float]:
     # convert only that source's rate for the existing decimal GA4 scorer.
     if str(rule.get("action_type", "")).strip().lower() == "social" and engagement_rate is not None:
         engagement_rate = engagement_rate / 100
-    sessions = to_numeric_score_value(sample_data.get("sessions")) or 0
-    conversions = to_numeric_score_value(sample_data.get("conversions")) or 0
+    sessions_value = to_numeric_score_value(sample_data.get("sessions"))
+    sessions = sessions_value or 0
+    conversions_value = to_numeric_score_value(sample_data.get("conversions"))
+    has_conversion_metric = "conversions" in sample_data and conversions_value is not None
 
     target_ctr_decimal = 0.05
     ctr_gap = max(0.0, target_ctr_decimal - ctr_decimal) if ctr_decimal is not None else 0.0
@@ -104,11 +109,13 @@ def calculate_rule_scores(rule: dict, sample_data: dict) -> dict[str, float]:
         engagement_opportunity_score = clamp_score(((0.65 - engagement_rate) / 0.65) * 100)
 
     session_score = clamp_score((sessions / 250) * 100)
-    if sessions > 0:
-        conversion_efficiency = conversions / sessions
+    if sessions_value is not None and sessions_value > 0 and has_conversion_metric:
+        conversion_efficiency = conversions_value / sessions_value
         conversion_opportunity_score = clamp_score(((0.05 - conversion_efficiency) / 0.05) * 100)
-    else:
+    elif sessions_value is None or sessions_value <= 0:
         conversion_opportunity_score = 25.0
+    else:
+        conversion_opportunity_score = 0.0
 
     available_inputs = [
         sample_data.get("impressions"),

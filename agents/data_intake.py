@@ -24,6 +24,10 @@ def run_data_intake(
     ga4_pages_summary = summarize_dataframe(ga4_pages_data, "GA4 Page Title Report")
     ga4_source_summary = summarize_dataframe(ga4_source_data, "GA4 Session Source / Medium")
     gsc_queries_summary = summarize_dataframe(gsc_queries_data, "GSC Queries")
+    ga4_aggregate_metrics = build_ga4_aggregate_metrics(ga4_pages_data, ga4_source_data)
+    ga4_pages_summary["aggregate_metrics"] = ga4_aggregate_metrics
+    ga4_pages_summary["key_metrics"] = ga4_aggregate_metrics.copy()
+    ga4_source_summary["aggregate_metrics"] = dataframe_ga4_aggregate_metrics(ga4_source_data)
 
     top_pages = extract_top_rows(
         ga4_pages_data,
@@ -56,6 +60,7 @@ def run_data_intake(
         "summary": {
             "ga4_pages": ga4_pages_summary,
             "ga4_sources": ga4_source_summary,
+            "ga4_aggregate_metrics": ga4_aggregate_metrics,
             "gsc_queries": gsc_queries_summary,
             "ga4": ga4_pages_summary,
             "gsc": gsc_queries_summary,
@@ -78,6 +83,40 @@ def run_data_intake(
             "GSC Queries represents search demand data from Google Search Console.",
         ],
     }
+
+
+def dataframe_ga4_aggregate_metrics(dataframe: pd.DataFrame) -> dict[str, float | None]:
+    """Read parser-preserved GA4 aggregate metrics from dataframe metadata."""
+    metric_keys = [
+        "new_users",
+        "active_users",
+        "returning_users",
+        "total_users",
+        "sessions",
+        "engagement_rate",
+        "average_engagement_time_per_session",
+    ]
+    raw_metrics = dataframe.attrs.get("ga4_aggregate_metrics", {}) if dataframe is not None else {}
+    if not isinstance(raw_metrics, dict):
+        raw_metrics = {}
+    return {key: raw_metrics.get(key) for key in metric_keys}
+
+
+def build_ga4_aggregate_metrics(
+    ga4_pages_data: pd.DataFrame,
+    ga4_source_data: pd.DataFrame,
+) -> dict[str, float | None]:
+    """Create the single authoritative account-level GA4 metric object."""
+    page_metrics = dataframe_ga4_aggregate_metrics(ga4_pages_data)
+    source_metrics = dataframe_ga4_aggregate_metrics(ga4_source_data)
+
+    # Page Title export is the canonical source for website behavior totals.
+    # Source/medium totals only fill fields absent from the page export.
+    aggregate_metrics = page_metrics.copy()
+    for key, value in source_metrics.items():
+        if aggregate_metrics.get(key) is None and value is not None:
+            aggregate_metrics[key] = value
+    return aggregate_metrics
 
 
 def extract_top_rows(

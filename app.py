@@ -19,6 +19,7 @@ from pptx.util import Inches, Pt
 
 from components.take_action import render_recommendation_take_action as render_recommendation_take_action_component
 from main import run_workflow
+from services.recommendation_curation import curate_recommendation_queue
 from services.rule_engine import evaluate_decision_rules, load_decision_rules as load_decision_rules_service
 from utils.parser import parse_csv_file, parse_uploaded_csv
 
@@ -440,67 +441,83 @@ st.markdown(
         overflow-x: auto;
         overflow-y: hidden;
     }
+    .dashboard-page-marker {
+        display: none !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.dashboard-page-marker) {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow-x: clip;
+    }
     .dashboard-title {
-        font-size: 2.55rem;
+        font-size: 1.88rem;
         font-weight: 800;
-        color: #162033;
-        margin-bottom: 0.45rem;
-        letter-spacing: -0.035em;
-        line-height: 1.08;
+        color: #111721;
+        margin: 0 0 0.32rem;
+        letter-spacing: 0;
+        line-height: 1.14;
     }
     .dashboard-subtitle {
-        color: #667085;
-        margin-bottom: 2rem;
-        font-size: 1.01rem;
-        line-height: 1.65;
+        color: #4A5565;
+        margin-bottom: 1.1rem;
+        font-size: 0.93rem;
+        line-height: 1.45;
         max-width: 760px;
     }
-    .dashboard-eyebrow {
-        color: #7C3AED;
-        font-size: 0.72rem;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        margin-bottom: 0.5rem;
+    .dashboard-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.55rem;
+        margin: 0.45rem 0 0.85rem;
+        width: 100%;
     }
     .dashboard-kpi-card {
         background: #FFFFFF;
-        border: 1px solid #E8E8EE;
-        border-radius: 18px;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
-        padding: 1.2rem 1.25rem;
-        min-height: 148px;
+        border: 1px solid #EAEDF4;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.045);
+        padding: 1rem 1rem 0.95rem;
+        min-height: 106px;
         box-sizing: border-box;
         position: relative;
-        overflow: hidden;
+        overflow: visible;
     }
-    .dashboard-kpi-card::before {
-        content: "";
+    .dashboard-kpi-icon {
         position: absolute;
-        left: 0;
-        right: 0;
-        top: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #7C3AED, #A78BFA);
+        right: 0.85rem;
+        top: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.7rem;
+        height: 1.7rem;
+        border-radius: 999px;
+        background: #F5F4FF;
+        color: #6A53E7;
+        font-size: 0.88rem;
+        font-weight: 800;
     }
     .dashboard-kpi-label {
-        color: #344054;
-        font-size: 0.86rem;
-        font-weight: 700;
-        margin-bottom: 0.7rem;
+        color: #667085;
+        font-size: 0.78rem;
+        font-weight: 650;
+        margin: 0 2.2rem 0.55rem 0;
+        line-height: 1.25;
     }
     .dashboard-kpi-value {
-        color: #162033;
-        font-size: 1.75rem;
+        color: #111721;
+        font-size: 1.55rem;
         font-weight: 800;
-        line-height: 1.05;
-        letter-spacing: -0.03em;
+        line-height: 1.08;
+        letter-spacing: 0;
         overflow-wrap: anywhere;
     }
     .dashboard-kpi-helper {
-        color: #667085;
-        font-size: 0.82rem;
-        line-height: 1.45;
+        color: #4A5565;
+        font-size: 0.75rem;
+        line-height: 1.35;
         margin-top: 0.55rem;
     }
     .dashboard-kpi-trend {
@@ -517,65 +534,224 @@ st.markdown(
         background: #FFF7ED;
         color: #B54708;
     }
-    .dashboard-opportunity-card {
-        background: linear-gradient(135deg, #FFFFFF 0%, #FBF9FF 100%);
-        border: 1px solid #E8E8EE;
-        border-left: 4px solid #8C52FF;
-        border-radius: 18px;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
-        padding: 1.25rem 1.35rem;
+    .dashboard-panel {
+        background: #FFFFFF;
+        border: 1px solid #EAEDF4;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.045);
+        padding: 1rem 1rem 0.95rem;
+        margin-bottom: 0.72rem;
         box-sizing: border-box;
+        min-width: 0;
+        max-width: 100%;
     }
-    .dashboard-opportunity-title {
-        color: #162033;
-        font-size: 1.08rem;
-        font-weight: 780;
-        margin-bottom: 0.55rem;
+    .dashboard-panel-title {
+        color: #111721;
+        font-size: 1rem;
+        font-weight: 760;
+        line-height: 1.25;
+        margin: 0 0 0.78rem;
     }
-    .dashboard-opportunity-copy {
-        color: #52607A;
-        font-size: 0.93rem;
-        line-height: 1.58;
-    }
-    .dashboard-opportunity-meta {
+    .dashboard-empty-note {
         color: #667085;
-        font-size: 0.82rem;
-        line-height: 1.5;
-        margin-top: 0.8rem;
+        font-size: 0.84rem;
+        line-height: 1.45;
+        margin: 0;
+    }
+    .dashboard-bars {
+        display: grid;
+        gap: 0.62rem;
+        margin-top: 0.1rem;
+    }
+    .dashboard-bar-row {
+        display: grid;
+        grid-template-columns: minmax(82px, 0.38fr) minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.55rem;
+        min-width: 0;
+    }
+    .dashboard-bar-label {
+        color: #344054;
+        font-size: 0.78rem;
+        line-height: 1.25;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .dashboard-bar-track {
+        height: 0.72rem;
+        border-radius: 999px;
+        background: #F1F3F8;
+        overflow: hidden;
+        min-width: 0;
+    }
+    .dashboard-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: #352D97;
+    }
+    .dashboard-bar-value {
+        color: #667085;
+        font-size: 0.72rem;
+        text-align: right;
+        min-width: 2.4rem;
+    }
+    .dashboard-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid #EAEDF4;
+        border-radius: 10px;
+        overflow: hidden;
+        table-layout: fixed;
+        font-size: 0.76rem;
+    }
+    .dashboard-table th {
+        background: #F5F4FA;
+        color: #111721;
+        font-weight: 760;
+        text-align: left;
+        padding: 0.58rem 0.72rem;
+        line-height: 1.25;
+    }
+    .dashboard-table td {
+        color: #111721;
+        padding: 0.62rem 0.72rem;
+        border-top: 1px solid #EAEDF4;
+        line-height: 1.35;
+        vertical-align: top;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .dashboard-table td.dashboard-table-number,
+    .dashboard-table th.dashboard-table-number {
+        text-align: right;
+    }
+    .dashboard-insight-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+    .dashboard-insight-item {
+        min-width: 0;
+    }
+    .dashboard-insight-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 999px;
+        background: #F5F4FF;
+        color: #352D97;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .dashboard-insight-title {
+        color: #111721;
+        font-size: 0.95rem;
+        font-weight: 760;
+        line-height: 1.25;
+        margin-bottom: 0.25rem;
+        overflow-wrap: anywhere;
+    }
+    .dashboard-insight-copy {
+        color: #344054;
+        font-size: 0.83rem;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
     }
     .dashboard-action-card {
         background: #FFFFFF;
-        border: 1px solid #E8E8EE;
-        border-radius: 16px;
-        padding: 1rem 1.05rem;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
-        margin-bottom: 0.8rem;
+        border: 1px solid #EAEDF4;
+        border-radius: 12px;
+        padding: 0.85rem 0.9rem;
+        box-shadow: none;
+        margin-bottom: 0.62rem;
+        box-sizing: border-box;
+        min-width: 0;
     }
     .dashboard-action-title {
-        color: #162033;
-        font-size: 0.96rem;
+        color: #111721;
+        font-size: 0.88rem;
         font-weight: 760;
-        line-height: 1.35;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
     }
     .dashboard-action-copy {
-        color: #667085;
-        font-size: 0.88rem;
-        line-height: 1.5;
-        margin-top: 0.45rem;
+        color: #344054;
+        font-size: 0.8rem;
+        line-height: 1.4;
+        margin-top: 0.42rem;
+        overflow-wrap: anywhere;
     }
     .dashboard-action-footer {
-        color: #7C3AED;
-        font-size: 0.8rem;
+        color: #667085;
+        font-size: 0.72rem;
         font-weight: 700;
-        margin-top: 0.75rem;
+        margin-top: 0.48rem;
+    }
+    .dashboard-action-priority {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.15rem;
+        height: 1.15rem;
+        border-radius: 999px;
+        border: 1px solid #FFB4B4;
+        background: #FFF2F2;
+        margin-right: 0.45rem;
+        vertical-align: text-bottom;
+    }
+    .dashboard-action-priority.is-medium {
+        border-color: #FFD78A;
+        background: #FFF8E8;
+    }
+    .dashboard-action-priority.is-low {
+        border-color: #BFE3D0;
+        background: #F0FDF4;
+    }
+    @media (max-width: 1120px) {
+        .dashboard-kpi-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .dashboard-insight-grid {
+            grid-template-columns: 1fr;
+        }
     }
     @media (max-width: 900px) {
         .dashboard-kpi-card {
-            min-height: 126px;
+            min-height: 0;
             margin-bottom: 0.35rem;
         }
         .dashboard-kpi-value {
             font-size: 1.48rem;
+        }
+    }
+    @media (max-width: 640px) {
+        .dashboard-title {
+            font-size: 1.55rem;
+        }
+        .dashboard-kpi-grid {
+            grid-template-columns: 1fr;
+        }
+        .dashboard-bar-row {
+            grid-template-columns: 1fr;
+            gap: 0.25rem;
+        }
+        .dashboard-bar-label {
+            white-space: normal;
+        }
+        .dashboard-bar-value {
+            text-align: left;
+        }
+        .dashboard-table {
+            font-size: 0.72rem;
+        }
+        .dashboard-table th,
+        .dashboard-table td {
+            padding: 0.5rem 0.52rem;
         }
     }
     .panel {
@@ -1120,6 +1296,232 @@ st.markdown(
         line-height: 1.55;
         margin-top: 0.85rem;
         overflow-wrap: anywhere;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow-x: clip;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) .stTabs [data-baseweb="tab-list"] {
+        gap: 0.35rem;
+        border-bottom: 1px solid #EAEDF4;
+        flex-wrap: wrap;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) .stTabs [data-baseweb="tab"] {
+        border-radius: 999px 999px 0 0;
+        color: #4A5565;
+        font-weight: 650;
+        min-width: 0;
+    }
+    .recommendation-queue-card,
+    .recommendation-detail-card,
+    .recommendation-detail-rail,
+    .recommendation-draft-card {
+        background: #FFFFFF;
+        border: 1px solid #EAEDF4;
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.045);
+        box-sizing: border-box;
+        max-width: 100%;
+    }
+    .recommendation-queue-card {
+        padding: 18px 18px 16px;
+        margin: 0 0 0.85rem;
+    }
+    .recommendation-featured-card {
+        background: #F5F4FF;
+        border: 1px solid #E1DEFF;
+        border-radius: 18px;
+        box-shadow: 0 14px 34px rgba(106, 83, 231, 0.10);
+        padding: 20px 22px;
+        margin: 1rem 0 1.15rem;
+        box-sizing: border-box;
+        max-width: 100%;
+    }
+    .recommendation-eyebrow {
+        color: #6A53E7;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 0.55rem;
+    }
+    .recommendation-card-title {
+        color: #111721;
+        font-size: 1.08rem;
+        font-weight: 760;
+        line-height: 1.3;
+        margin-bottom: 0.45rem;
+        overflow-wrap: anywhere;
+    }
+    .recommendation-featured-card .recommendation-card-title {
+        font-size: 1.25rem;
+    }
+    .recommendation-card-copy,
+    .recommendation-detail-copy {
+        color: #4A5565;
+        font-size: 0.94rem;
+        line-height: 1.55;
+        margin-bottom: 0.75rem;
+        overflow-wrap: anywhere;
+    }
+    .recommendation-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin: 0.55rem 0 0.85rem;
+    }
+    .recommendation-chip {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        min-width: 0;
+        border-radius: 999px;
+        border: 1px solid #EAEDF4;
+        background: #FCFCFD;
+        color: #4A5565;
+        font-size: 0.78rem;
+        font-weight: 680;
+        line-height: 1.25;
+        padding: 0.34rem 0.62rem;
+        overflow-wrap: anywhere;
+    }
+    .recommendation-chip-primary {
+        background: #F5F4FF;
+        border-color: #E1DEFF;
+        color: #4D3CEF;
+    }
+    .recommendation-actions-row {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        margin-top: 0.35rem;
+    }
+    .recommendation-detail-card,
+    .recommendation-detail-rail,
+    .recommendation-draft-card {
+        padding: 20px;
+        margin-bottom: 1rem;
+    }
+    .recommendation-section-title {
+        color: #111721;
+        font-size: 1.02rem;
+        font-weight: 760;
+        line-height: 1.3;
+        margin-bottom: 0.55rem;
+    }
+    .recommendation-breadcrumb {
+        color: #667085;
+        font-size: 0.86rem;
+        line-height: 1.45;
+        margin: 0.4rem 0 0.75rem;
+        overflow-wrap: anywhere;
+    }
+    .recommendation-evidence-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.7rem;
+        margin-top: 0.8rem;
+    }
+    .recommendation-evidence-card {
+        background: #FCFCFD;
+        border: 1px solid #EAEDF4;
+        border-radius: 14px;
+        padding: 0.75rem 0.85rem;
+        min-width: 0;
+    }
+    .recommendation-evidence-label {
+        color: #667085;
+        font-size: 0.76rem;
+        font-weight: 650;
+        line-height: 1.25;
+        margin-bottom: 0.32rem;
+    }
+    .recommendation-evidence-value {
+        color: #111721;
+        font-size: 1.05rem;
+        font-weight: 760;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+    }
+    .recommendation-status-line {
+        color: #4A5565;
+        font-size: 0.88rem;
+        font-weight: 650;
+        margin: 0.25rem 0 0.75rem;
+    }
+    .recommendation-detail-rail {
+        position: sticky;
+        top: 1rem;
+    }
+    .recommendation-detail-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border-bottom: 1px solid #F0F2F5;
+        padding: 0.46rem 0;
+        color: #4A5565;
+        font-size: 0.88rem;
+        line-height: 1.35;
+    }
+    .recommendation-detail-row strong {
+        color: #111721;
+        font-weight: 720;
+    }
+    .recommendation-related-list {
+        margin: 0.2rem 0 0.7rem;
+        padding-left: 1.05rem;
+        color: #4A5565;
+        font-size: 0.9rem;
+        line-height: 1.55;
+    }
+    .recommendation-powered-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.38rem;
+    }
+    .recommendation-execution-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+    }
+    .recommendation-option-card {
+        background: #FFFFFF;
+        border: 1px solid #EAEDF4;
+        border-radius: 14px;
+        padding: 0.9rem;
+        min-width: 0;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.035);
+    }
+    .recommendation-option-title {
+        color: #111721;
+        font-size: 0.94rem;
+        font-weight: 740;
+        margin-bottom: 0.28rem;
+        line-height: 1.3;
+    }
+    .recommendation-option-copy {
+        color: #667085;
+        font-size: 0.83rem;
+        line-height: 1.45;
+        margin-bottom: 0.65rem;
+    }
+    .recommendation-draft-label {
+        color: #6A53E7;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 0.45rem;
+    }
+    @media (max-width: 980px) {
+        .recommendation-detail-rail {
+            position: static;
+        }
     }
     @media (max-width: 768px) {
         [data-testid="stVerticalBlock"]:has(.opportunities-page-marker) [data-testid="stHorizontalBlock"],
@@ -2295,6 +2697,7 @@ def normalize_ga4_page_title_dataframe(df: pd.DataFrame | None) -> pd.DataFrame 
     if df is None:
         return None
 
+    original_attrs = dict(getattr(df, "attrs", {}))
     df = df.copy()
     df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
 
@@ -2302,7 +2705,7 @@ def normalize_ga4_page_title_dataframe(df: pd.DataFrame | None) -> pd.DataFrame 
         "sessions": None,
         "active_users": None,
         "engagement_rate": None,
-        "conversions": 0,
+        "conversions": None,
     }
     backfilled_metrics: list[str] = []
 
@@ -2316,6 +2719,10 @@ def normalize_ga4_page_title_dataframe(df: pd.DataFrame | None) -> pd.DataFrame 
             df[numeric_column] = pd.to_numeric(df[numeric_column], errors="coerce")
 
     df.attrs["backfilled_ga4_metrics"] = backfilled_metrics
+    if "ga4_aggregate_metrics" in original_attrs:
+        df.attrs["ga4_aggregate_metrics"] = original_attrs["ga4_aggregate_metrics"]
+    if "ga4_aggregate_source" in original_attrs:
+        df.attrs["ga4_aggregate_source"] = original_attrs["ga4_aggregate_source"]
 
     return df
 
@@ -2334,65 +2741,68 @@ def infer_saved_run_version(metadata: dict | None) -> str:
     return "legacy"
 
 
-def backfill_ga4_key_metrics(results: dict, ga4_pages_data: pd.DataFrame | None) -> None:
-    """Backfill missing GA4 key metrics for older saved runs."""
+def get_ga4_aggregate_metrics(results: dict | None) -> dict[str, object]:
+    """Return the shared authoritative GA4 aggregate metrics object."""
+    metric_keys = [
+        "new_users",
+        "active_users",
+        "returning_users",
+        "total_users",
+        "sessions",
+        "engagement_rate",
+        "average_engagement_time_per_session",
+    ]
+    if not results:
+        return {key: None for key in metric_keys}
+    metrics = results.get("ga4_aggregate_metrics")
+    if isinstance(metrics, dict):
+        return {key: metrics.get(key) for key in metric_keys}
+    summary = results.get("data_intake", {}).get("summary", {})
+    metrics = summary.get("ga4_aggregate_metrics")
+    if not isinstance(metrics, dict):
+        metrics = summary.get("ga4_pages", {}).get("aggregate_metrics")
+    if not isinstance(metrics, dict):
+        metrics = {}
+    return {key: metrics.get(key) for key in metric_keys}
+
+
+def sync_ga4_aggregate_metrics(results: dict, ga4_pages_data: pd.DataFrame | None = None) -> None:
+    """Keep legacy key metric locations pointed at the shared GA4 aggregate object."""
     data_summary = results.setdefault("data_intake", {}).setdefault("summary", {})
     ga4_pages_summary = data_summary.setdefault("ga4_pages", {})
     key_metrics = ga4_pages_summary.setdefault("key_metrics", {})
+    aggregate_metrics = get_ga4_aggregate_metrics(results)
+    if not any(value is not None for value in aggregate_metrics.values()) and ga4_pages_data is not None:
+        raw_metrics = ga4_pages_data.attrs.get("ga4_aggregate_metrics", {})
+        if isinstance(raw_metrics, dict):
+            aggregate_metrics = {key: raw_metrics.get(key) for key in aggregate_metrics.keys()}
+    data_summary["ga4_aggregate_metrics"] = aggregate_metrics
+    ga4_pages_summary["aggregate_metrics"] = aggregate_metrics
+    for metric_name, metric_value in aggregate_metrics.items():
+        key_metrics[metric_name] = metric_value
+    key_metrics.setdefault("conversions", None)
 
-    defaults = {
-        "sessions": None,
-        "active_users": None,
-        "engagement_rate": None,
-        "conversions": 0,
-    }
-    for metric_name, default_value in defaults.items():
-        key_metrics.setdefault(metric_name, default_value)
 
-    if ga4_pages_data is None or getattr(ga4_pages_data, "empty", True):
-        return
-
-    backfilled_metrics = set(ga4_pages_data.attrs.get("backfilled_ga4_metrics", []))
-
-    if key_metrics.get("sessions") in [None, "", "Not available"] and "sessions" not in backfilled_metrics:
-        key_metrics["sessions"] = to_comparison_number(ga4_pages_data["sessions"].fillna(0).sum())
-
-    if key_metrics.get("active_users") in [None, "", "Not available"] and "active_users" not in backfilled_metrics:
-        key_metrics["active_users"] = to_comparison_number(ga4_pages_data["active_users"].fillna(0).sum())
-
-    if key_metrics.get("engagement_rate") in [None, "", "Not available"] and "engagement_rate" not in backfilled_metrics:
-        engagement_rate = ga4_pages_data["engagement_rate"].dropna().mean()
-        key_metrics["engagement_rate"] = None if pd.isna(engagement_rate) else engagement_rate
-
-    if key_metrics.get("conversions") in [None, "", "Not available"] and "conversions" not in backfilled_metrics:
-        key_metrics["conversions"] = to_comparison_number(ga4_pages_data["conversions"].fillna(0).sum()) or 0
+def backfill_ga4_key_metrics(results: dict, ga4_pages_data: pd.DataFrame | None) -> None:
+    """Backward-compatible wrapper that no longer reconstructs totals from page rows."""
+    sync_ga4_aggregate_metrics(results, ga4_pages_data)
 
 
 def format_ga4_engagement_rate_kpi(value) -> str:
     """Format the GA4 engagement rate KPI as a percent."""
-    numeric_value = to_comparison_number(value)
+    numeric_value = normalize_report_percent(value)
     if numeric_value is None:
         return "—"
-
-    return f"{round(numeric_value * 100, 2)}%"
+    return f"{round(numeric_value, 2)}%"
 
 
 def calculate_analysis_engagement_rate_kpi() -> str:
-    """Calculate Analysis-page engagement rate from GA4 Page Title rows."""
-    ga4_pages_df = load_saved_ga4_pages_dataframe(st.session_state.get("loaded_run_id", ""))
-
-    if ga4_pages_df.empty or "engagement_rate" not in ga4_pages_df.columns:
-        return "Not available (requires GA4 Page Title data)"
-
-    ga4_pages_df = ga4_pages_df.copy()
-    ga4_pages_df.columns = [col.strip().lower().replace(" ", "_") for col in ga4_pages_df.columns]
-    ga4_pages_df["engagement_rate"] = pd.to_numeric(ga4_pages_df["engagement_rate"], errors="coerce")
-    engagement_rate = ga4_pages_df["engagement_rate"].dropna().mean()
-
-    if pd.isna(engagement_rate):
-        return "Not available (requires GA4 Page Title data)"
-
-    return f"{round(engagement_rate * 100, 2)}%"
+    """Format Analysis-page engagement rate from the shared GA4 aggregate metrics."""
+    engagement_rate = get_ga4_aggregate_metrics(st.session_state.get("results", {})).get("engagement_rate")
+    numeric_value = normalize_report_percent(engagement_rate)
+    if numeric_value is None:
+        return "Not available (requires GA4 aggregate data)"
+    return f"{round(numeric_value, 2)}%"
 
 
 def parse_meta_posts_csv(file) -> pd.DataFrame:
@@ -3502,12 +3912,10 @@ def build_run_metric_snapshot(results: dict | None, run_id: str | None = None) -
     semrush_positions_data = results.get("semrush_positions_data")
     semrush_pages_data = results.get("semrush_pages_data")
     semrush_topics_data = results.get("semrush_topics_data")
-    ga4_pages_data = load_saved_ga4_pages_dataframe(run_id or "")
-    backfilled_ga4_metrics = set(ga4_pages_data.attrs.get("backfilled_ga4_metrics", [])) if not ga4_pages_data.empty else set()
     run_metadata = get_saved_run_metadata(run_id or "") if run_id else {}
     run_version = infer_saved_run_version(run_metadata or results.get("saved_run_metadata"))
 
-    ga4_pages_available = not ga4_pages_data.empty if not ga4_pages_data.empty else data_summary.get("ga4_pages", {}).get("rows", 0) > 0
+    ga4_pages_available = data_summary.get("ga4_pages", {}).get("rows", 0) > 0
     ga4_sources_available = data_summary.get("ga4_sources", {}).get("rows", 0) > 0
     gsc_available = data_summary.get("gsc_queries", {}).get("rows", 0) > 0
     social_available = meta_posts_data is not None and not getattr(meta_posts_data, "empty", True)
@@ -3515,22 +3923,10 @@ def build_run_metric_snapshot(results: dict | None, run_id: str | None = None) -
     semrush_pages_available = semrush_pages_data is not None and not getattr(semrush_pages_data, "empty", True)
     semrush_topics_available = semrush_topics_data is not None and not getattr(semrush_topics_data, "empty", True)
 
-    ga4_page_metrics = data_summary.get("ga4_pages", {}).get("key_metrics", {})
-    ga4_sessions = (
-        to_comparison_number(ga4_pages_data["sessions"].fillna(0).sum())
-        if ga4_pages_available and "sessions" in ga4_pages_data.columns and "sessions" not in backfilled_ga4_metrics
-        else to_comparison_number(ga4_page_metrics.get("sessions"))
-    )
-    ga4_active_users = (
-        to_comparison_number(ga4_pages_data["active_users"].fillna(0).sum())
-        if ga4_pages_available and "active_users" in ga4_pages_data.columns and "active_users" not in backfilled_ga4_metrics
-        else to_comparison_number(ga4_page_metrics.get("active_users"))
-    )
-    ga4_engagement_rate = (
-        normalize_percent_metric(ga4_pages_data["engagement_rate"].fillna(0).mean())
-        if ga4_pages_available and "engagement_rate" in ga4_pages_data.columns and "engagement_rate" not in backfilled_ga4_metrics
-        else normalize_percent_metric(ga4_page_metrics.get("engagement_rate"))
-    )
+    ga4_aggregate_metrics = get_ga4_aggregate_metrics(results)
+    ga4_sessions = to_comparison_number(ga4_aggregate_metrics.get("sessions"))
+    ga4_active_users = to_comparison_number(ga4_aggregate_metrics.get("active_users"))
+    ga4_engagement_rate = normalize_percent_metric(ga4_aggregate_metrics.get("engagement_rate"))
     ga4_metrics = [
         {"label": "Sessions", "value": ga4_sessions, "type": "number"},
         {"label": "Active Users", "value": ga4_active_users, "type": "number"},
@@ -4341,16 +4737,8 @@ def build_scorecard(results: dict) -> dict[str, dict[str, str]]:
     else:
         ctr_gap_signal = "Benchmark unavailable"
 
-    ga4_engagement_rate_percent = None
-    ga4_pages_df = get_report_ga4_pages_dataframe(results)
-    if not ga4_pages_df.empty and "engagement_rate" in ga4_pages_df.columns:
-        engagement_rate_value = ga4_pages_df["engagement_rate"].dropna().mean()
-        if not pd.isna(engagement_rate_value):
-            ga4_engagement_rate_percent = normalize_report_percent(engagement_rate_value)
-    if ga4_engagement_rate_percent is None:
-        ga4_engagement_rate_percent = normalize_report_percent(
-            data_summary.get("ga4_pages", {}).get("key_metrics", {}).get("engagement_rate")
-        )
+    ga4_aggregate_metrics = get_ga4_aggregate_metrics(results)
+    ga4_engagement_rate_percent = normalize_report_percent(ga4_aggregate_metrics.get("engagement_rate"))
 
     average_position_value = (
         sum(to_comparison_number(item.get("position")) or 0 for item in query_analysis) / len(query_analysis)
@@ -4952,18 +5340,19 @@ def render_standard_view(results: dict, ga4_debug_titles: list[str], show_debug:
 
 def render_analysis_page(results: dict) -> None:
     """Render the Analysis page (Traffic, Behavior, Queries, Pages)."""
-    st.title("📈 Analysis")
-    st.caption("Performance data from GA4 + GSC")
-
     if not results:
+        st.markdown('<div class="dashboard-title">📈 Analysis</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="dashboard-subtitle">Deeper performance analysis across website and search data.</div>',
+            unsafe_allow_html=True,
+        )
         st.info("Run the workflow to view analysis.")
         return
-
-    render_comparison_summary(results, ["ga4", "gsc", "semrush"])
 
     insight = results["insight"]
     combined = results["data_intake"]["summary"]["combined"]
     data_summary = results["data_intake"]["summary"]
+    ga4_aggregate_metrics = get_ga4_aggregate_metrics(results)
 
     has_query_data = bool(insight["query_analysis"])
     has_page_data = bool(combined["top_pages"])
@@ -4972,241 +5361,181 @@ def render_analysis_page(results: dict) -> None:
         data_summary["ga4_pages"]["rows"] > 0 or data_summary["ga4_sources"]["rows"] > 0
     )
 
-    if has_source_data or has_behavior_data:
-        st.markdown("### Overview")
+    st.markdown('<div class="dashboard-page-marker"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="dashboard-title">📈 Analysis</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="dashboard-subtitle">Deeper performance analysis across website and search data.</div>',
+        unsafe_allow_html=True,
+    )
+
+    render_comparison_summary(results, ["ga4", "gsc", "semrush"])
+
+    aggregate_sessions = to_comparison_number(ga4_aggregate_metrics.get("sessions"))
+    aggregate_active_users = to_comparison_number(ga4_aggregate_metrics.get("active_users"))
+    aggregate_engagement_rate = normalize_report_percent(ga4_aggregate_metrics.get("engagement_rate"))
+    aggregate_avg_time = to_comparison_number(ga4_aggregate_metrics.get("average_engagement_time_per_session"))
+    overview_cards = [
+        build_dashboard_kpi_card_html(
+            "Sessions",
+            format_dashboard_compact_number(aggregate_sessions),
+            "Total sessions in the current GA4 run",
+            "◔",
+        ),
+        build_dashboard_kpi_card_html(
+            "Active Users",
+            format_dashboard_compact_number(aggregate_active_users),
+            "Users who actively engaged",
+            "◉",
+        ),
+        build_dashboard_kpi_card_html(
+            "Engagement Rate",
+            f"{aggregate_engagement_rate:.2f}%" if aggregate_engagement_rate is not None else "Not available",
+            "Share of engaged sessions",
+            "⌁",
+        ),
+        build_dashboard_kpi_card_html(
+            "Avg. Engagement Time",
+            f"{aggregate_avg_time:.0f} sec" if aggregate_avg_time is not None else "Not available",
+            "Average engagement time per session",
+            "⌕",
+        ),
+    ]
+    st.markdown(f'<div class="dashboard-kpi-grid">{"".join(overview_cards)}</div>', unsafe_allow_html=True)
 
     if has_source_data:
-        traffic_card = st.container()
-        with traffic_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">🚦 Traffic Distribution</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="dashboard-card-helper">Acquisition mix from the loaded GA4 source and medium report.</div>',
-                unsafe_allow_html=True,
-            )
-            top_sources_df = pd.DataFrame(combined["top_traffic_sources"])
-            traffic_fig = px.bar(
-                top_sources_df.head(5),
-                x="source_medium",
-                y="value",
-                color_discrete_sequence=["#8C52FF"],
-            )
-            traffic_fig.update_layout(
-                showlegend=False,
-                plot_bgcolor="#FFFFFF",
-                paper_bgcolor="#FFFFFF",
-                margin=dict(l=12, r=12, t=8, b=8),
-                font=dict(color="#162033"),
-                xaxis_title="",
-                yaxis_title="",
-                height=320,
-            )
-            traffic_fig.update_traces(
-                marker_line_color="#7C3AED",
-                marker_line_width=0,
-                hovertemplate="<b>%{x}</b><br>Value: %{y}<extra></extra>",
-            )
-            traffic_fig.update_xaxes(tickfont=dict(color="#111111"))
-            traffic_fig.update_yaxes(tickfont=dict(color="#111111"))
-            st.plotly_chart(traffic_fig, use_container_width=True)
-            st.dataframe(top_sources_df, use_container_width=True, hide_index=True)
-
-    if has_behavior_data:
-        behavior_card = st.container()
-        with behavior_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">👥 User Behavior</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="dashboard-card-helper">Behavior metrics from the loaded GA4 page-title report.</div>',
-                unsafe_allow_html=True,
-            )
-            col1, col2, col3 = st.columns(3)
-
-            behavior_metrics = {
-                "Sessions": data_summary["ga4_pages"]["key_metrics"].get("sessions", "—"),
-                "Active Users": data_summary["ga4_pages"]["key_metrics"].get("active_users", "—"),
-                "Engagement Rate": calculate_analysis_engagement_rate_kpi(),
-            }
-
-            with col1:
-                st.metric("Sessions", behavior_metrics["Sessions"])
-            with col2:
-                st.metric("Users", behavior_metrics["Active Users"])
-            with col3:
-                st.metric("Engagement Rate", behavior_metrics["Engagement Rate"])
-
-    if has_source_data or has_behavior_data:
-        st.markdown('<div class="dashboard-section-divider"></div>', unsafe_allow_html=True)
-
-    if has_query_data:
-        st.markdown("### Search Behavior")
-
-    if has_query_data:
-        queries_card = st.container()
-        with queries_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">🔍 Top Queries</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="dashboard-card-helper">Search queries with the highest impression volume from the loaded GSC data.</div>',
-                unsafe_allow_html=True,
-            )
-
-            top_queries_chart_df = pd.DataFrame(insight["query_analysis"]).copy()
-            top_queries_chart_df["impressions"] = pd.to_numeric(
-                top_queries_chart_df["impressions"],
-                errors="coerce",
-            ).fillna(0)
-            top_queries_chart_df["position"] = pd.to_numeric(
-                top_queries_chart_df["position"],
-                errors="coerce",
-            ).fillna(0)
-            top_queries_chart_df["ctr_display"] = top_queries_chart_df["ctr"].apply(format_ctr_value)
-            top_queries_chart_df = top_queries_chart_df.sort_values("impressions", ascending=False).head(5)
-
-            query_fig = px.bar(
-                top_queries_chart_df,
-                x="impressions",
-                y="query",
-                orientation="h",
-                hover_data={
-                    "query": True,
-                    "impressions": ":,.0f",
-                    "ctr_display": True,
-                    "position": ":.2f",
-                },
-                labels={
-                    "query": "",
-                    "impressions": "Impressions",
-                    "ctr_display": "CTR",
-                    "position": "Position",
-                },
-                color_discrete_sequence=["#8C52FF"],
-            )
-            query_fig.update_yaxes(
-                autorange="reversed",
-                title="",
-                tickfont={"color": "#111111", "size": 12},
-                title_font={"color": "#111111"},
-            )
-            query_fig.update_xaxes(
-                title="Impressions",
-                gridcolor="#E6E8F0",
-                zeroline=False,
-                tickfont={"color": "#111111", "size": 12},
-                title_font={"color": "#111111"},
-            )
-            query_fig.update_layout(
-                plot_bgcolor="#FFFFFF",
-                paper_bgcolor="#FFFFFF",
-                font={"color": "#111111", "size": 12},
-                title_font={"color": "#111111"},
-                hoverlabel={
-                    "bgcolor": "#FFFFFF",
-                    "bordercolor": "#E6E8F0",
-                    "font": {"color": "#111111"},
-                },
-                margin={"l": 8, "r": 12, "t": 12, "b": 24},
-                height=320,
-                showlegend=False,
-            )
-            st.plotly_chart(query_fig, use_container_width=True)
-
-            top_queries_df = format_ctr_dataframe(top_queries_chart_df.copy())
-            st.dataframe(
-                top_queries_df[["query", "ctr", "impressions", "position"]],
-                use_container_width=True,
-                hide_index=True,
-            )
-
-    if has_page_data:
-        st.markdown("### Page Performance")
-
-    if has_page_data:
-        pages_card = st.container()
-        with pages_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">🌐 Top Pages</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="dashboard-card-helper">Highest-value pages from the loaded GA4 page-title report.</div>',
-                unsafe_allow_html=True,
-            )
-
-            page_rows = []
-            best_source = get_first_value(insight["top_sources"], "source_medium")
-
-            for item in combined["top_pages"][:10]:
-                page_rows.append(
-                    {
-                        "page_title": item["page_title"],
-                        "metric": item["metric"],
-                        "value": item["value"],
-                        "traffic_context": best_source,
-                    }
+        source_rows = get_dashboard_ga4_source_rows(results)[:7]
+        render_dashboard_panel(
+            "🚦 Traffic Distribution",
+            (
+                '<p class="dashboard-empty-note" style="margin-bottom:0.75rem;">'
+                "Acquisition mix from the loaded GA4 source and medium report."
+                "</p>"
+                + build_dashboard_traffic_source_html(source_rows)
+            ),
+        )
+        if source_rows:
+            source_table_rows = [
+                [str(row.get("source", "")), format_dashboard_compact_number(row.get("value"))]
+                for row in source_rows
+            ]
+            with st.expander("View traffic source data", expanded=False):
+                st.markdown(
+                    render_dashboard_table(["Source / Medium", "Sessions"], source_table_rows, number_columns={1}),
+                    unsafe_allow_html=True,
                 )
 
-            top_pages_df = pd.DataFrame(page_rows)
-            top_pages_chart_df = top_pages_df.copy()
-            top_pages_chart_df["value"] = pd.to_numeric(top_pages_chart_df["value"], errors="coerce").fillna(0)
-            top_pages_chart_df = top_pages_chart_df.sort_values("value", ascending=False).head(5)
-            top_pages_chart_df["page_title_display"] = top_pages_chart_df["page_title"].apply(
-                lambda title: str(title) if len(str(title)) <= 58 else f"{str(title)[:55]}..."
-            )
+    if has_behavior_data:
+        behavior_cards = [
+            build_dashboard_kpi_card_html(
+                "Sessions",
+                format_dashboard_compact_number(aggregate_sessions),
+                "Authoritative GA4 aggregate",
+                "◔",
+            ),
+            build_dashboard_kpi_card_html(
+                "Active Users",
+                format_dashboard_compact_number(aggregate_active_users),
+                "Authoritative GA4 aggregate",
+                "◉",
+            ),
+            build_dashboard_kpi_card_html(
+                "Engagement Rate",
+                f"{aggregate_engagement_rate:.2f}%" if aggregate_engagement_rate is not None else "Not available",
+                "Authoritative GA4 aggregate",
+                "⌁",
+            ),
+            build_dashboard_kpi_card_html(
+                "Avg Engagement Time",
+                f"{aggregate_avg_time:.0f} sec" if aggregate_avg_time is not None else "Not available",
+                "Authoritative GA4 aggregate",
+                "⌕",
+            ),
+        ]
+        render_dashboard_panel(
+            "👥 User Behavior",
+            (
+                '<p class="dashboard-empty-note" style="margin-bottom:0.75rem;">'
+                "Run-level behavior metrics from the GA4 aggregate row."
+                "</p>"
+                f'<div class="dashboard-kpi-grid">{"".join(behavior_cards)}</div>'
+            ),
+        )
 
-            pages_fig = px.bar(
-                top_pages_chart_df,
-                x="value",
-                y="page_title_display",
-                orientation="h",
-                hover_data={
-                    "page_title": True,
-                    "page_title_display": False,
-                    "value": ":,.0f",
-                    "metric": True,
-                    "traffic_context": True,
-                },
-                labels={
-                    "page_title_display": "",
-                    "value": "Value",
-                    "page_title": "Page Title",
-                    "metric": "Metric",
-                    "traffic_context": "Traffic Context",
-                },
-                color_discrete_sequence=["#8C52FF"],
+    if has_query_data:
+        query_rows = get_dashboard_top_queries(insight["query_analysis"], limit=7)
+        click_values = [to_comparison_number(item.get("clicks")) for item in insight["query_analysis"]]
+        impression_values = [to_comparison_number(item.get("impressions")) for item in insight["query_analysis"]]
+        position_values = [to_comparison_number(item.get("position")) for item in insight["query_analysis"]]
+        click_values = [value for value in click_values if value is not None]
+        impression_values = [value for value in impression_values if value is not None]
+        position_values = [value for value in position_values if value is not None]
+        total_clicks = sum(click_values) if click_values else None
+        total_impressions = sum(impression_values) if impression_values else None
+        aggregate_ctr = (total_clicks / total_impressions * 100) if total_clicks is not None and total_impressions else None
+        average_position = (sum(position_values) / len(position_values)) if position_values else None
+        search_cards = [
+            build_dashboard_kpi_card_html("Clicks", format_dashboard_compact_number(total_clicks), "Tracked GSC clicks", "↗"),
+            build_dashboard_kpi_card_html("Impressions", format_dashboard_compact_number(total_impressions), "Tracked GSC impressions", "⌁"),
+            build_dashboard_kpi_card_html("CTR", f"{aggregate_ctr:.2f}%" if aggregate_ctr is not None else "Not available", "Clicks divided by impressions", "◉"),
+            build_dashboard_kpi_card_html("Avg. Position", format_dashboard_position(average_position), "Average tracked ranking position", "⌕"),
+        ]
+        render_dashboard_panel(
+            "🔎 Search Performance",
+            (
+                '<p class="dashboard-empty-note" style="margin-bottom:0.75rem;">'
+                "Search visibility and click response from the loaded GSC query data."
+                "</p>"
+                f'<div class="dashboard-kpi-grid">{"".join(search_cards)}</div>'
+            ),
+        )
+        query_table_rows = [
+            [
+                truncate_dashboard_label(row.get("query"), 64),
+                format_dashboard_compact_number(row.get("clicks")),
+                f"{row['ctr']:.2f}%" if row.get("ctr") is not None else "Not available",
+                format_dashboard_compact_number(row.get("impressions")),
+                format_dashboard_position(row.get("position")),
+            ]
+            for row in query_rows
+        ]
+        render_dashboard_panel(
+            "🔍 Top Queries",
+            render_dashboard_table(
+                ["Query", "Clicks", "CTR", "Impressions", "Position"],
+                query_table_rows,
+                number_columns={1, 2, 3, 4},
             )
-            pages_fig.update_yaxes(
-                autorange="reversed",
-                title="",
-                tickfont={"color": "#111111", "size": 12},
-                title_font={"color": "#111111"},
-            )
-            pages_fig.update_xaxes(
-                title="Value",
-                gridcolor="#E6E8F0",
-                zeroline=False,
-                tickfont={"color": "#111111", "size": 12},
-                title_font={"color": "#111111"},
-            )
-            pages_fig.update_layout(
-                plot_bgcolor="#FFFFFF",
-                paper_bgcolor="#FFFFFF",
-                font={"color": "#111111", "size": 12},
-                title_font={"color": "#111111"},
-                hoverlabel={
-                    "bgcolor": "#FFFFFF",
-                    "bordercolor": "#E6E8F0",
-                    "font": {"color": "#111111"},
-                },
-                margin={"l": 8, "r": 12, "t": 12, "b": 24},
-                height=340,
-                showlegend=False,
-            )
-            st.plotly_chart(pages_fig, use_container_width=True)
+            if query_table_rows
+            else '<p class="dashboard-empty-note">No GSC query data is available in the current run.</p>',
+        )
 
-            st.dataframe(
-                top_pages_chart_df[["page_title", "metric", "value", "traffic_context"]],
-                use_container_width=True,
-                hide_index=True,
+    if has_page_data:
+        page_rows = []
+        best_source = get_first_value(insight["top_sources"], "source_medium")
+        for item in combined["top_pages"][:10]:
+            page_rows.append(
+                [
+                    truncate_dashboard_label(item.get("page_title"), 78),
+                    str(item.get("metric", "Value")),
+                    format_dashboard_compact_number(item.get("value")),
+                    best_source,
+                ]
             )
+        render_dashboard_panel(
+            "🌐 Page Performance",
+            (
+                '<p class="dashboard-empty-note" style="margin-bottom:0.75rem;">'
+                "Page-level GA4 rows remain dimensional and are used only for page analysis."
+                "</p>"
+                + render_dashboard_table(
+                    ["Page", "Metric", "Value", "Traffic Context"],
+                    page_rows,
+                    number_columns={2},
+                )
+                if page_rows
+                else '<p class="dashboard-empty-note">No GA4 page data is available in the current run.</p>'
+            )
+        )
 
 
 def format_social_workspace_table(records: list[dict[str, object]], label_key: str) -> pd.DataFrame:
@@ -7921,6 +8250,14 @@ def return_to_opportunities() -> None:
     st.session_state["app_navigation"] = "🚀 Opportunities"
 
 
+def return_to_recommendation_list(category: str | None = None) -> None:
+    """Return to the Recommendations queue, optionally keeping a category filter active."""
+    clear_recommendation_focus()
+    st.session_state["app_navigation"] = "🎯 Recommendations"
+    if category:
+        st.session_state["recommendation_filter"] = category
+
+
 def handle_sidebar_navigation_change() -> None:
     """Keep focused action plans only when navigation was explicitly opened from an action CTA."""
     if st.session_state.get("recommendation_focus_navigation_pending"):
@@ -8990,6 +9327,7 @@ def build_recommendation_workspace_items(results: dict) -> list[dict[str, object
                 "subject": subject,
                 "subject_type": str(recommendation.get("subject_type", "")).strip(),
                 "source": str(recommendation.get("source", "")).strip(),
+                "source_type": str(recommendation.get("source_type", "")).strip(),
                 "category": str(recommendation.get("category", "")).strip(),
                 "opportunity_type": str(recommendation.get("opportunity_type", "")).strip(),
                 "type": "recommendation",
@@ -9010,10 +9348,12 @@ def build_recommendation_workspace_items(results: dict) -> list[dict[str, object
                 "insight": issue,
                 "supporting_evidence": str(recommendation.get("supporting_evidence", "")).strip(),
                 "evidence": recommendation.get("evidence") if isinstance(recommendation.get("evidence"), dict) else {},
+                "sample_data": recommendation.get("sample_data") if isinstance(recommendation.get("sample_data"), dict) else {},
                 "action_steps": recommendation.get("action_steps", recommendation.get("improvement_guidance", [])),
                 "opportunity_score": to_comparison_number(recommendation.get("opportunity_score")),
                 "business_impact_score": to_comparison_number(recommendation.get("business_impact_score")),
                 "confidence_score": to_comparison_number(recommendation.get("confidence_score")),
+                "priority_bundle": recommendation.get("priority_bundle") if isinstance(recommendation.get("priority_bundle"), dict) else {},
                 "unique_key": f"generated_{action_type or 'rule'}_{index}",
             }
         )
@@ -9042,6 +9382,7 @@ def build_priority_queue_workspace_items(results: dict) -> list[dict[str, object
                 "rule_id": str(action.get("rule_id", "")).strip(),
                 "subject": str(action.get("subject", "")).strip(),
                 "source": str(action.get("source") or action.get("data_source", "")).strip(),
+                "source_type": str(action.get("source_type", "")).strip(),
                 "category": str(action.get("category", "")).strip(),
                 "opportunity_type": str(action.get("opportunity_type", "")).strip(),
                 "type": "priority_queue",
@@ -9058,8 +9399,10 @@ def build_priority_queue_workspace_items(results: dict) -> list[dict[str, object
                 "why_it_matters": issue,
                 "supporting_evidence": str(action.get("supporting_data", "")).strip(),
                 "evidence": action.get("evidence") if isinstance(action.get("evidence"), dict) else {},
+                "sample_data": action.get("sample_data") if isinstance(action.get("sample_data"), dict) else {},
                 "action_steps": action.get("action_steps", action.get("improvement_guidance", [])),
                 "impact_score": to_comparison_number(action.get("impact_score")),
+                "priority_bundle": action.get("priority_bundle") if isinstance(action.get("priority_bundle"), dict) else {},
                 "unique_key": f"priority_queue_{index}",
             }
         )
@@ -9088,6 +9431,7 @@ def build_what_next_workspace_items(results: dict) -> list[dict[str, object]]:
                 "rule_id": str(action.get("rule_id", "")).strip(),
                 "subject": str(action.get("subject", "")).strip(),
                 "source": str(action.get("source", "")).strip(),
+                "source_type": str(action.get("source_type", "")).strip(),
                 "category": str(action.get("category", "")).strip(),
                 "opportunity_type": str(action.get("opportunity_type", "")).strip(),
                 "type": "what_next",
@@ -9105,7 +9449,9 @@ def build_what_next_workspace_items(results: dict) -> list[dict[str, object]]:
                 "why_it_matters": reason,
                 "supporting_evidence": "",
                 "evidence": action.get("evidence") if isinstance(action.get("evidence"), dict) else {},
+                "sample_data": action.get("sample_data") if isinstance(action.get("sample_data"), dict) else {},
                 "action_steps": action.get("action_steps", action.get("improvement_guidance", [])),
+                "priority_bundle": action.get("priority_bundle") if isinstance(action.get("priority_bundle"), dict) else {},
                 "unique_key": f"what_next_{index}",
             }
         )
@@ -9193,6 +9539,481 @@ def htmlize_recommendation_text(text: str) -> str:
     return html.escape(normalize_recommendation_plain_text(text)).replace("\n", "<br>")
 
 
+def truncate_recommendation_text(text: object, max_chars: int = 185) -> str:
+    """Keep queue copy short without losing the core action."""
+    cleaned = normalize_recommendation_plain_text(str(text or ""))
+    if len(cleaned) <= max_chars:
+        return cleaned
+    trimmed = cleaned[:max_chars].rsplit(" ", 1)[0].rstrip(".,;:")
+    return f"{trimmed}..."
+
+
+def get_recommendation_category(item: dict[str, object]) -> str:
+    """Read the existing workspace tab as the client-facing category."""
+    source = str(item.get("source", "")).strip().lower()
+    source_type = str(item.get("source_type", "")).strip().lower()
+    action_type = str(item.get("action_type", "")).strip().lower()
+    evidence = item.get("evidence") if isinstance(item.get("evidence"), dict) else {}
+    if source in {"gsc", "google search console", "keyword"} or any(key in evidence for key in ["ctr", "impressions", "position", "clicks"]):
+        return "SEO"
+    if source_type in {"ga4_sources", "ga4 sources"}:
+        return "Analytics"
+    if source in {"meta", "facebook", "instagram"} or action_type.startswith("social"):
+        return "Social"
+    if action_type in {"ux_conversion", "website_ux_conversion"}:
+        return "UX/CRO"
+    if action_type in {"geo", "local", "local_seo"}:
+        return "Local SEO"
+    if action_type in {"analytics", "measurement", "tracking"}:
+        return "Analytics"
+    tab = str(item.get("tab", "")).strip()
+    return tab if tab in {"SEO", "UX/CRO", "Local SEO", "Social", "Analytics"} else "SEO"
+
+
+def get_recommendation_source(item: dict[str, object]) -> str:
+    """Format only the source already attached to the recommendation."""
+    source = normalize_recommendation_plain_text(str(item.get("source", ""))).strip()
+    if source:
+        return source
+    category = get_recommendation_category(item)
+    evidence = item.get("evidence") if isinstance(item.get("evidence"), dict) else {}
+    if category == "SEO" and any(key in evidence for key in ["ctr", "impressions", "position", "clicks"]):
+        return "Google Search Console"
+    if category == "Social":
+        return "Meta"
+    return ""
+
+
+def get_recommendation_confidence(item: dict[str, object]) -> str:
+    """Return confidence only when an existing confidence field is present."""
+    confidence = to_comparison_number(item.get("confidence_score"))
+    if confidence is None:
+        priority_bundle = item.get("priority_bundle") if isinstance(item.get("priority_bundle"), dict) else {}
+        confidence = to_comparison_number(priority_bundle.get("confidence_score"))
+    return f"{round(confidence)}%" if confidence is not None else ""
+
+
+def get_recommendation_impact(item: dict[str, object]) -> str:
+    """Return impact only when a real impact label or score exists."""
+    impact = normalize_recommendation_plain_text(str(item.get("impact", ""))).strip()
+    if impact and impact.lower() not in {"none", "not available", "n/a"}:
+        return impact.title()
+    impact_score = to_comparison_number(item.get("business_impact_score"))
+    if impact_score is None:
+        impact_score = to_comparison_number(item.get("impact_score"))
+    if impact_score is None:
+        return ""
+    if impact_score >= 75:
+        return "High"
+    if impact_score >= 45:
+        return "Medium"
+    return "Low"
+
+
+def get_recommendation_effort(item: dict[str, object]) -> str:
+    """Return effort only when the current recommendation payload contains it."""
+    effort = normalize_recommendation_plain_text(str(item.get("effort", ""))).strip()
+    if effort and effort.lower() not in {"none", "not available", "n/a"}:
+        return effort.title()
+    priority_bundle = item.get("priority_bundle") if isinstance(item.get("priority_bundle"), dict) else {}
+    effort_score = to_comparison_number(priority_bundle.get("effort_score"))
+    if effort_score is None:
+        return ""
+    if effort_score >= 70:
+        return "High"
+    if effort_score >= 35:
+        return "Medium"
+    return "Low"
+
+
+def get_recommendation_status(item: dict[str, object]) -> str:
+    """Keep status session-only unless an existing recommendation status is present."""
+    recommendation_id = str(item.get("recommendation_id", "")).strip()
+    session_statuses = st.session_state.setdefault("recommendation_statuses", {})
+    if isinstance(session_statuses, dict) and recommendation_id in session_statuses:
+        return str(session_statuses[recommendation_id])
+    status = normalize_recommendation_plain_text(str(item.get("status", ""))).strip()
+    return status.title() if status else "Ready"
+
+
+def set_recommendation_status(item: dict[str, object], status: str) -> None:
+    """Store lightweight recommendation status for this Streamlit session."""
+    recommendation_id = str(item.get("recommendation_id", "")).strip()
+    if not recommendation_id:
+        return
+    statuses = st.session_state.setdefault("recommendation_statuses", {})
+    if isinstance(statuses, dict):
+        statuses[recommendation_id] = status
+
+
+def build_recommendation_metadata(item: dict[str, object], include_status: bool = False) -> list[str]:
+    """Build the compact metadata row from fields that actually exist."""
+    metadata: list[str] = []
+    priority = str(item.get("priority", "")).strip().title()
+    if priority in {"High", "Medium", "Low"}:
+        metadata.append(f"{priority} Priority")
+    impact = get_recommendation_impact(item)
+    if impact:
+        metadata.append(f"Impact: {impact}")
+    confidence = get_recommendation_confidence(item)
+    if confidence:
+        metadata.append(f"Confidence: {confidence}")
+    effort = get_recommendation_effort(item)
+    if effort:
+        metadata.append(f"Effort: {effort}")
+    if include_status:
+        metadata.append(f"Status: {get_recommendation_status(item)}")
+    source = get_recommendation_source(item)
+    if source:
+        metadata.append(source)
+    return metadata
+
+
+def render_recommendation_chips(values: list[str], primary_first: bool = True) -> None:
+    """Render responsive chips for recommendation metadata."""
+    if not values:
+        return
+    chips = []
+    for index, value in enumerate(values):
+        chip_class = "recommendation-chip recommendation-chip-primary" if primary_first and index == 0 else "recommendation-chip"
+        chips.append(f'<span class="{chip_class}">{html.escape(value)}</span>')
+    st.markdown(f'<div class="recommendation-meta-row">{"".join(chips)}</div>', unsafe_allow_html=True)
+
+
+def build_recommendation_detail_rows(item: dict[str, object]) -> list[tuple[str, str]]:
+    """Prepare right-rail detail rows without filler."""
+    rows: list[tuple[str, str]] = []
+    priority = str(item.get("priority", "")).strip().title()
+    if priority in {"High", "Medium", "Low"}:
+        rows.append(("Priority", priority))
+    for label, value in [
+        ("Impact", get_recommendation_impact(item)),
+        ("Confidence", get_recommendation_confidence(item)),
+        ("Effort", get_recommendation_effort(item)),
+        ("Source", get_recommendation_source(item)),
+        ("Status", get_recommendation_status(item)),
+    ]:
+        if value:
+            rows.append((label, value))
+    return rows
+
+
+def get_recommendation_display_title(item: dict[str, object]) -> str:
+    """Use a useful recommendation title with existing action fallback."""
+    title = normalize_recommendation_plain_text(str(item.get("title", ""))).strip()
+    if title and title.lower() not in {"recommendation", "priority action", "next action"}:
+        return title
+    action = normalize_recommendation_plain_text(str(item.get("recommendation", ""))).strip()
+    return truncate_recommendation_text(action, 90) or title or "Recommended Action"
+
+
+def get_recommendation_summary(item: dict[str, object]) -> str:
+    """Summarize the work in business-friendly language for list cards."""
+    for key in ["recommendation", "why_it_matters", "issue", "insight"]:
+        value = truncate_recommendation_text(item.get(key), 210)
+        if value:
+            return value
+    return "Review this recommendation and turn the strongest data-backed next step into an execution task."
+
+
+def normalize_recommendation_signature_text(value: object) -> str:
+    """Normalize text for conservative presentation-level dedupe."""
+    text = normalize_recommendation_plain_text(str(value or "")).lower()
+    text = re.sub(r"[^a-z0-9\s]+", " ", text)
+    stopwords = {"a", "an", "and", "for", "in", "more", "of", "on", "or", "the", "this", "to", "with", "your", "use", "using", "by", "from", "that", "into"}
+    tokens = [token for token in text.split() if token not in stopwords]
+    return " ".join(tokens[:14])
+
+
+def get_recommendation_dedupe_key(item: dict[str, object]) -> tuple[str, str, str] | None:
+    """Create a conservative display key without mutating the source recommendations."""
+    recommendation_id = str(item.get("recommendation_id", "")).strip()
+    if recommendation_id:
+        return ("id", recommendation_id, "")
+    rule_id = str(item.get("rule_id", "")).strip()
+    subject = normalize_recommendation_signature_text(item.get("subject"))
+    if rule_id and subject:
+        return ("rule_subject", rule_id, subject)
+    category = get_recommendation_category(item)
+    action = normalize_recommendation_signature_text(item.get("recommendation"))
+    title = normalize_recommendation_signature_text(item.get("title"))
+    if category and subject and (action or title):
+        return ("category_subject_action", category, f"{subject}|{action or title}")
+    return None
+
+
+def dedupe_recommendation_display_items(items: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Collapse duplicate display cards while retaining the strongest representative."""
+    display_items: list[dict[str, object]] = []
+    seen: dict[tuple[str, str, str], dict[str, object]] = {}
+    for item in sort_recommendation_workspace_items(items):
+        key = get_recommendation_dedupe_key(item)
+        if key is None:
+            display_items.append(item)
+            continue
+        existing = seen.get(key)
+        if existing is None:
+            item["_related_items"] = []
+            seen[key] = item
+            display_items.append(item)
+        else:
+            related = existing.setdefault("_related_items", [])
+            if isinstance(related, list):
+                related.append(item)
+    return display_items
+
+
+def build_curated_recommendation_workspace_items(items: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Return the distinct strategic recommendations shown to users."""
+    return curate_recommendation_queue(items, max_items=20)
+
+
+def extract_recommendation_evidence_metrics(item: dict[str, object]) -> list[tuple[str, str]]:
+    """Render only metrics that are explicitly present in the recommendation evidence."""
+    evidence = item.get("evidence") if isinstance(item.get("evidence"), dict) else {}
+    label_map = {
+        "position": "Average Position",
+        "avg_position": "Average Position",
+        "ctr": "CTR",
+        "impressions": "Impressions",
+        "clicks": "Clicks",
+        "date_range": "Analysis Period",
+        "analysis_period": "Analysis Period",
+        "reach": "Reach",
+        "saves": "Saves",
+        "follows": "Follows",
+        "shares": "Shares",
+        "engagement_rate": "Engagement Rate",
+        "posts_analyzed": "Posts Analyzed",
+        "sessions": "Sessions",
+    }
+    metrics: list[tuple[str, str]] = []
+    for key, label in label_map.items():
+        if key not in evidence or evidence.get(key) in (None, "", "Not available"):
+            continue
+        value = evidence.get(key)
+        if key == "ctr":
+            ctr = normalize_gsc_ctr_percent(value)
+            value_text = f"{ctr:.2f}%" if ctr is not None else str(value)
+        elif key == "engagement_rate":
+            rate = to_comparison_number(value)
+            value_text = f"{rate:.2f}%" if rate is not None else str(value)
+        elif isinstance(value, (int, float)):
+            value_text = f"{value:,.0f}" if float(value).is_integer() else f"{value:,.2f}"
+        else:
+            value_text = normalize_recommendation_plain_text(str(value))
+        if value_text:
+            metrics.append((label, value_text))
+    return metrics
+
+
+def get_recommendation_evidence_lines(item: dict[str, object], context: dict[str, object] | None = None, limit: int = 5) -> list[str]:
+    """Combine existing evidence strings from the selected context and related collapsed items."""
+    lines: list[str] = []
+    context_lines = (context or {}).get("evidence_lines", [])
+    if isinstance(context_lines, list):
+        lines.extend(str(value).strip() for value in context_lines if str(value).strip())
+    related_items = item.get("_related_items", []) if isinstance(item.get("_related_items"), list) else []
+    for candidate in [item] + related_items:
+        supporting = normalize_recommendation_plain_text(str(candidate.get("supporting_evidence", ""))).strip()
+        if supporting:
+            lines.extend(part.strip() for part in supporting.split("|") if part.strip())
+        supporting_data = normalize_recommendation_plain_text(str(candidate.get("supporting_data", ""))).strip()
+        if supporting_data:
+            lines.extend(part.strip() for part in supporting_data.split("|") if part.strip())
+        for label, value in extract_recommendation_evidence_metrics(candidate):
+            lines.append(f"{label}: {value}")
+    compact: list[str] = []
+    for line in lines:
+        line_lower = line.lower()
+        if any(empty_value in line_lower for empty_value in ["not available", "n/a", "none"]):
+            continue
+        if line and line not in compact:
+            compact.append(line)
+    return compact[:limit]
+
+
+def build_recommendation_why_text(item: dict[str, object], context: dict[str, object] | None = None) -> str:
+    """Explain the rationale without exposing rule-engine implementation details."""
+    existing = normalize_recommendation_plain_text(str((context or {}).get("why_it_matters") or item.get("why_it_matters") or item.get("issue") or "")).strip()
+    category = get_recommendation_category(item)
+    metrics = dict(extract_recommendation_evidence_metrics(item))
+    if category == "SEO" and metrics:
+        parts = []
+        if "Average Position" in metrics or "Impressions" in metrics:
+            parts.append("This search opportunity already has measurable visibility.")
+        if "CTR" in metrics:
+            parts.append("The click-through evidence suggests the search result may not be earning as much response as the visibility could support.")
+        if parts:
+            parts.append("That makes this a practical place to improve traffic by sharpening the page title, snippet, and intent match before chasing broader ranking gains.")
+            return " ".join(parts)
+    if category == "Social" and metrics:
+        return "This recommendation is tied to real social performance signals from the current run. Use the strongest format, topic, or engagement pattern as the execution starting point so the next content test is grounded in audience behavior."
+    return existing or "InsightRx found enough supporting signal in the current run to make this a practical next action."
+
+
+def build_visibility_click_response(item: dict[str, object]) -> tuple[str, str, str] | None:
+    """Translate search metrics into qualitative labels without inventing percentages."""
+    if get_recommendation_category(item) != "SEO":
+        return None
+    evidence = item.get("evidence") if isinstance(item.get("evidence"), dict) else {}
+    metric_text = " | ".join(get_recommendation_evidence_lines(item, limit=8))
+    if not any(key in evidence for key in ["position", "avg_position", "impressions", "ctr"]) and not metric_text:
+        return None
+    position = to_comparison_number(evidence.get("position") or evidence.get("avg_position"))
+    impressions = to_comparison_number(evidence.get("impressions"))
+    ctr = normalize_gsc_ctr_percent(evidence.get("ctr"))
+    if position is None:
+        position_match = re.search(r"position:\s*([0-9.]+)", metric_text, re.IGNORECASE)
+        position = to_comparison_number(position_match.group(1)) if position_match else None
+    if impressions is None:
+        impressions_match = re.search(r"impressions:\s*([0-9,.]+)", metric_text, re.IGNORECASE)
+        impressions = to_comparison_number(impressions_match.group(1).replace(",", "")) if impressions_match else None
+    if ctr is None:
+        ctr_match = re.search(r"ctr:\s*([0-9.]+)%?", metric_text, re.IGNORECASE)
+        ctr = normalize_gsc_ctr_percent(ctr_match.group(1)) if ctr_match else None
+    visibility = "Limited Data"
+    if position is not None and position <= 10:
+        visibility = "Strong"
+    elif position is not None and position <= 25:
+        visibility = "Established"
+    elif impressions is not None and impressions > 0:
+        visibility = "Promising"
+    click_response = "Limited Data"
+    if ctr is not None:
+        click_response = "Needs Attention" if ctr < 3 else "Opportunity" if ctr < 8 else "Established"
+    note = "Search visibility is present, and the click response may be the easier lever to improve next."
+    if visibility in {"Strong", "Established"} and click_response == "Needs Attention":
+        note = "Strong ranking signal but comparatively weak click response; the opportunity appears to be in how the search result attracts users."
+    return visibility, click_response, note
+
+
+def get_execution_payload_for_recommendation(item: dict[str, object], results: dict) -> dict | None:
+    """Reuse the existing supported Take Action payload for AI-assisted execution."""
+    action_type = str(item.get("action_type", "")).strip().lower()
+    category = get_recommendation_category(item)
+    if category == "SEO" and action_type.startswith("social"):
+        action_type = "seo"
+    if not action_type:
+        action_type = {"SEO": "seo", "Local SEO": "geo", "UX/CRO": "ux_conversion", "Social": "social", "Analytics": "general"}.get(category, "general")
+    return build_take_action_payload(
+        {
+            "category": action_type,
+            "action_type": action_type,
+            "issue": str(item.get("issue", "")),
+            "recommendation": str(item.get("recommendation", "")),
+            "why_it_matters": str(item.get("why_it_matters", "")),
+            "priority": str(item.get("priority", "Medium")),
+        },
+        results,
+    )
+
+
+def get_execution_options(payload: dict | None) -> list[dict[str, str]]:
+    """Expose only creation choices backed by the existing payload."""
+    if not payload:
+        return []
+    options_by_type = {
+        "seo": [
+            {"key": "seo_title_meta", "title": "Title + Meta Description", "description": "Generate optimized search-result copy"},
+            {"key": "seo_h1_opening", "title": "H1 + Opening Copy", "description": "Rewrite the page introduction"},
+            {"key": "seo_faq", "title": "FAQ Suggestions", "description": "Surface relevant audience questions"},
+            {"key": "seo_full", "title": "Full Optimization Draft", "description": "Create a complete page revision for review"},
+        ],
+        "aeo": [
+            {"key": "aeo_faq", "title": "FAQ Suggestions", "description": "Create answer-first question ideas"},
+            {"key": "aeo_answer", "title": "Answer Block", "description": "Draft a concise answer section"},
+        ],
+        "geo": [
+            {"key": "local_page", "title": "Location Page Improvements", "description": "Draft local page updates"},
+            {"key": "local_faq", "title": "Local FAQ Suggestions", "description": "Create location-aware questions"},
+            {"key": "local_gbp", "title": "Google Business Profile Post Ideas", "description": "Turn the recommendation into GBP content"},
+            {"key": "local_copy", "title": "Local Search Copy", "description": "Draft local search messaging"},
+        ],
+        "ux_conversion": [
+            {"key": "ux_cta", "title": "CTA Copy", "description": "Create clearer conversion prompts"},
+            {"key": "ux_checklist", "title": "Page Improvement Checklist", "description": "Turn the recommendation into review tasks"},
+            {"key": "ux_section", "title": "Section Rewrite", "description": "Draft a clearer page section"},
+            {"key": "ux_experiment", "title": "Experiment Idea", "description": "Frame a low-risk CRO test"},
+        ],
+        "social": [
+            {"key": "social_series", "title": "3-Post Content Series", "description": "Create a focused social sequence"},
+            {"key": "social_hooks", "title": "Hook Ideas", "description": "Draft stronger opening angles"},
+            {"key": "social_ctas", "title": "CTA Options", "description": "Create clearer next-step prompts"},
+            {"key": "social_captions", "title": "Caption Drafts", "description": "Generate captions for review"},
+        ],
+        "general": [
+            {"key": "analytics_checklist", "title": "Tracking Checklist", "description": "Define what needs measurement"},
+            {"key": "analytics_plan", "title": "Measurement Plan", "description": "Create a simple validation plan"},
+            {"key": "analytics_kpi", "title": "KPI Definition", "description": "Clarify success metrics"},
+            {"key": "analytics_report", "title": "Reporting Recommendation", "description": "Draft a reporting note"},
+        ],
+    }
+    return options_by_type.get(str(payload.get("type", "general")), options_by_type["general"])
+
+
+def build_generated_recommendation_draft(option_key: str, item: dict[str, object], payload: dict | None) -> list[tuple[str, str]]:
+    """Create a review-ready draft from existing recommendation context and payload content."""
+    if not payload:
+        return []
+    action = normalize_recommendation_plain_text(str(item.get("recommendation", ""))).strip()
+    if option_key == "seo_title_meta":
+        rewrites = payload.get("rewrites", {}) if isinstance(payload.get("rewrites"), dict) else {}
+        return [("Title Tag", rewrites.get("title_tag", "")), ("Meta Description", rewrites.get("meta_description", ""))]
+    if option_key == "seo_h1_opening":
+        rewrites = payload.get("rewrites", {}) if isinstance(payload.get("rewrites"), dict) else {}
+        return [("H1", rewrites.get("h1", "")), ("Opening Copy", action or build_recommendation_why_text(item))]
+    if option_key in {"seo_faq", "aeo_faq", "local_faq"}:
+        ideas = payload.get("faq_ideas") or payload.get("heading_ideas") or []
+        return [(f"Question {index}", str(value)) for index, value in enumerate(ideas[:5], start=1)]
+    if option_key == "seo_full":
+        rewrites = payload.get("rewrites", {}) if isinstance(payload.get("rewrites"), dict) else {}
+        return [("Title Tag", rewrites.get("title_tag", "")), ("H1", rewrites.get("h1", "")), ("Meta Description", rewrites.get("meta_description", "")), ("Next Page Revision", action)]
+    key_map = {
+        "aeo_answer": "answer_blocks", "local_page": "city_service_page_opportunities", "local_gbp": "gbp_improvements", "local_copy": "local_keyword_targets",
+        "ux_cta": "cta_rewrites", "ux_checklist": "checklist", "ux_section": "landing_page_clarity", "ux_experiment": "conversion_suggestions",
+        "social_series": "variations", "social_hooks": "hook_ideas", "social_ctas": "hook_cta_examples", "social_captions": "captions",
+        "analytics_checklist": "next_steps", "analytics_plan": "next_steps", "analytics_report": "next_steps",
+    }
+    if option_key == "analytics_kpi":
+        return [("Primary KPI", get_recommendation_display_title(item)), ("Validation Note", action or build_recommendation_why_text(item))]
+    values = payload.get(key_map.get(option_key, "next_steps"), [])
+    values = values if isinstance(values, list) else []
+    if option_key == "social_series":
+        return [(f"Post {index}", str(value)) for index, value in enumerate(values[:3], start=1)]
+    return [(f"Draft {index}", str(value)) for index, value in enumerate(values[:5], start=1)]
+
+
+def render_generated_recommendation_draft(option: dict[str, str], item: dict[str, object], payload: dict | None, key_prefix: str) -> None:
+    """Show generated recommendation content inline as review-ready draft work."""
+    draft_rows = [
+        (label, normalize_recommendation_plain_text(str(value)).strip())
+        for label, value in build_generated_recommendation_draft(option["key"], item, payload)
+        if normalize_recommendation_plain_text(str(value)).strip()
+    ]
+    if not draft_rows:
+        return
+    st.markdown(
+        f"""
+        <div class="recommendation-draft-card">
+            <div class="recommendation-draft-label">Draft Ready for Review</div>
+            <div class="recommendation-card-title">{html.escape(option["title"])}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    for label, value in draft_rows:
+        st.markdown(f"**{label}**")
+        st.write(value)
+    action_cols = st.columns([1, 1, 1, 5])
+    with action_cols[0]:
+        st.button("Use Draft", key=f"{key_prefix}_use_draft")
+    with action_cols[1]:
+        st.button("Regenerate", key=f"{key_prefix}_regenerate")
+    with action_cols[2]:
+        st.button("Edit", key=f"{key_prefix}_edit")
+
+
 def render_recommendation_workspace_card(
     item: dict[str, object],
     results: dict,
@@ -9200,109 +10021,64 @@ def render_recommendation_workspace_card(
     render_context_key: str,
 ) -> None:
     """Render one compact recommendation workspace card."""
-    priority = str(item.get("priority", "Medium")).strip().title()
-    pill_class = priority_class_map.get(priority, "priority-medium-pill")
-    title = normalize_recommendation_plain_text(str(item.get("title", "Recommendation")))
-    issue = normalize_recommendation_plain_text(str(item.get("issue", "")))
-    recommendation_text = normalize_recommendation_plain_text(str(item.get("recommendation", "")))
-    why_it_matters = normalize_recommendation_plain_text(str(item.get("why_it_matters", "")))
-    supporting_evidence = normalize_recommendation_plain_text(str(item.get("supporting_evidence", "")))
-    expected_value_line = build_recommendation_expected_value_line(item)
-
-    card_container = st.container()
-    with card_container:
-        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-        header_left, header_right = st.columns([0.78, 0.22])
-        with header_left:
-            st.markdown(
-                f'<div class="recommendation-category" style="font-size: 1.04rem;">{html.escape(title)}</div>',
-                unsafe_allow_html=True,
-            )
-        with header_right:
-            st.markdown(
-                f'<div class="{pill_class}">{ "🔴" if priority == "High" else "🟠" if priority == "Medium" else "🟢"} {priority} Priority</div>',
-                unsafe_allow_html=True,
-            )
-
-        st.markdown("**What to do**")
-        if recommendation_text:
-            st.write(recommendation_text)
-        if why_it_matters or issue:
-            st.markdown("**Why**")
-            st.write(why_it_matters or issue)
-        if expected_value_line:
-            st.markdown("**Expected value**")
-            st.caption(expected_value_line)
-
-    if any([item.get("insight"), supporting_evidence]):
-        detail_label = f"View details for {title[:48] or 'recommendation'}"
-        with st.expander(detail_label, expanded=False):
-            insight_text = normalize_recommendation_plain_text(str(item.get("insight", "")))
-            if insight_text:
-                st.markdown("**Insight:**")
-                st.write(insight_text)
-            if supporting_evidence:
-                st.markdown("**Supporting Evidence:**")
-                st.write(supporting_evidence)
-
-    if item.get("type") == "recommendation":
-        action_type = str(item.get("action_type", "")).strip().lower()
-        recommendation_card = {
-            "category": action_type,
-            "action_type": action_type,
-            "issue": issue,
-            "recommendation": recommendation_text,
-            "why_it_matters": why_it_matters,
-            "priority": priority,
-        }
-        render_recommendation_take_action_component(
-            recommendation_card,
-            results,
-            render_context_key,
-            get_first_value_fn=get_first_value,
-            build_semrush_opportunity_cards_fn=build_semrush_opportunity_cards,
-            humanize_social_topic_fn=humanize_social_topic,
+    title = get_recommendation_display_title(item)
+    summary = get_recommendation_summary(item)
+    st.markdown(
+        f"""
+        <div class="recommendation-queue-card">
+            <div class="recommendation-card-title">{html.escape(title)}</div>
+            <div class="recommendation-card-copy">{html.escape(summary)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    render_recommendation_chips(build_recommendation_metadata(item))
+    button_cols = st.columns([1, 1, 6])
+    with button_cols[0]:
+        st.button(
+            "Start This Action →",
+            key=f"recommendation_start_{render_context_key}",
+            type="primary",
+            on_click=open_recommendation_action_plan,
+            args=(item,),
+        )
+    with button_cols[1]:
+        st.button(
+            "View Evidence →",
+            key=f"recommendation_evidence_{render_context_key}",
+            on_click=open_recommendation_action_plan,
+            args=(item,),
         )
 
 
 def render_recommended_next_action(item: dict[str, object]) -> None:
     """Present the highest existing recommendation as an action-first summary."""
-    title = normalize_recommendation_plain_text(str(item.get("title", "Recommendation")))
-    action = normalize_recommendation_plain_text(str(item.get("recommendation", "")))
-    context = normalize_recommendation_plain_text(
-        str(item.get("why_it_matters", "") or item.get("issue", ""))
+    title = get_recommendation_display_title(item)
+    summary = get_recommendation_summary(item)
+    st.markdown(
+        f"""
+        <div class="recommendation-featured-card">
+            <div class="recommendation-eyebrow">✨ Recommended Next Action</div>
+            <div class="recommendation-card-title">{html.escape(title)}</div>
+            <div class="recommendation-card-copy">{html.escape(summary)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    priority = str(item.get("priority", "Medium")).strip().title()
-    pill_class = get_report_priority_pill_class(priority)
-    expected_value_line = build_recommendation_expected_value_line(item)
-
-    hero = st.container()
-    with hero:
-        st.markdown('<div class="recommendation-action-marker"></div>', unsafe_allow_html=True)
-        title_col, priority_col = st.columns([0.76, 0.24])
-        with title_col:
-            st.markdown('<div class="panel-title">⭐ Recommended Next Action</div>', unsafe_allow_html=True)
-            st.markdown(
-                f'<div class="recommendation-action-title">{html.escape(title)}</div>',
-                unsafe_allow_html=True,
-            )
-        with priority_col:
-            st.markdown(
-                f'<div class="{pill_class}">{"🔴" if priority == "High" else "🟠" if priority == "Medium" else "🟢"} {priority} Priority</div>',
-                unsafe_allow_html=True,
-            )
-        if action:
-            st.write(action)
-        if context:
-            st.caption(context)
-        if expected_value_line:
-            st.markdown(
-                f'<div class="recommendation-value-row">{html.escape(expected_value_line)}</div>',
-                unsafe_allow_html=True,
-            )
+    render_recommendation_chips(build_recommendation_metadata(item))
+    button_cols = st.columns([1, 1, 6])
+    with button_cols[0]:
         st.button(
-            "View full recommendation →",
-            key="recommended_next_action_focus",
+            "Start This Action →",
+            key="recommended_next_action_start",
+            type="primary",
+            on_click=open_recommendation_action_plan,
+            args=(item,),
+        )
+    with button_cols[1]:
+        st.button(
+            "View Evidence →",
+            key="recommended_next_action_evidence",
             on_click=open_recommendation_action_plan,
             args=(item,),
         )
@@ -9360,7 +10136,7 @@ def get_focused_action_steps(
         text = normalize_recommendation_plain_text(str(opportunity_context.get("recommended_action", ""))).strip()
         if text:
             steps.append(text)
-    return steps[:4]
+    return steps[:8]
 
 
 def get_focused_evidence_lines(
@@ -9407,88 +10183,186 @@ def render_focused_recommendation_plan(
 ) -> None:
     """Render the selected action plan first, before the normal recommendation workspace."""
     context = opportunity_context or {}
-    context_title = normalize_recommendation_plain_text(str(context.get("title", ""))).strip()
-    recommendation_title = normalize_recommendation_plain_text(
-        str((recommendation or {}).get("title", ""))
-    ).strip()
-    plan_title = context_title or recommendation_title or "Selected opportunity"
-
-    st.button(
-        "← Back to Opportunities",
-        key="focused_recommendation_back",
-        on_click=return_to_opportunities,
-    )
-    st.markdown("<div class='panel-title'>Action Plan for:</div>", unsafe_allow_html=True)
-    st.markdown(
-        f"<div class='recommendation-action-title'>{html.escape(plan_title)}</div>",
-        unsafe_allow_html=True,
-    )
-
     if recommendation is None:
+        if context:
+            st.button(
+                "← Back to Opportunities",
+                key="focused_recommendation_back_no_match",
+                on_click=return_to_opportunities,
+            )
         st.info("No specific action plan is linked to this opportunity yet. Review the current recommendations below.")
         return
 
-    priority = str(recommendation.get("priority") or context.get("priority") or "Medium").strip().title()
-    pill_class = priority_class_map.get(priority, "priority-medium-pill")
-    source = str(context.get("source") or recommendation.get("source") or "").strip()
+    category = get_recommendation_category(recommendation)
+    title = get_recommendation_display_title(recommendation)
     action = normalize_recommendation_plain_text(
         str(recommendation.get("recommendation", "") or context.get("recommended_action", ""))
     ).strip()
-    opportunity_context_text = normalize_recommendation_plain_text(
-        str(context.get("diagnosis", "") or context.get("why_it_matters", "") or recommendation.get("issue", ""))
-    ).strip()
-    why = normalize_recommendation_plain_text(
-        str(context.get("why_it_matters", "") or recommendation.get("why_it_matters", ""))
-    ).strip()
+    summary = action or get_recommendation_summary(recommendation)
+    why = build_recommendation_why_text(recommendation, context)
     action_steps = get_focused_action_steps(recommendation, context)
-    evidence_lines = get_focused_evidence_lines(recommendation, context)
-    expected_value_line = build_recommendation_expected_value_line(recommendation)
+    evidence_metrics = extract_recommendation_evidence_metrics(recommendation)
+    evidence_lines = get_recommendation_evidence_lines(recommendation, context)
+    status = get_recommendation_status(recommendation)
+    recommendation_id = str(recommendation.get("recommendation_id", "recommendation")).strip()
+    action_key = slugify_recommendation_key(recommendation_id)
+    completed_key = f"recommendation_completed_steps_{action_key}"
+    completed_steps = st.session_state.setdefault(completed_key, [])
+    completed_steps = completed_steps if isinstance(completed_steps, list) else []
+    payload = get_execution_payload_for_recommendation(recommendation, results)
+    execution_options = get_execution_options(payload)
 
-    focused_card = st.container()
-    with focused_card:
-        st.markdown('<div class="recommendation-action-marker"></div>', unsafe_allow_html=True)
+    breadcrumb_cols = st.columns([1, 1, 5])
+    with breadcrumb_cols[0]:
+        st.button(
+            "Recommendations",
+            key=f"breadcrumb_recommendations_{action_key}",
+            on_click=return_to_recommendation_list,
+        )
+    with breadcrumb_cols[1]:
+        st.button(
+            category,
+            key=f"breadcrumb_category_{action_key}",
+            on_click=return_to_recommendation_list,
+            args=(category,),
+        )
+    st.markdown(
+        f'<div class="recommendation-breadcrumb">Recommendations › {html.escape(category)} › {html.escape(title)}</div>',
+        unsafe_allow_html=True,
+    )
+
+    main_col, rail_col = st.columns([0.7, 0.3])
+    with main_col:
         st.markdown(
-            f'<div class="{pill_class}">{"🔴" if priority == "High" else "🟠" if priority == "Medium" else "🟢"} {priority} Priority</div>',
+            f"""
+            <div class="recommendation-detail-card">
+                <div class="recommendation-card-title">{html.escape(title)}</div>
+                <div class="recommendation-detail-copy">{html.escape(summary)}</div>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
-        if source:
-            st.caption(f"Source: {source}")
-        if opportunity_context_text:
-            st.markdown("**Opportunity context**")
-            st.write(opportunity_context_text)
-        if action:
-            st.markdown("**What to do**")
-            st.write(action)
-        if why:
-            st.markdown("**Why**")
-            st.write(why)
-        if action_steps:
-            st.markdown("**Action steps**")
-            for index, step in enumerate(action_steps, start=1):
-                st.markdown(f"{index}. {step}")
-        if evidence_lines:
-            st.markdown("**Evidence**")
-            st.caption(" · ".join(evidence_lines))
-        if expected_value_line:
-            st.markdown("**Expected value**")
-            st.caption(expected_value_line)
+        render_recommendation_chips(build_recommendation_metadata(recommendation, include_status=True))
 
-    if recommendation.get("type") == "recommendation":
-        action_type = str(recommendation.get("action_type", "")).strip().lower()
-        render_recommendation_take_action_component(
-            {
-                "category": action_type,
-                "action_type": action_type,
-                "issue": str(recommendation.get("issue", "")),
-                "recommendation": action,
-                "why_it_matters": why,
-                "priority": priority,
-            },
-            results,
-            f"focused_{slugify_recommendation_key(str(recommendation.get('recommendation_id', 'plan')))}",
-            get_first_value_fn=get_first_value,
-            build_semrush_opportunity_cards_fn=build_semrush_opportunity_cards,
-            humanize_social_topic_fn=humanize_social_topic,
+        st.markdown('<div class="recommendation-detail-card">', unsafe_allow_html=True)
+        st.markdown('<div class="recommendation-section-title">💡 Why InsightRx Recommends This</div>', unsafe_allow_html=True)
+        st.write(why)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown('<div class="recommendation-detail-card">', unsafe_allow_html=True)
+        st.markdown('<div class="recommendation-section-title">Evidence</div>', unsafe_allow_html=True)
+        if evidence_metrics:
+            metric_html = "".join(
+                (
+                    '<div class="recommendation-evidence-card">'
+                    f'<div class="recommendation-evidence-label">{html.escape(label)}</div>'
+                    f'<div class="recommendation-evidence-value">{html.escape(value)}</div>'
+                    "</div>"
+                )
+                for label, value in evidence_metrics
+            )
+            st.markdown(f'<div class="recommendation-evidence-grid">{metric_html}</div>', unsafe_allow_html=True)
+        visible_evidence_lines = evidence_lines
+        if evidence_metrics:
+            metric_line_values = {f"{label}: {value}" for label, value in evidence_metrics}
+            visible_evidence_lines = [line for line in evidence_lines if line not in metric_line_values]
+        if visible_evidence_lines:
+            for line in visible_evidence_lines:
+                st.caption(line)
+        if not evidence_metrics and not visible_evidence_lines:
+            st.caption("Supporting metrics are not available for this recommendation in the current run.")
+        comparison = build_visibility_click_response(recommendation)
+        if comparison:
+            visibility, click_response, comparison_note = comparison
+            st.markdown("**Visibility vs. Click Response**")
+            render_recommendation_chips([f"Search Visibility: {visibility}", f"Click Response: {click_response}"], primary_first=False)
+            st.caption(comparison_note)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown('<div class="recommendation-detail-card">', unsafe_allow_html=True)
+        st.markdown('<div class="recommendation-section-title">Recommended Action Plan</div>', unsafe_allow_html=True)
+        if action_steps:
+            for index, step in enumerate(action_steps):
+                checkbox_key = f"{completed_key}_{index}"
+                was_completed = step in completed_steps
+                is_completed = st.checkbox(step, value=was_completed, key=checkbox_key)
+                if is_completed and step not in completed_steps:
+                    completed_steps.append(step)
+                elif not is_completed and step in completed_steps:
+                    completed_steps.remove(step)
+            st.session_state[completed_key] = completed_steps
+            if completed_steps and status == "Ready":
+                set_recommendation_status(recommendation, "In Progress")
+                status = "In Progress"
+            st.markdown(
+                f'<div class="recommendation-status-line">{len(completed_steps)} of {len(action_steps)} steps completed · {html.escape(status)}</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.caption("No structured action steps are available for this recommendation.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        if execution_options:
+            st.markdown('<div class="recommendation-detail-card">', unsafe_allow_html=True)
+            st.markdown('<div class="recommendation-section-title">✨ Create With InsightRx</div>', unsafe_allow_html=True)
+            st.caption("Use AI to turn this recommendation into ready-to-review marketing assets.")
+            st.markdown('<div class="recommendation-execution-grid">', unsafe_allow_html=True)
+            for option in execution_options:
+                st.markdown(
+                    f"""
+                    <div class="recommendation-option-card">
+                        <div class="recommendation-option-title">{html.escape(option["title"])}</div>
+                        <div class="recommendation-option-copy">{html.escape(option["description"])}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                if st.button("Create Draft", key=f"create_draft_{action_key}_{option['key']}"):
+                    st.session_state[f"recommendation_draft_option_{action_key}"] = option["key"]
+            st.markdown("</div>", unsafe_allow_html=True)
+            selected_option_key = st.session_state.get(f"recommendation_draft_option_{action_key}")
+            selected_option = next((option for option in execution_options if option["key"] == selected_option_key), None)
+            if selected_option:
+                render_generated_recommendation_draft(selected_option, recommendation, payload, f"{action_key}_{selected_option['key']}")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    with rail_col:
+        st.markdown('<div class="recommendation-detail-rail">', unsafe_allow_html=True)
+        st.markdown('<div class="recommendation-section-title">Recommendation Details</div>', unsafe_allow_html=True)
+        for label, value in build_recommendation_detail_rows(recommendation):
+            st.markdown(
+                f'<div class="recommendation-detail-row"><strong>{html.escape(label)}</strong><span>{html.escape(value)}</span></div>',
+                unsafe_allow_html=True,
+            )
+        if execution_options:
+            first_option = execution_options[0]
+            if st.button("✨ Create with InsightRx", key=f"rail_create_{action_key}", type="primary"):
+                st.session_state[f"recommendation_draft_option_{action_key}"] = first_option["key"]
+        st.button("Mark In Progress", key=f"rail_progress_{action_key}", on_click=set_recommendation_status, args=(recommendation, "In Progress"))
+        st.button("Dismiss Recommendation", key=f"rail_dismiss_{action_key}", on_click=set_recommendation_status, args=(recommendation, "Dismissed"))
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown('<div class="recommendation-detail-rail">', unsafe_allow_html=True)
+        st.markdown('<div class="recommendation-section-title">Related Evidence</div>', unsafe_allow_html=True)
+        related_lines = evidence_lines[:3]
+        if related_lines:
+            items_html = "".join(f"<li>{html.escape(line)}</li>" for line in related_lines)
+            st.markdown(f'<ul class="recommendation-related-list">{items_html}</ul>', unsafe_allow_html=True)
+        powered_by = []
+        source = get_recommendation_source(recommendation)
+        if source:
+            powered_by.append("GSC" if "search" in source.lower() or "google" in source.lower() else source)
+        powered_by.append(category)
+        if recommendation.get("type"):
+            powered_by.append("Recommendation Engine")
+        render_recommendation_chips(list(dict.fromkeys(powered_by)), primary_first=False)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    if context:
+        st.button(
+            "← Back to Opportunities",
+            key=f"focused_recommendation_back_{action_key}",
+            on_click=return_to_opportunities,
         )
 
 
@@ -9509,8 +10383,7 @@ def render_recommendations_page(results: dict) -> None:
     """Render the Recommendations page as a tabbed executive action workspace."""
     st.markdown('<div class="recommendations-page-marker"></div>', unsafe_allow_html=True)
     st.title("🎯 Recommendations")
-    st.caption("Prioritized actions based on what InsightRx found.")
-    st.caption("What should you work on next?")
+    st.caption("Prioritized actions based on what InsightRx found in your marketing data.")
 
     if not results:
         st.info("Run the workflow first on the Data Sources page.")
@@ -9524,18 +10397,14 @@ def render_recommendations_page(results: dict) -> None:
     recommendation_items = build_recommendation_workspace_items(results)
     priority_queue_items = build_priority_queue_workspace_items(results)
     what_next_items = build_what_next_workspace_items(results)
-    suggested_change_cards = build_suggested_change_cards(results)[:3]
-
-    total_recommendations = len(recommendation_items)
-    high_count = sum(str(item.get("priority", "")).strip().lower() == "high" for item in recommendation_items)
     all_workspace_items = recommendation_items + priority_queue_items + what_next_items
-    sorted_recommendations = sort_recommendation_workspace_items(recommendation_items)
-    focused_recommendation, focused_opportunity_context = get_focused_recommendation_state(all_workspace_items)
+    display_workspace_items = build_curated_recommendation_workspace_items(all_workspace_items)
+    sorted_recommendations = display_workspace_items
+    focused_recommendation, focused_opportunity_context = get_focused_recommendation_state(display_workspace_items + all_workspace_items)
     focused_mode = bool(
         st.session_state.get("recommendation_focus_mode")
         and (focused_recommendation is not None or focused_opportunity_context)
     )
-    display_workspace_items = list(all_workspace_items)
 
     if focused_mode:
         render_focused_recommendation_plan(
@@ -9544,116 +10413,53 @@ def render_recommendations_page(results: dict) -> None:
             results,
             priority_class_map,
         )
-        selected_recommendation_id = str(st.session_state.get("selected_recommendation_id", "")).strip()
-        if selected_recommendation_id:
-            display_workspace_items = [
-                item
-                for item in all_workspace_items
-                if str(item.get("recommendation_id", "")).strip() != selected_recommendation_id
-            ]
-        st.markdown('<div class="panel-title">Other Recommendations</div>', unsafe_allow_html=True)
         # The pending flag only protects the CTA-driven navigation; later sidebar navigation returns to normal mode.
         st.session_state["recommendation_focus_navigation_pending"] = False
-
-    if sorted_recommendations:
-        if not focused_mode:
-            render_recommended_next_action(sorted_recommendations[0])
-
-        affected_areas = []
-        for tab_label in ["SEO", "UX/CRO", "Local SEO", "Social", "Analytics"]:
-            if any(item.get("tab") == tab_label for item in recommendation_items):
-                affected_areas.append(tab_label)
-
-        summary_columns = st.columns(3)
-        summary_values = [
-            (
-                "Actions Ready",
-                str(total_recommendations),
-                "Current recommendations generated from detected opportunities",
-            ),
-            ("High Priority", str(high_count), "Best candidates to address first"),
-            (
-                "Marketing Areas Affected",
-                str(len(affected_areas)),
-                " · ".join(affected_areas) or "Areas represented in current actions",
-            ),
-        ]
-        for index, (label, value, caption) in enumerate(summary_values):
-            with summary_columns[index]:
-                render_dashboard_kpi_card(label, value, caption)
-    elif not focused_mode:
-        st.info("No prioritized actions are available for this run yet.")
-
-    tab_labels = []
-    if display_workspace_items:
-        tab_labels.append("All")
-    for tab_label in ["SEO", "UX/CRO", "Local SEO", "Social", "Analytics"]:
-        if any(item.get("tab") == tab_label for item in display_workspace_items):
-            tab_labels.append(tab_label)
-    if suggested_change_cards:
-        tab_labels.append("Execution Assets")
-
-    if not tab_labels:
         return
 
-    tab_objects = st.tabs(tab_labels)
+    if sorted_recommendations:
+        featured_item = sorted_recommendations[0]
+        render_recommended_next_action(featured_item)
+    else:
+        st.info("No prioritized actions are available for this run yet.")
+        return
 
-    for tab_label, tab_object in zip(tab_labels, tab_objects):
-        with tab_object:
-            tab_slug = slugify_recommendation_key(tab_label)
-            if tab_label == "Execution Assets":
-                if not suggested_change_cards:
-                    render_recommendation_empty_state(tab_label)
-                    continue
+    filter_labels = ["All"]
+    for tab_label in ["SEO", "UX/CRO", "Local SEO", "Social", "Analytics"]:
+        if any(get_recommendation_category(item) == tab_label for item in display_workspace_items):
+            filter_labels.append(tab_label)
 
-                st.markdown('<div class="panel-title">Suggested Changes with Examples</div>', unsafe_allow_html=True)
-                for asset_index, card in enumerate(suggested_change_cards):
-                    before_state_html = str(card["before_state"]).replace("\n", "<br>")
-                    suggested_change_html = str(card["example_layout_content_improvement"]).replace("\n", "<br>")
-                    change_body_html = (
-                        f"<div class='change-card-title'>{card['page_or_asset_name']}</div>"
-                        f"<div class='change-card-body'>"
-                        f"<strong>Issue:</strong><br>{card['issue']}"
-                        f"<br><br><strong>Why it matters:</strong><br>{card['why_it_matters']}"
-                        f"<br><br><strong>Recommended change:</strong><br>{card['recommended_change']}"
-                        f"<br><br><strong>Example headline or CTA:</strong><br>{card['example_headline_or_cta']}"
-                        f"</div>"
-                    )
-                    st.markdown(f"<div class='change-card'>{change_body_html}</div>", unsafe_allow_html=True)
-                    expander_label = f"View before / after example for {card['page_or_asset_name'][:48]}"
-                    with st.expander(expander_label, expanded=False):
-                        before_col, after_col = st.columns(2)
-                        with before_col:
-                            st.markdown('<div class="change-comparison-heading">Before</div>', unsafe_allow_html=True)
-                            st.markdown(f"<div class='mock-block'>{before_state_html}</div>", unsafe_allow_html=True)
-                        with after_col:
-                            st.markdown('<div class="change-comparison-heading">Suggested Change</div>', unsafe_allow_html=True)
-                            st.markdown(f"<div class='mock-block'>{suggested_change_html}</div>", unsafe_allow_html=True)
-                    st.write("")
-                continue
+    saved_filter = st.session_state.get("recommendation_filter", "All")
+    filter_index = filter_labels.index(saved_filter) if saved_filter in filter_labels else 0
+    selected_filter = st.radio(
+        "Recommendation category",
+        filter_labels,
+        index=filter_index,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="recommendation_filter",
+    )
 
-            filtered_items = display_workspace_items if tab_label == "All" else [
-                item for item in display_workspace_items if item.get("tab") == tab_label
-            ]
+    queue_items = [
+        item for item in sorted_recommendations
+        if str(item.get("recommendation_id", "")).strip() != str(featured_item.get("recommendation_id", "")).strip()
+    ]
+    if selected_filter != "All":
+        queue_items = [item for item in queue_items if get_recommendation_category(item) == selected_filter]
 
-            if not filtered_items:
-                render_recommendation_empty_state(tab_label)
-                continue
+    if not queue_items:
+        render_recommendation_empty_state(selected_filter)
+        return
 
-            sorted_items = sort_recommendation_workspace_items(filtered_items)
-
-            for item_index, item in enumerate(sorted_items):
-                stable_slug = slugify_recommendation_key(str(item.get("title", "")))
-                render_context_key = f"recommendation_{tab_slug}_{item_index}_{stable_slug}"
-                render_recommendation_workspace_card(item, results, priority_class_map, render_context_key)
+    st.markdown('<div class="panel-title">Recommendation Queue</div>', unsafe_allow_html=True)
+    for item_index, item in enumerate(queue_items):
+        stable_slug = slugify_recommendation_key(str(item.get("recommendation_id", item.get("title", ""))))
+        render_context_key = f"recommendation_{slugify_recommendation_key(selected_filter)}_{item_index}_{stable_slug}"
+        render_recommendation_workspace_card(item, results, priority_class_map, render_context_key)
 
 
 def get_report_recommendations(results: dict) -> list[dict]:
     """Return the rule-driven recommendations available for reporting."""
-    active_recommendations = globals().get("generated_recommendations", [])
-    if isinstance(active_recommendations, list) and active_recommendations:
-        return active_recommendations
-
     rule_matches = results.get("rule_matches", {}).get("all_matches", []) or []
     recommendations = []
     for item in rule_matches:
@@ -9666,9 +10472,11 @@ def get_report_recommendations(results: dict) -> list[dict]:
                 "subject": item.get("subject", item.get("label", "")),
                 "subject_type": item.get("subject_type"),
                 "source": item.get("source"),
+                "source_type": item.get("source_type"),
                 "category": item.get("category"),
                 "opportunity_type": item.get("opportunity_type"),
                 "evidence": item.get("evidence") if isinstance(item.get("evidence"), dict) else {},
+                "sample_data": item.get("sample_data") if isinstance(item.get("sample_data"), dict) else {},
                 "title": item.get("title"),
                 "insight": item.get("insight"),
                 "why_it_matters": item.get("why_it_matters"),
@@ -9683,7 +10491,11 @@ def get_report_recommendations(results: dict) -> list[dict]:
                 "priority_bundle": priority_bundle,
             }
         )
-    return recommendations
+    if recommendations:
+        return recommendations
+
+    active_recommendations = globals().get("generated_recommendations", [])
+    return active_recommendations if isinstance(active_recommendations, list) else []
 
 
 def get_report_priority_pill_class(priority: str) -> str:
@@ -9803,7 +10615,6 @@ def build_report_kpi_cards(results: dict, opportunities: list[dict], recommendat
     social_insights = results.get("social_insights", {})
     evaluation = results.get("evaluation", {}).get("evaluation", {})
     query_analysis = insight.get("query_analysis", []) or []
-    ga4_pages_df = get_report_ga4_pages_dataframe(results)
 
     if recommendations:
         opportunity_scores = [
@@ -9838,17 +10649,15 @@ def build_report_kpi_cards(results: dict, opportunities: list[dict], recommendat
             }
         )
 
-    if not ga4_pages_df.empty and "engagement_rate" in ga4_pages_df.columns:
-        engagement_rate = ga4_pages_df["engagement_rate"].dropna().mean()
-        engagement_score = normalize_report_percent(engagement_rate)
-        if engagement_score is not None:
-            kpis.append(
-                {
-                    "label": "Traffic Health Score",
-                    "value": format_report_score(clamp_score(engagement_score)),
-                    "caption": "Derived from average GA4 page engagement in the loaded run.",
-                }
-            )
+    engagement_score = normalize_report_percent(ga4_aggregate_metrics.get("engagement_rate"))
+    if engagement_score is not None:
+        kpis.append(
+            {
+                "label": "Traffic Health Score",
+                "value": format_report_score(clamp_score(engagement_score)),
+                "caption": "Derived from the GA4 aggregate engagement rate in the loaded run.",
+            }
+        )
 
     if query_analysis:
         ctr_values = [normalize_gsc_ctr_percent(item.get("ctr")) for item in query_analysis if normalize_gsc_ctr_percent(item.get("ctr")) is not None]
@@ -10011,14 +10820,16 @@ def build_reports_powerpoint_bytes(results: dict) -> bytes:
         )
 
     website_bullets = []
-    ga4_pages_df = get_report_ga4_pages_dataframe(results)
-    if not ga4_pages_df.empty:
-        if "sessions" in ga4_pages_df.columns:
-            website_bullets.append(f"Sessions: {int(ga4_pages_df['sessions'].fillna(0).sum())}")
-        if "active_users" in ga4_pages_df.columns:
-            website_bullets.append(f"Users: {int(ga4_pages_df['active_users'].fillna(0).sum())}")
-        if "engagement_rate" in ga4_pages_df.columns:
-            website_bullets.append(f"Engagement Rate: {format_report_percent(ga4_pages_df['engagement_rate'].dropna().mean())}")
+    ga4_aggregate_metrics = get_ga4_aggregate_metrics(results)
+    if to_comparison_number(ga4_aggregate_metrics.get("sessions")) is not None:
+        website_bullets.append(f"Sessions: {int(to_comparison_number(ga4_aggregate_metrics.get('sessions'))):,}")
+    users_value = to_comparison_number(ga4_aggregate_metrics.get("active_users"))
+    if users_value is None:
+        users_value = to_comparison_number(ga4_aggregate_metrics.get("total_users"))
+    if users_value is not None:
+        website_bullets.append(f"Users: {int(users_value):,}")
+    if normalize_report_percent(ga4_aggregate_metrics.get("engagement_rate")) is not None:
+        website_bullets.append(f"Engagement Rate: {format_report_percent(ga4_aggregate_metrics.get('engagement_rate'))}")
     if website_bullets:
         add_bullet_slide("Website Performance", website_bullets)
 
@@ -10213,21 +11024,22 @@ def render_reports_page(results: dict) -> None:
             )
 
     ga4_pages_df = get_report_ga4_pages_dataframe(results)
+    ga4_aggregate_metrics = get_ga4_aggregate_metrics(results)
     ga4_rows = data_summary.get("ga4_pages", {}).get("rows", 0)
     if ga4_rows > 0 or not ga4_pages_df.empty:
         st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">Website Performance</div>', unsafe_allow_html=True)
         website_metrics = []
-        if not ga4_pages_df.empty:
-            if "sessions" in ga4_pages_df.columns:
-                website_metrics.append(("Sessions", f"{int(ga4_pages_df['sessions'].fillna(0).sum()):,}"))
-            user_column = "active_users" if "active_users" in ga4_pages_df.columns else ("total_users" if "total_users" in ga4_pages_df.columns else None)
-            if user_column:
-                website_metrics.append(("Users", f"{int(ga4_pages_df[user_column].fillna(0).sum()):,}"))
-            if "engagement_rate" in ga4_pages_df.columns:
-                website_metrics.append(("Engagement Rate", format_report_percent(ga4_pages_df["engagement_rate"].dropna().mean())))
-            if "conversions" in ga4_pages_df.columns:
-                website_metrics.append(("Conversions", f"{int(ga4_pages_df['conversions'].fillna(0).sum()):,}"))
+        aggregate_sessions = to_comparison_number(ga4_aggregate_metrics.get("sessions"))
+        if aggregate_sessions is not None:
+            website_metrics.append(("Sessions", f"{int(aggregate_sessions):,}"))
+        aggregate_users = to_comparison_number(ga4_aggregate_metrics.get("active_users"))
+        if aggregate_users is None:
+            aggregate_users = to_comparison_number(ga4_aggregate_metrics.get("total_users"))
+        if aggregate_users is not None:
+            website_metrics.append(("Users", f"{int(aggregate_users):,}"))
+        if normalize_report_percent(ga4_aggregate_metrics.get("engagement_rate")) is not None:
+            website_metrics.append(("Engagement Rate", format_report_percent(ga4_aggregate_metrics.get("engagement_rate"))))
 
         if combined.get("top_traffic_sources"):
             top_traffic_source = combined["top_traffic_sources"][0]
@@ -10459,15 +11271,22 @@ def report_metric_values(results: dict) -> dict[str, dict[str, object]]:
     """Organize already-normalized channel metrics for report presentation without creating scores."""
     values: dict[str, dict[str, object]] = {}
     ga4_pages = get_report_ga4_pages_dataframe(results)
-    if not ga4_pages.empty:
+    ga4_aggregate_metrics = get_ga4_aggregate_metrics(results)
+    if not ga4_pages.empty or any(value is not None for value in ga4_aggregate_metrics.values()):
         website_metrics: list[tuple[str, str]] = []
-        for column, label in [("active_users", "Users"), ("total_users", "Users"), ("sessions", "Sessions")]:
-            if column in ga4_pages.columns and ga4_pages[column].notna().any() and not any(name == label for name, _ in website_metrics):
-                website_metrics.append((label, f"{int(ga4_pages[column].dropna().sum()):,}"))
-        if "average_engagement_time_per_session" in ga4_pages.columns and ga4_pages["average_engagement_time_per_session"].notna().any():
-            website_metrics.append(("Avg. Engagement Time", f"{ga4_pages['average_engagement_time_per_session'].dropna().mean():.0f} sec"))
-        if "engagement_rate" in ga4_pages.columns and ga4_pages["engagement_rate"].notna().any():
-            website_metrics.append(("Engagement Rate", format_report_percent(ga4_pages["engagement_rate"].dropna().mean())))
+        users_value = to_comparison_number(ga4_aggregate_metrics.get("active_users"))
+        if users_value is None:
+            users_value = to_comparison_number(ga4_aggregate_metrics.get("total_users"))
+        sessions_value = to_comparison_number(ga4_aggregate_metrics.get("sessions"))
+        avg_time_value = to_comparison_number(ga4_aggregate_metrics.get("average_engagement_time_per_session"))
+        if users_value is not None:
+            website_metrics.append(("Users", f"{int(users_value):,}"))
+        if sessions_value is not None:
+            website_metrics.append(("Sessions", f"{int(sessions_value):,}"))
+        if avg_time_value is not None:
+            website_metrics.append(("Avg. Engagement Time", f"{avg_time_value:.0f} sec"))
+        if normalize_report_percent(ga4_aggregate_metrics.get("engagement_rate")) is not None:
+            website_metrics.append(("Engagement Rate", format_report_percent(ga4_aggregate_metrics.get("engagement_rate"))))
         if website_metrics:
             values["website"] = {"title": "🌐 Website", "metrics": website_metrics[:4]}
 
@@ -11267,8 +12086,14 @@ def get_dashboard_comparison_change(section: str, metric_label: str) -> float | 
     return None
 
 
-def render_dashboard_kpi_card(label: str, value: str, helper: str, trend: float | None = None) -> None:
-    """Render one presentation-only dashboard KPI card."""
+def build_dashboard_kpi_card_html(
+    label: str,
+    value: str,
+    helper: str,
+    icon: str = "◔",
+    trend: float | None = None,
+) -> str:
+    """Build one compact dashboard KPI card from already-computed values."""
     trend_html = ""
     if trend is not None:
         trend_class = "" if trend >= 0 else " is-negative"
@@ -11278,17 +12103,251 @@ def render_dashboard_kpi_card(label: str, value: str, helper: str, trend: float 
             f'{trend_prefix} {abs(trend):.1f}% vs previous run</div>'
         )
 
+    return (
+        '<div class="dashboard-kpi-card">'
+        f'<div class="dashboard-kpi-icon">{html.escape(icon)}</div>'
+        f'<div class="dashboard-kpi-label">{html.escape(label)}</div>'
+        f'<div class="dashboard-kpi-value">{html.escape(value)}</div>'
+        f'<div class="dashboard-kpi-helper">{html.escape(helper)}</div>'
+        f'{trend_html}'
+        '</div>'
+    )
+
+
+def render_dashboard_kpi_card(label: str, value: str, helper: str, trend: float | None = None) -> None:
+    """Render one presentation-only dashboard KPI card."""
+    st.markdown(build_dashboard_kpi_card_html(label, value, helper, trend=trend), unsafe_allow_html=True)
+
+
+def format_dashboard_percent(value) -> str:
+    """Format percent-like dashboard values using existing normalization."""
+    numeric_value = normalize_report_percent(value)
+    if numeric_value is None:
+        return "Not available"
+    return f"{numeric_value:.2f}%"
+
+
+def format_dashboard_position(value) -> str:
+    """Format a search position without implying extra precision."""
+    numeric_value = to_comparison_number(value)
+    if numeric_value is None:
+        return "Not available"
+    return str(int(numeric_value)) if float(numeric_value).is_integer() else f"{numeric_value:.2f}"
+
+
+def truncate_dashboard_label(value: object, max_chars: int = 64) -> str:
+    """Keep dense dashboard labels readable without changing the source value."""
+    text = normalize_recommendation_plain_text(str(value or "")).strip()
+    if len(text) <= max_chars:
+        return text
+    return f"{text[: max_chars - 3].rstrip()}..."
+
+
+def normalize_dashboard_dataframe_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Return a copy with normalized snake-case columns."""
+    if dataframe.empty:
+        return dataframe.copy()
+    normalized = dataframe.copy()
+    normalized.columns = [str(column).strip().lower().replace(" ", "_") for column in normalized.columns]
+    return normalized
+
+
+def get_dashboard_ga4_source_rows(results: dict) -> list[dict[str, object]]:
+    """Return top GA4 source/medium rows from the current run summary."""
+    data_summary = results.get("data_intake", {}).get("summary", {})
+    combined = data_summary.get("combined", {})
+    rows = combined.get("top_traffic_sources", []) or []
+    if not rows:
+        rows = data_summary.get("ga4_sources", {}).get("sample_records", []) or []
+
+    source_rows: list[dict[str, object]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        source = (
+            row.get("source_medium")
+            or row.get("session_source_medium")
+            or row.get("source / medium")
+            or row.get("source")
+            or row.get("Source / Medium")
+        )
+        value = (
+            row.get("value")
+            or row.get("sessions")
+            or row.get("Sessions")
+            or row.get("active_users")
+            or row.get("Active users")
+        )
+        numeric_value = to_comparison_number(value)
+        source_text = normalize_recommendation_plain_text(str(source or "")).strip()
+        if source_text and numeric_value is not None:
+            source_rows.append({"source": source_text, "value": numeric_value})
+
+    return sorted(source_rows, key=lambda item: item["value"], reverse=True)[:5]
+
+
+def get_dashboard_top_pages(results: dict, limit: int = 5) -> list[dict[str, object]]:
+    """Return compact GA4 page rows suitable for the dashboard table."""
+    pages_df = normalize_dashboard_dataframe_columns(get_report_ga4_pages_dataframe(results))
+    if pages_df.empty:
+        return []
+
+    page_column = "page_title" if "page_title" in pages_df.columns else "page_title_and_screen_class"
+    if page_column not in pages_df.columns:
+        return []
+
+    for numeric_column in ["active_users", "sessions", "total_users", "new_users"]:
+        if numeric_column in pages_df.columns:
+            pages_df[numeric_column] = pd.to_numeric(pages_df[numeric_column], errors="coerce")
+
+    sort_column = "active_users" if "active_users" in pages_df.columns else "sessions" if "sessions" in pages_df.columns else None
+    if sort_column:
+        pages_df = pages_df.dropna(subset=[sort_column]).sort_values(sort_column, ascending=False)
+
+    page_rows: list[dict[str, object]] = []
+    for _, row in pages_df.head(limit).iterrows():
+        page_title = normalize_recommendation_plain_text(str(row.get(page_column, ""))).strip()
+        if not page_title:
+            continue
+        page_rows.append(
+            {
+                "page": page_title,
+                "active_users": to_comparison_number(row.get("active_users")),
+                "sessions": to_comparison_number(row.get("sessions")),
+            }
+        )
+    return page_rows
+
+
+def get_dashboard_top_queries(query_analysis: list[dict], limit: int = 5) -> list[dict[str, object]]:
+    """Return useful, high-visibility GSC query rows for dashboard scanning."""
+    query_rows: list[dict[str, object]] = []
+    for item in query_analysis or []:
+        if not isinstance(item, dict):
+            continue
+        query = normalize_recommendation_plain_text(str(item.get("query", ""))).strip()
+        impressions = to_comparison_number(item.get("impressions"))
+        if not query or impressions is None:
+            continue
+        query_rows.append(
+            {
+                "query": query,
+                "ctr": normalize_gsc_ctr_percent(item.get("ctr")),
+                "impressions": impressions,
+                "position": to_comparison_number(item.get("position")),
+                "clicks": to_comparison_number(item.get("clicks")),
+            }
+        )
+    return sorted(query_rows, key=lambda item: (item.get("impressions") or 0), reverse=True)[:limit]
+
+
+def render_dashboard_table(headers: list[str], rows: list[list[str]], number_columns: set[int] | None = None) -> str:
+    """Build a compact HTML table with escaped values."""
+    number_columns = number_columns or set()
+    header_html = "".join(
+        f'<th class="{"dashboard-table-number" if index in number_columns else ""}">{html.escape(header)}</th>'
+        for index, header in enumerate(headers)
+    )
+    body_html = ""
+    for row in rows:
+        cells = []
+        for index, value in enumerate(row):
+            cell_class = "dashboard-table-number" if index in number_columns else ""
+            cells.append(
+                f'<td class="{cell_class}" title="{html.escape(value)}">{html.escape(value)}</td>'
+            )
+        body_html += f"<tr>{''.join(cells)}</tr>"
+    return f'<table class="dashboard-table"><thead><tr>{header_html}</tr></thead><tbody>{body_html}</tbody></table>'
+
+
+def render_dashboard_panel(title: str, body_html: str) -> None:
+    """Render one dashboard panel."""
     st.markdown(
-        f"""
-        <div class="dashboard-kpi-card">
-            <div class="dashboard-kpi-label">{html.escape(label)}</div>
-            <div class="dashboard-kpi-value">{html.escape(value)}</div>
-            <div class="dashboard-kpi-helper">{html.escape(helper)}</div>
-            {trend_html}
-        </div>
-        """,
+        f'<div class="dashboard-panel"><div class="dashboard-panel-title">{html.escape(title)}</div>{body_html}</div>',
         unsafe_allow_html=True,
     )
+
+
+def build_dashboard_traffic_source_html(source_rows: list[dict[str, object]]) -> str:
+    """Build compact horizontal bars for GA4 source/medium rows."""
+    if not source_rows:
+        return '<p class="dashboard-empty-note">No GA4 source / medium data is available in the current run.</p>'
+
+    max_value = max((to_comparison_number(row.get("value")) or 0 for row in source_rows), default=0) or 1
+    colors = ["#352D97", "#6357D7", "#9387EA", "#C9C4F8", "#DEDDFC"]
+    rows_html = []
+    for index, row in enumerate(source_rows):
+        value = to_comparison_number(row.get("value")) or 0
+        width = max(4, min(100, (value / max_value) * 100))
+        label = str(row.get("source", "Unknown source"))
+        rows_html.append(
+            '<div class="dashboard-bar-row">'
+            f'<div class="dashboard-bar-label" title="{html.escape(label)}">{html.escape(truncate_dashboard_label(label, 34))}</div>'
+            '<div class="dashboard-bar-track">'
+            f'<div class="dashboard-bar-fill" style="width:{width:.1f}%; background:{colors[index % len(colors)]};"></div>'
+            '</div>'
+            f'<div class="dashboard-bar-value">{html.escape(format_dashboard_compact_number(value))}</div>'
+            '</div>'
+        )
+    return f'<div class="dashboard-bars">{"".join(rows_html)}</div>'
+
+
+def build_dashboard_key_insights(results: dict, recommendations: list[dict[str, object]]) -> list[dict[str, str]]:
+    """Select two to three grounded dashboard insights from existing outputs."""
+    insights: list[dict[str, str]] = []
+    top_opportunity = get_dashboard_top_opportunity(results)
+    if top_opportunity:
+        subject = normalize_recommendation_plain_text(str(top_opportunity.get("subject") or "Current search opportunity")).strip()
+        summary = normalize_recommendation_plain_text(
+            str(top_opportunity.get("business_summary") or top_opportunity.get("why_it_matters") or "")
+        ).strip()
+        if subject:
+            insights.append(
+                {
+                    "title": truncate_dashboard_label(subject, 42),
+                    "copy": truncate_recommendation_text(summary, 150)
+                    or "A current search signal deserves review based on the loaded run.",
+                    "icon": "⌁",
+                }
+            )
+
+    for item in recommendations:
+        title = get_recommendation_display_title(item)
+        copy = get_recommendation_summary(item)
+        if title and all(existing["title"].lower() != title.lower() for existing in insights):
+            insights.append(
+                {
+                    "title": truncate_dashboard_label(title, 42),
+                    "copy": truncate_recommendation_text(copy, 150),
+                    "icon": "✦",
+                }
+            )
+        if len(insights) >= 3:
+            break
+
+    if not insights:
+        insights.append(
+            {
+                "title": "Run data needed",
+                "copy": "Load GA4, GSC, or social data to surface grounded marketing insights.",
+                "icon": "○",
+            }
+        )
+    return insights[:3]
+
+
+def build_dashboard_insights_html(insights: list[dict[str, str]]) -> str:
+    """Render dashboard insights as compact cards inside one panel."""
+    items = []
+    for insight in insights:
+        items.append(
+            '<div class="dashboard-insight-item">'
+            f'<div class="dashboard-insight-icon">{html.escape(insight.get("icon", "✦"))}</div>'
+            f'<div class="dashboard-insight-title">{html.escape(insight.get("title", "Insight"))}</div>'
+            f'<div class="dashboard-insight-copy">{html.escape(insight.get("copy", ""))}</div>'
+            '</div>'
+        )
+    return f'<div class="dashboard-insight-grid">{"".join(items)}</div>'
 
 
 def get_dashboard_top_opportunity(results: dict) -> dict:
@@ -11363,33 +12422,31 @@ def format_dashboard_opportunity_evidence(evidence: dict) -> list[str]:
 
 
 def render_figma_dashboard_view(results: dict, ga4_debug_titles: list[str], show_debug: bool) -> None:
-    """Render the dashboard using existing workflow outputs in the current product layout."""
+    """Render the dashboard using existing workflow outputs in a compact overview layout."""
     insight = results.get("insight", {})
     data_summary = results.get("data_intake", {}).get("summary", {})
     combined = data_summary.get("combined", {})
-    strategy = results.get("strategy", {}).get("strategy", {})
     query_analysis = insight.get("query_analysis", []) or []
-    top_pages = combined.get("top_pages", []) or []
-    top_sources = combined.get("top_traffic_sources", []) or []
     meta_posts_data = results.get("meta_posts_data")
-    social_insights = results.get("social_insights", {}) or {}
-    ga4_page_metrics = data_summary.get("ga4_pages", {}).get("key_metrics", {}) or {}
-    ga4_source_metrics = data_summary.get("ga4_sources", {}).get("key_metrics", {}) or {}
+    ga4_aggregate_metrics = get_ga4_aggregate_metrics(results)
+    recommendation_items = build_curated_recommendation_workspace_items(
+        build_all_recommendation_workspace_items(results)
+    )
 
-    sessions_value = to_comparison_number(ga4_page_metrics.get("sessions"))
-    if sessions_value is None:
-        sessions_value = to_comparison_number(ga4_source_metrics.get("sessions"))
+    sessions_value = to_comparison_number(ga4_aggregate_metrics.get("sessions"))
 
     total_impressions = sum(
         to_comparison_number(item.get("impressions")) or 0
         for item in query_analysis
     ) if query_analysis else None
+    position_values = [
+        to_comparison_number(item.get("position"))
+        for item in query_analysis
+        if to_comparison_number(item.get("position")) is not None
+    ]
+    average_position = (sum(position_values) / len(position_values)) if position_values else None
 
-    engagement_rate_percent = normalize_report_percent(ga4_page_metrics.get("engagement_rate"))
-    if engagement_rate_percent is None:
-        ga4_pages_df = get_report_ga4_pages_dataframe(results)
-        if not ga4_pages_df.empty and "engagement_rate" in ga4_pages_df.columns:
-            engagement_rate_percent = normalize_report_percent(ga4_pages_df["engagement_rate"].dropna().mean())
+    engagement_rate_percent = normalize_report_percent(ga4_aggregate_metrics.get("engagement_rate"))
 
     social_engagement_rate = None
     if meta_posts_data is not None and not getattr(meta_posts_data, "empty", True):
@@ -11399,8 +12456,8 @@ def render_figma_dashboard_view(results: dict, ga4_debug_titles: list[str], show
             if total_reach is not None and total_reach > 0 and total_engagement is not None:
                 social_engagement_rate = (total_engagement / total_reach) * 100
 
-    st.markdown('<div class="dashboard-eyebrow">Marketing intelligence</div>', unsafe_allow_html=True)
-    st.markdown('<div class="dashboard-title">Marketing Intelligence Dashboard</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dashboard-page-marker"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="dashboard-title">📊 Marketing Intelligence Dashboard</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="dashboard-subtitle">Your marketing performance at a glance, with the opportunities that matter most.</div>',
         unsafe_allow_html=True,
@@ -11410,202 +12467,150 @@ def render_figma_dashboard_view(results: dict, ga4_debug_titles: list[str], show
     impressions_change = get_dashboard_comparison_change("gsc", "Tracked GSC Impressions")
     engagement_change = get_dashboard_comparison_change("ga4", "Engagement Rate")
 
-    kpi_columns = st.columns(4, gap="medium")
-    with kpi_columns[0]:
-        render_dashboard_kpi_card(
+    kpi_cards = [
+        build_dashboard_kpi_card_html(
             "Website Traffic",
             format_dashboard_compact_number(sessions_value),
             "Sessions from the current GA4 run",
+            "◔",
             website_change,
-        )
-    with kpi_columns[1]:
-        render_dashboard_kpi_card(
+        ),
+        build_dashboard_kpi_card_html(
             "Organic Visibility",
             format_dashboard_compact_number(total_impressions),
-            "Google Search impressions",
+            f"Avg position {format_dashboard_position(average_position)}" if average_position is not None else "Google Search impressions",
+            "⌕",
             impressions_change,
-        )
-    with kpi_columns[2]:
-        engagement_display = f"{engagement_rate_percent:.2f}%" if engagement_rate_percent is not None else "Not available"
-        render_dashboard_kpi_card(
+        ),
+        build_dashboard_kpi_card_html(
             "Engagement Rate",
-            engagement_display,
+            f"{engagement_rate_percent:.2f}%" if engagement_rate_percent is not None else "Not available",
             "Engaged website sessions",
+            "◉",
             engagement_change,
-        )
-    with kpi_columns[3]:
-        social_display = f"{social_engagement_rate:.2f}%" if social_engagement_rate is not None else "No Meta data"
-        render_dashboard_kpi_card(
-            "Social Engagement",
-            social_display,
-            "Interactions relative to reach" if social_engagement_rate is not None else "Upload a Meta social export to measure engagement",
-        )
-
-    st.markdown('<div class="dashboard-section-divider"></div>', unsafe_allow_html=True)
-
-    overview_card = st.container()
-    with overview_card:
-        st.markdown('<div class="dashboard-card-marker dashboard-chart-card-marker"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Performance Overview</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="dashboard-card-helper">Top Google Search queries by impressions in the loaded run.</div>',
-            unsafe_allow_html=True,
-        )
-        if query_analysis:
-            overview_df = pd.DataFrame(query_analysis).copy()
-            overview_df.columns = [str(column).strip().lower().replace(" ", "_") for column in overview_df.columns]
-            if {"query", "impressions"}.issubset(overview_df.columns):
-                overview_df["impressions"] = pd.to_numeric(overview_df["impressions"], errors="coerce")
-                overview_df["query"] = overview_df["query"].fillna("").astype(str).str.strip()
-                overview_df = overview_df.dropna(subset=["impressions"])
-                overview_df = overview_df[overview_df["query"] != ""].sort_values("impressions", ascending=False).head(5)
-                overview_df["display_query"] = overview_df["query"].apply(
-                    lambda value: value if len(value) <= 44 else f"{value[:41].rstrip()}..."
-                )
-                overview_fig = px.bar(
-                    overview_df.iloc[::-1],
-                    x="impressions",
-                    y="display_query",
-                    orientation="h",
-                    color_discrete_sequence=["#8C52FF"],
-                )
-                overview_fig.update_layout(
-                    height=300,
-                    showlegend=False,
-                    plot_bgcolor="#FFFFFF",
-                    paper_bgcolor="#FFFFFF",
-                    margin=dict(l=8, r=12, t=8, b=10),
-                    font=dict(color="#162033"),
-                    xaxis_title="Search impressions",
-                    yaxis_title="",
-                )
-                overview_fig.update_traces(
-                    customdata=overview_df.iloc[::-1][["query"]].values,
-                    hovertemplate="<b>%{customdata[0]}</b><br>Impressions: %{x}<extra></extra>",
-                )
-                overview_fig.update_xaxes(gridcolor="#EEF2F7", zeroline=False, tickfont=dict(color="#344054"))
-                overview_fig.update_yaxes(automargin=True, tickfont=dict(color="#344054"))
-                st.plotly_chart(overview_fig, use_container_width=True)
-            else:
-                st.info("No GSC query data available for the Performance Overview chart.")
-        else:
-            st.info("No GSC query data available for the Performance Overview chart.")
-
-    top_opportunity = get_dashboard_top_opportunity(results)
-    if top_opportunity:
-        opportunity_title = str(top_opportunity.get("subject") or top_opportunity.get("query") or "Current opportunity")
-        business_summary = str(top_opportunity.get("business_summary") or "No business summary is available for this opportunity.")
-        why_it_matters = str(top_opportunity.get("why_it_matters") or "Supporting evidence is limited in the current run.")
-        recommended_next_step = str(top_opportunity.get("recommended_next_step") or "Review this opportunity before choosing an action.")
-        evidence_parts = format_dashboard_opportunity_evidence(top_opportunity.get("evidence", {}))
-        confidence = to_comparison_number(top_opportunity.get("confidence"))
-        if confidence is not None:
-            evidence_parts.append(f"{round(confidence)}/100 confidence")
-
-        opportunity_card = st.container()
-        with opportunity_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Top Opportunity</div>', unsafe_allow_html=True)
-            st.markdown(
-                f"""
-                <div class="dashboard-opportunity-card">
-                    <div class="dashboard-opportunity-title">{html.escape(opportunity_title)}</div>
-                    <div class="dashboard-opportunity-meta"><strong>WHAT'S HAPPENING</strong><br>{html.escape(business_summary)}</div>
-                    <div class="dashboard-opportunity-meta"><strong>WHY THIS MATTERS</strong><br>{html.escape(why_it_matters)}</div>
-                    <div class="dashboard-opportunity-meta"><strong>RECOMMENDED NEXT STEP</strong><br>{html.escape(recommended_next_step)}</div>
-                    <div class="dashboard-opportunity-meta"><strong>CURRENT PERFORMANCE</strong><br>
-                    {html.escape(' • '.join(evidence_parts)) if evidence_parts else 'Supporting metrics are unavailable for this saved run.'}</div>
-                    <div class="dashboard-action-footer">View Opportunity →</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+        ),
+    ]
+    if social_engagement_rate is not None:
+        kpi_cards.append(
+            build_dashboard_kpi_card_html(
+                "Social Engagement",
+                f"{social_engagement_rate:.2f}%",
+                "Interactions relative to reach",
+                "◆",
             )
-
-    drivers_card = st.container()
-    with drivers_card:
-        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">What’s Driving Performance</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="dashboard-card-helper">Supporting signals from the available website, search, acquisition, and social data.</div>',
-            unsafe_allow_html=True,
         )
-        driver_tabs = st.tabs(["Top Pages", "Top Queries", "Traffic Sources", "Social Content"])
-
-        with driver_tabs[0]:
-            if top_pages:
-                page_rows = [
-                    {
-                        "Page": item.get("page_title", "Not available"),
-                        "Metric": item.get("metric", "Value"),
-                        "Value": item.get("value", "Not available"),
-                    }
-                    for item in top_pages[:5]
-                ]
-                st.dataframe(pd.DataFrame(page_rows), use_container_width=True, hide_index=True)
-            else:
-                st.info("No GA4 page data is available in the current run.")
-
-        with driver_tabs[1]:
-            if query_analysis:
-                query_df = format_ctr_dataframe(pd.DataFrame(query_analysis))
-                available_columns = [column for column in ["query", "ctr", "impressions", "position"] if column in query_df.columns]
-                st.dataframe(query_df[available_columns].head(5), use_container_width=True, hide_index=True)
-            else:
-                st.info("No GSC query data is available in the current run.")
-
-        with driver_tabs[2]:
-            if top_sources:
-                source_df = pd.DataFrame(top_sources).copy()
-                st.dataframe(source_df.head(5), use_container_width=True, hide_index=True)
-            else:
-                st.info("No GA4 source/medium data is available in the current run.")
-
-        with driver_tabs[3]:
-            social_content = social_insights.get("top_performing_content", []) or []
-            if social_content:
-                social_df = pd.DataFrame(social_content)
-                available_columns = [column for column in ["Post type", "Topic", "Reach", "Engagement Rate", "Saves", "Follows"] if column in social_df.columns]
-                st.dataframe(social_df[available_columns].head(5), use_container_width=True, hide_index=True)
-            else:
-                st.info("No Meta social content data is available in the current run.")
-
-    recommended_actions = get_report_recommendations(results)
-    actions_card = st.container()
-    with actions_card:
-        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Recommended Actions</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="dashboard-card-helper">The highest-priority actions generated from the current run.</div>',
-            unsafe_allow_html=True,
+    else:
+        kpi_cards.append(
+            build_dashboard_kpi_card_html(
+                "Actions Ready",
+                format_dashboard_compact_number(len(recommendation_items)),
+                "Curated recommendations from this run",
+                "✦",
+            )
         )
-        if recommended_actions:
-            priority_rank = {"high": 3, "medium": 2, "low": 1}
-            sorted_actions = sorted(
-                [item for item in recommended_actions if isinstance(item, dict)],
-                key=lambda item: (
-                    priority_rank.get(str(item.get("priority", "")).strip().lower(), 0),
-                    to_comparison_number((item.get("priority_bundle") or {}).get("priority_score")) or 0,
-                    to_comparison_number(item.get("opportunity_score")) or 0,
-                ),
-                reverse=True,
-            )[:3]
-            for action in sorted_actions:
-                title = normalize_recommendation_plain_text(str(action.get("title", "Recommendation")))
-                reason = normalize_recommendation_plain_text(str(action.get("why_it_matters", "") or action.get("insight", "")))
-                source = str(action.get("action_type", "strategy")).strip().replace("_", " ").title()
-                priority = str(action.get("priority", "Medium")).strip().title()
+    st.markdown(f'<div class="dashboard-kpi-grid">{"".join(kpi_cards)}</div>', unsafe_allow_html=True)
+
+    source_rows = get_dashboard_ga4_source_rows(results)
+    top_pages = get_dashboard_top_pages(results, limit=5)
+    top_queries = get_dashboard_top_queries(query_analysis, limit=5)
+
+    row_a_left, row_a_right = st.columns([0.4, 0.6], gap="medium")
+    with row_a_left:
+        render_dashboard_panel("🚦 Traffic Source", build_dashboard_traffic_source_html(source_rows))
+
+    with row_a_right:
+        if top_pages:
+            page_table_rows = []
+            for row in top_pages[:5]:
+                active_users = to_comparison_number(row.get("active_users"))
+                sessions = to_comparison_number(row.get("sessions"))
+                page_table_rows.append(
+                    [
+                        truncate_dashboard_label(row.get("page"), 76),
+                        format_dashboard_compact_number(active_users) if active_users is not None else "Not available",
+                        format_dashboard_compact_number(sessions) if sessions is not None else "Not available",
+                    ]
+                )
+            top_pages_html = render_dashboard_table(
+                ["Page", "Active Users", "Sessions"],
+                page_table_rows,
+                number_columns={1, 2},
+            )
+        else:
+            top_pages_html = '<p class="dashboard-empty-note">No GA4 page data is available in the current run.</p>'
+        render_dashboard_panel("🌐 Top Pages", top_pages_html)
+
+    row_b_left, row_b_right = st.columns([0.4, 0.6], gap="medium")
+    with row_b_left:
+        insights_html = build_dashboard_insights_html(
+            build_dashboard_key_insights(results, recommendation_items)
+        )
+        render_dashboard_panel("Key Insights", insights_html)
+
+    with row_b_right:
+        if top_queries:
+            query_table_rows = []
+            for row in top_queries:
+                query_table_rows.append(
+                    [
+                        truncate_dashboard_label(row.get("query"), 54),
+                        f"{row['ctr']:.2f}%" if row.get("ctr") is not None else "Not available",
+                        format_dashboard_compact_number(row.get("impressions")),
+                        format_dashboard_position(row.get("position")),
+                    ]
+                )
+            top_queries_html = render_dashboard_table(
+                ["Query", "CTR", "Impressions", "Position"],
+                query_table_rows,
+                number_columns={1, 2, 3},
+            )
+        else:
+            top_queries_html = '<p class="dashboard-empty-note">No GSC query data is available in the current run.</p>'
+        render_dashboard_panel("🔍 Top Queries", top_queries_html)
+
+    st.markdown('<div class="dashboard-panel"><div class="dashboard-panel-title">Recommended Actions</div>', unsafe_allow_html=True)
+    if recommendation_items:
+        for index, action in enumerate(recommendation_items[:3]):
+            title = get_recommendation_display_title(action)
+            summary = get_recommendation_summary(action)
+            priority = str(action.get("priority", "Medium")).strip().title()
+            priority_class = {
+                "High": "",
+                "Medium": " is-medium",
+                "Low": " is-low",
+            }.get(priority, " is-medium")
+            source = get_recommendation_source(action) or get_recommendation_category(action)
+            metadata = " · ".join(value for value in [priority, source] if value)
+            action_columns = st.columns([0.92, 0.08], gap="small")
+            with action_columns[0]:
                 st.markdown(
-                    f"""
-                    <div class="dashboard-action-card">
-                        <div class="dashboard-action-title">{html.escape(title)}</div>
-                        <div class="dashboard-action-copy">{html.escape(reason)}</div>
-                        <div class="dashboard-action-footer">{html.escape(priority)} priority · {html.escape(source)} · View Recommendation →</div>
-                    </div>
-                    """,
+                    (
+                        '<div class="dashboard-action-card">'
+                        '<div class="dashboard-action-title">'
+                        f'<span class="dashboard-action-priority{priority_class}"></span>'
+                        f'Issue: {html.escape(title)}</div>'
+                        f'<div class="dashboard-action-copy"><strong>Recommendation:</strong> {html.escape(summary)}</div>'
+                        f'<div class="dashboard-action-footer">{html.escape(metadata)}</div>'
+                        '</div>'
+                    ),
                     unsafe_allow_html=True,
                 )
-        else:
-            st.info("No recommendations are available from the current run yet.")
+            with action_columns[1]:
+                recommendation_key = str(action.get("recommendation_id") or action.get("unique_key") or index)
+                st.button(
+                    "↗",
+                    key=f"dashboard_open_recommendation_{index}_{slugify_recommendation_key(recommendation_key)}",
+                    help="Open this recommendation",
+                    on_click=open_recommendation_action_plan,
+                    args=(action,),
+                    use_container_width=True,
+                )
+    else:
+        st.markdown(
+            '<p class="dashboard-empty-note">No curated recommendations are available from the current run yet.</p>',
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if st.session_state.get("comparison_mode") and st.session_state.get("comparison_results"):
         with st.expander("View saved-run comparison", expanded=False):
@@ -11618,7 +12623,7 @@ def render_figma_dashboard_view(results: dict, ga4_debug_titles: list[str], show
                 st.write(ga4_debug_titles)
             else:
                 st.write("No GA4 page titles were detected.")
-            st.json(make_json_safe(results.get("data_intake", {}).get("summary", {}).get("combined", {})))
+            st.json(make_json_safe(combined))
 
 
 def render_dashboard_page(results: dict | None, ga4_debug_titles: list[str], show_debug: bool) -> None:
@@ -11657,28 +12662,26 @@ ga4_page_metrics = (
     .get("ga4_pages", {})
     .get("key_metrics", {})
 )
+ga4_aggregate_metrics_for_rules = get_ga4_aggregate_metrics(current_results_for_rules)
 ga4_pages_for_rules = load_saved_ga4_pages_dataframe(st.session_state.get("loaded_run_id", ""))
 
-if not ga4_pages_for_rules.empty:
-    rule_sessions = (
-        to_comparison_number(ga4_pages_for_rules["sessions"].fillna(0).sum())
-        if "sessions" in ga4_pages_for_rules.columns
-        else to_comparison_number(ga4_page_metrics.get("sessions"))
-    )
-    rule_engagement_rate = (
-        to_comparison_number(ga4_pages_for_rules["engagement_rate"].fillna(0).mean())
-        if "engagement_rate" in ga4_pages_for_rules.columns
-        else to_comparison_number(ga4_page_metrics.get("engagement_rate"))
-    )
-    rule_conversions = (
-        to_comparison_number(ga4_pages_for_rules["conversions"].fillna(0).sum())
-        if "conversions" in ga4_pages_for_rules.columns
-        else 0
-    )
+if any(value is not None for value in ga4_aggregate_metrics_for_rules.values()):
+    rule_sessions = to_comparison_number(ga4_aggregate_metrics_for_rules.get("sessions"))
+    rule_engagement_rate = to_comparison_number(ga4_aggregate_metrics_for_rules.get("engagement_rate"))
+    rule_conversions = to_comparison_number(ga4_page_metrics.get("conversions"))
+elif not ga4_pages_for_rules.empty:
+    ga4_rule_backfilled_metrics = set(ga4_pages_for_rules.attrs.get("backfilled_ga4_metrics", []))
+    rule_sessions = None
+    rule_engagement_rate = None
+    if "conversions" in ga4_pages_for_rules.columns and "conversions" not in ga4_rule_backfilled_metrics:
+        conversion_values = ga4_pages_for_rules["conversions"].dropna()
+        rule_conversions = to_comparison_number(conversion_values.sum()) if not conversion_values.empty else None
+    else:
+        rule_conversions = to_comparison_number(ga4_page_metrics.get("conversions"))
 else:
     rule_sessions = to_comparison_number(ga4_page_metrics.get("sessions"))
     rule_engagement_rate = to_comparison_number(ga4_page_metrics.get("engagement_rate"))
-    rule_conversions = to_comparison_number(ga4_page_metrics.get("conversions")) or 0
+    rule_conversions = to_comparison_number(ga4_page_metrics.get("conversions"))
 
 sample_data = {
     "impressions": top_query.get("impressions"),
@@ -11693,6 +12696,9 @@ triggered_rules, generated_recommendations = evaluate_decision_rules(decision_ru
 
 
 # Sidebar Navigation
+if st.session_state.get("recommendation_focus_mode"):
+    st.session_state["app_navigation"] = "🎯 Recommendations"
+
 with st.sidebar:
     st.markdown(
         """

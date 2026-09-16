@@ -115,6 +115,7 @@ def parse_ga4_text(text_data: str, report_key: str) -> pd.DataFrame:
     raw_header = rows[header_index]
     header_map = build_ga4_header_map(raw_header, config["expected_columns"])
     data_rows = collect_ga4_data_rows(rows[header_index + 1 :])
+    aggregate_metrics = extract_ga4_aggregate_metrics(data_rows, header_map, config["expected_columns"])
     dataframe = build_ga4_dataframe(data_rows, header_map, config["expected_columns"])
     dataframe = filter_ga4_dataframe(dataframe, config["primary_dimension"])
 
@@ -126,6 +127,8 @@ def parse_ga4_text(text_data: str, report_key: str) -> pd.DataFrame:
         primary_dimension_label = config["primary_dimension"].replace("_", " ")
         print(f"[Parser Warning] Parsed GA4 {primary_dimension_label} report is empty after header detection and cleanup.")
 
+    dataframe.attrs["ga4_aggregate_metrics"] = aggregate_metrics
+    dataframe.attrs["ga4_aggregate_source"] = report_key if any(value is not None for value in aggregate_metrics.values()) else ""
     return dataframe
 
 
@@ -221,12 +224,42 @@ def collect_ga4_data_rows(rows: list[list[str]]) -> list[list[str]]:
         if any(value.startswith("#") for value in stripped_values if value):
             continue
 
-        if any("grand total" in value.lower() for value in stripped_values if value):
-            continue
-
         cleaned_rows.append(stripped_values)
 
     return cleaned_rows
+
+
+def is_ga4_aggregate_row(row: list[str]) -> bool:
+    """Detect GA4 summary rows, including exports where Grand total is a trailing cell."""
+    normalized_values = [normalize_text(str(value)) for value in row if str(value).strip()]
+    return any(
+        value == "grand total" or value.startswith("totals") or value.startswith("summary")
+        for value in normalized_values
+    )
+
+
+def extract_ga4_aggregate_metrics(
+    data_rows: list[list[str]],
+    header_map: list[int],
+    expected_columns: list[str],
+) -> dict[str, float | None]:
+    """Extract authoritative GA4 aggregate metrics before dimensional rows are filtered."""
+    aggregate_record: dict[str, Any] | None = None
+    for row in data_rows:
+        if is_ga4_aggregate_row(row):
+            aggregate_record = extract_ga4_record(row, header_map, expected_columns)
+            break
+
+    metrics = {column: None for column in GA4_SHARED_METRIC_COLUMNS}
+    if aggregate_record is None:
+        return metrics
+
+    coerced = coerce_ga4_types(pd.DataFrame([aggregate_record], columns=expected_columns))
+    for column in GA4_SHARED_METRIC_COLUMNS:
+        if column in coerced.columns:
+            value = coerced.iloc[0].get(column)
+            metrics[column] = None if pd.isna(value) else float(value)
+    return metrics
 
 
 def build_ga4_dataframe(data_rows: list[list[str]], header_map: list[int], expected_columns: list[str]) -> pd.DataFrame:

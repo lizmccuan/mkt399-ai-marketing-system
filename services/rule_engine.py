@@ -337,7 +337,7 @@ def _build_ga4_page_payloads(data: dict) -> list[tuple[str, dict]]:
                     "sessions": to_numeric_score_value(record.get("sessions")),
                     "active_users": to_numeric_score_value(record.get("active_users")),
                     "engagement_rate": to_numeric_score_value(record.get("engagement_rate")),
-                    "conversions": to_numeric_score_value(record.get("conversions")) or 0,
+                    "conversions": to_numeric_score_value(record.get("conversions")),
                 },
             )
         )
@@ -366,7 +366,7 @@ def _build_ga4_source_payloads(data: dict) -> list[tuple[str, dict]]:
                     "sessions": session_value or None,
                     "active_users": to_numeric_score_value(record.get("active_users")),
                     "engagement_rate": to_numeric_score_value(record.get("engagement_rate")),
-                    "conversions": to_numeric_score_value(record.get("conversions")) or 0,
+                    "conversions": to_numeric_score_value(record.get("conversions")),
                     "top_source_share": top_source_share,
                 },
             )
@@ -413,7 +413,7 @@ def _build_semrush_page_payloads(dataframe) -> list[tuple[str, dict]]:
                 {
                     "sessions": to_numeric_score_value(row.get("traffic")) or to_numeric_score_value(row.get("value")),
                     "engagement_rate": to_numeric_score_value(row.get("engagement_rate")),
-                    "conversions": to_numeric_score_value(row.get("conversions")) or 0,
+                    "conversions": to_numeric_score_value(row.get("conversions")),
                 },
             )
         )
@@ -467,7 +467,8 @@ def _build_social_payloads(dataframe) -> list[tuple[str, dict]]:
                 {
                     "reach": to_numeric_score_value(row.get("reach")),
                     "engagement_rate": to_numeric_score_value(row.get("engagement_rate")),
-                    "conversions": to_numeric_score_value(row.get("follows")) or 0,
+                    "follows": to_numeric_score_value(row.get("follows")),
+                    "saves": to_numeric_score_value(row.get("saves")),
                 },
             )
         )
