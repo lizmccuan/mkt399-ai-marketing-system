@@ -1359,7 +1359,8 @@ st.markdown(
     .report-brief-grid-marker,
     .report-brief-item-marker,
     .report-snapshot-grid-marker,
-    .report-snapshot-card-marker {
+    .report-snapshot-card-marker,
+    .opportunity-native-evidence-marker {
         display: none !important;
     }
     [data-testid="stVerticalBlock"]:has(.reports-page-marker),
@@ -1372,7 +1373,8 @@ st.markdown(
     }
     [data-testid="stVerticalBlock"]:has(.report-executive-brief-marker),
     [data-testid="stVerticalBlock"]:has(.report-brief-item-marker),
-    [data-testid="stVerticalBlock"]:has(.report-snapshot-card-marker) {
+    [data-testid="stVerticalBlock"]:has(.report-snapshot-card-marker),
+    [data-testid="stVerticalBlock"]:has(.opportunity-native-evidence-marker) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
@@ -1786,13 +1788,6 @@ st.markdown(
         font-size: 0.98rem;
         line-height: 1.55;
         margin-bottom: 0.9rem;
-        overflow-wrap: anywhere;
-    }
-    .opportunity-evidence-summary {
-        color: #667085;
-        font-size: 0.86rem;
-        line-height: 1.5;
-        margin: 0.75rem 0 0.8rem;
         overflow-wrap: anywhere;
     }
     .recommendation-meta-row {
@@ -7920,7 +7915,8 @@ def build_social_save_opportunity_evidence(social_insights: dict) -> list[str]:
 
     saves = to_comparison_number(top_record.get("saves"))
     if saves is not None:
-        evidence.append(f"{format_social_number(saves)} saves on the top supporting post")
+        save_label = "save" if float(saves) == 1 else "saves"
+        evidence.append(f"{format_social_number(saves)} {save_label} on the top supporting post")
 
     save_rate = to_comparison_number(top_record.get("save_rate"))
     if save_rate is not None:
@@ -9114,6 +9110,58 @@ def opportunity_evidence_metric_html(metrics: list[tuple[str, str]]) -> str:
     return f'<div class="recommendation-evidence-grid">{metric_html}</div>'
 
 
+def build_opportunity_evidence_rows(
+    entry: dict[str, object],
+    evidence_lines: list[str],
+    evidence_metrics: list[tuple[str, str]],
+) -> list[tuple[str, str, str]]:
+    """Turn opportunity evidence strings into compact display rows without duplicating metric cards."""
+    metric_values = {f"{label}: {value}".lower() for label, value in evidence_metrics}
+    category = get_opportunity_display_category(entry)
+    rows: list[tuple[str, str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
+
+    for line in evidence_lines:
+        clean_line = normalize_recommendation_plain_text(str(line)).strip()
+        if not clean_line or clean_line.lower() in metric_values:
+            continue
+
+        label = "Supporting evidence"
+        value = clean_line
+        detail = ""
+
+        if category == "Social":
+            if " · " in clean_line:
+                label = "Top supporting content"
+            else:
+                save_match = re.match(r"^([0-9,.]+)\s+(save|saves)\s+(.*)$", clean_line, re.IGNORECASE)
+                if save_match:
+                    save_count = to_comparison_number(save_match.group(1).replace(",", ""))
+                    save_word = "save" if save_count == 1 else "saves"
+                    label = f"{format_social_number(save_count)} {save_word}" if save_count is not None else save_match.group(1)
+                    value = save_match.group(3).strip()
+                elif "rate" in clean_line.lower():
+                    label = "Supporting rate"
+        elif category == "Search":
+            if ":" in clean_line:
+                label, value = [part.strip() for part in clean_line.split(":", 1)]
+            else:
+                label = "Search signal"
+        elif category == "Website":
+            if ":" in clean_line:
+                label, value = [part.strip() for part in clean_line.split(":", 1)]
+            else:
+                label = "Website signal"
+        elif ":" in clean_line:
+            label, value = [part.strip() for part in clean_line.split(":", 1)]
+
+        row = (label, value, detail)
+        if row not in seen:
+            rows.append(row)
+            seen.add(row)
+    return rows[:5]
+
+
 def get_opportunity_improvement_guidance(entry: dict[str, object], limit: int = 4) -> list[str]:
     """Use existing structured guidance first, then a conservative next-step fallback."""
     raw_guidance = entry.get("improvement_guidance")
@@ -9332,13 +9380,11 @@ def render_biggest_opportunity(entry: dict[str, object], results: dict) -> None:
                 {opportunity_category_badge_html(entry)}
                 {opportunity_chips_html(entry)}
             </div>
-            <div class="opportunity-featured-footer">
-                <div class="opportunity-evidence-summary"><strong>Evidence:</strong> {html.escape(evidence_summary or 'Existing opportunity evidence is available in the detail view.')}</div>
-            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+    st.markdown(f"**Evidence:** {evidence_summary or 'Existing opportunity evidence is available in the detail view.'}")
     st.markdown('<span class="opportunity-action-row-marker"></span>', unsafe_allow_html=True)
     button_cols = st.columns([0.18, 0.22, 0.6])
     with button_cols[0]:
@@ -9374,12 +9420,12 @@ def render_executive_opportunity_card(entry: dict[str, object], results: dict, u
                 {opportunity_category_badge_html(entry)}
             </div>
             <div class="opportunity-card-copy">{html.escape(summary)}</div>
-            <div class="opportunity-evidence-summary"><strong>Evidence:</strong> {html.escape(evidence_summary or 'Evidence available in detail view.')}</div>
             {opportunity_chips_html(entry)}
         </div>
         """,
         unsafe_allow_html=True,
     )
+    st.markdown(f"**Evidence:** {evidence_summary or 'Evidence available in detail view.'}")
     st.markdown('<span class="opportunity-action-row-marker"></span>', unsafe_allow_html=True)
     button_cols = st.columns([0.18, 0.22, 0.6])
     with button_cols[0]:
@@ -9442,22 +9488,34 @@ def render_opportunity_detail(entry: dict[str, object], results: dict) -> None:
         """,
         unsafe_allow_html=True,
     )
-    evidence_html = opportunity_evidence_metric_html(evidence_metrics)
-    supporting_html = "".join(f"<li>{html.escape(line)}</li>" for line in evidence_lines)
-    supporting_block = f"<ul>{supporting_html}</ul>" if supporting_html else "<p>No additional evidence lines are available for this opportunity.</p>"
-    st.markdown(
-        f"""
-        <div class="opportunity-detail-card">
-            <div class="recommendation-evidence-header">
-                <div class="recommendation-section-title">Evidence</div>
-                <div class="recommendation-period">{html.escape(str(entry.get('source', '')).strip())}</div>
-            </div>
-            {evidence_html}
-            <div class="opportunity-evidence-summary">{supporting_block}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    evidence_rows = build_opportunity_evidence_rows(entry, evidence_lines, evidence_metrics)
+    evidence_card = st.container()
+    with evidence_card:
+        st.markdown('<span class="opportunity-native-evidence-marker"></span>', unsafe_allow_html=True)
+        heading_col, source_col = st.columns([0.78, 0.22])
+        with heading_col:
+            st.markdown("### Evidence")
+        with source_col:
+            source_label = str(entry.get("source", "")).strip()
+            if source_label:
+                st.caption(source_label)
+
+        if evidence_metrics:
+            metric_columns = st.columns(min(len(evidence_metrics), 4))
+            for metric_column, (label, value) in zip(metric_columns, evidence_metrics[:4]):
+                with metric_column:
+                    st.metric(label, value)
+
+        if evidence_rows:
+            for label, value, detail in evidence_rows:
+                row_container = st.container()
+                with row_container:
+                    st.markdown(f"**{label}**")
+                    st.markdown(str(value))
+                    if detail:
+                        st.caption(str(detail))
+        elif not evidence_metrics:
+            st.caption("Supporting metrics are not available for this opportunity in the current run.")
     st.markdown(
         f"""
         <div class="opportunity-meaning-card">
