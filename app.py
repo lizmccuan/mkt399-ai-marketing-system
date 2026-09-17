@@ -39,6 +39,15 @@ def load_decision_rules() -> dict:
         return json.load(f)
 
 
+def load_best_practice_rules() -> dict:
+    """Load the detailed best-practice frameworks used by strategy and execution."""
+    path = DISTILLED_DIR / "best_practices_rules.json"
+    if not path.exists():
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 st.set_page_config(page_title="AI Marketing Workflow System", layout="wide")
 st.markdown(
     """
@@ -947,6 +956,196 @@ st.markdown(
     .social-insight-item strong {
         color: #162033;
     }
+    .social-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.55rem;
+        margin: 0.75rem 0;
+    }
+    .social-stat-card,
+    .social-objective-card,
+    .social-learned-card {
+        background: #FBFCFE;
+        border: 1px solid #EAEDF4;
+        border-radius: 12px;
+        padding: 0.78rem 0.82rem;
+        box-sizing: border-box;
+        min-width: 0;
+    }
+    .social-stat-label,
+    .social-objective-label {
+        color: #667085;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 0.35rem;
+    }
+    .social-stat-value {
+        color: #111721;
+        font-size: 1.08rem;
+        font-weight: 800;
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+    }
+    .social-explainer {
+        background: #F7F9FB;
+        border: 1px solid #EAEDF4;
+        border-radius: 12px;
+        color: #4A5565;
+        font-size: 0.86rem;
+        line-height: 1.55;
+        margin-top: 0.7rem;
+        padding: 0.78rem 0.85rem;
+    }
+    .social-objective-grid,
+    .social-learned-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.62rem;
+        margin-top: 0.8rem;
+    }
+    .social-objective-value {
+        color: #111721;
+        font-size: 0.95rem;
+        font-weight: 760;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+    .social-objective-note,
+    .social-learned-card {
+        color: #4A5565;
+        font-size: 0.82rem;
+        line-height: 1.45;
+    }
+    .social-bars {
+        display: grid;
+        gap: 0.65rem;
+        margin-top: 0.25rem;
+    }
+    .social-bar-row {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.36fr) minmax(0, 1fr) auto;
+        gap: 0.58rem;
+        align-items: center;
+        min-width: 0;
+    }
+    .social-bar-label {
+        color: #344054;
+        font-size: 0.8rem;
+        line-height: 1.25;
+        min-width: 0;
+    }
+    .social-bar-label strong {
+        color: #111721;
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 760;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .social-bar-label span {
+        color: #667085;
+        font-size: 0.72rem;
+    }
+    .social-bar-track {
+        background: #F1F3F8;
+        border-radius: 999px;
+        height: 0.74rem;
+        min-width: 0;
+        overflow: hidden;
+    }
+    .social-bar-fill {
+        background: #6A53E7;
+        border-radius: 999px;
+        height: 100%;
+    }
+    .social-bar-value {
+        color: #4A5565;
+        font-size: 0.75rem;
+        font-weight: 720;
+        min-width: 3.2rem;
+        text-align: right;
+        white-space: nowrap;
+    }
+    .social-post-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.82rem;
+    }
+    .social-post-rank {
+        align-items: center;
+        background: #F5F4FF;
+        border: 1px solid #E1DEFF;
+        border-radius: 999px;
+        color: #6A53E7;
+        display: inline-flex;
+        font-size: 0.78rem;
+        font-weight: 800;
+        height: 1.85rem;
+        justify-content: center;
+        width: 1.85rem;
+    }
+    .social-post-metrics {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 0.42rem;
+        margin-top: 0.7rem;
+    }
+    .social-post-metric {
+        background: #FBFCFE;
+        border: 1px solid #EEF2F7;
+        border-radius: 10px;
+        padding: 0.45rem 0.5rem;
+        min-width: 0;
+    }
+    .social-post-metric span {
+        color: #667085;
+        display: block;
+        font-size: 0.68rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 0.18rem;
+    }
+    .social-post-metric strong {
+        color: #111721;
+        display: block;
+        font-size: 0.78rem;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+    }
+    .social-post-why {
+        border-top: 1px solid #EAEDF4;
+        color: #4A5565;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        margin-top: 0.75rem;
+        padding-top: 0.65rem;
+    }
+    .social-opportunity-structured {
+        display: grid;
+        gap: 0.72rem;
+    }
+    .social-opportunity-block {
+        border-left: 3px solid #E1DEFF;
+        padding-left: 0.75rem;
+    }
+    .social-opportunity-block strong {
+        color: #111721;
+        display: block;
+        font-size: 0.78rem;
+        margin-bottom: 0.2rem;
+    }
+    .social-opportunity-block span,
+    .social-opportunity-block li {
+        color: #4A5565;
+        font-size: 0.86rem;
+        line-height: 1.5;
+    }
+    .social-opportunity-block ul {
+        margin: 0.1rem 0 0;
+        padding-left: 1.05rem;
+    }
     @media (max-width: 768px) {
         [data-testid="stVerticalBlock"]:has(.social-analysis-page-marker) [data-testid="stHorizontalBlock"] {
             flex-wrap: wrap;
@@ -957,6 +1156,19 @@ st.markdown(
             width: 100% !important;
             max-width: 100% !important;
             min-width: 0 !important;
+        }
+        .social-stat-grid,
+        .social-objective-grid,
+        .social-learned-grid,
+        .social-post-metrics {
+            grid-template-columns: 1fr;
+        }
+        .social-bar-row,
+        .social-post-card {
+            grid-template-columns: 1fr;
+        }
+        .social-bar-value {
+            text-align: left;
         }
     }
     .behavior-mini-card {
@@ -1186,38 +1398,55 @@ st.markdown(
         box-sizing: border-box;
     }
     [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-metric-line {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: baseline;
-        justify-content: space-between;
-        gap: 0.75rem;
-        padding: 0.42rem 0;
-        border-bottom: 1px solid #F0F0F4;
+        gap: 0.65rem;
+        padding: 0.72rem 0.78rem;
+        border: 1px solid #EAEDF4;
+        border-radius: 12px;
+        background: #FCFCFD;
         color: #4A5565;
-        font-size: 0.87rem;
+        font-size: 0.84rem;
         line-height: 1.35;
+        min-width: 0;
     }
     [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-metric-line:last-child {
-        border-bottom: 0;
+        border-bottom: 1px solid #EAEDF4;
     }
     [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-metric-line strong {
-        color: #162033;
-        font-weight: 700;
-        flex: 1 1 auto;
+        color: #667085;
+        font-weight: 760;
         min-width: 0;
-        overflow-wrap: anywhere;
+        overflow-wrap: normal;
+        word-break: normal;
     }
     [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-metric-line span {
-        color: #4D3CEF;
-        font-weight: 750;
-        flex: 0 0 auto;
+        color: #111721;
+        font-weight: 840;
         min-width: 0;
         white-space: nowrap;
         text-align: right;
-        overflow-wrap: anywhere;
+        overflow-wrap: normal;
+    }
+    [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-metric-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.62rem;
+        width: 100%;
+        max-width: 560px;
+        margin-top: 0.75rem;
+    }
+    [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-snapshot-title {
+        color: #111721;
+        font-size: 1rem;
+        font-weight: 820;
+        line-height: 1.3;
+        margin-bottom: 0.2rem;
     }
     [data-testid="stVerticalBlock"]:has(.report-snapshot-card-marker) .report-channel-interpretation {
         width: 100%;
-        max-width: 100%;
+        max-width: 560px;
         min-width: 0;
         box-sizing: border-box;
         margin-top: 0.85rem;
@@ -1228,6 +1457,11 @@ st.markdown(
         line-height: 1.5;
         overflow-wrap: anywhere;
         word-break: normal;
+    }
+    @media (max-width: 720px) {
+        [data-testid="stVerticalBlock"]:has(.reports-page-marker) .report-metric-grid {
+            grid-template-columns: 1fr;
+        }
     }
     /* Account for the sidebar so report callouts do not squeeze at normal desktop widths. */
     @media (max-width: 1500px) {
@@ -1304,6 +1538,13 @@ st.markdown(
         box-sizing: border-box;
         overflow-x: clip;
     }
+    [data-testid="stVerticalBlock"]:has(.opportunities-page-marker) {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow-x: clip;
+    }
     [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) .stTabs [data-baseweb="tab-list"] {
         gap: 0.35rem;
         border-bottom: 1px solid #EAEDF4;
@@ -1315,9 +1556,43 @@ st.markdown(
         font-weight: 650;
         min-width: 0;
     }
+    [data-testid="stVerticalBlock"]:has(.opportunities-page-marker) .stTabs [data-baseweb="tab-list"] {
+        gap: 0.35rem;
+        border-bottom: 1px solid #EAEDF4;
+        flex-wrap: wrap;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunities-page-marker) .stTabs [data-baseweb="tab"] {
+        border-radius: 999px 999px 0 0;
+        color: #4A5565;
+        font-weight: 650;
+        min-width: 0;
+    }
+    .recommendation-workspace-header {
+        margin: 0 0 1.15rem;
+    }
+    .recommendation-workspace-title {
+        color: #111721;
+        font-size: 2rem;
+        font-weight: 820;
+        line-height: 1.12;
+        margin: 0 0 0.35rem;
+        letter-spacing: 0;
+    }
+    .recommendation-workspace-subtitle {
+        color: #4A5565;
+        font-size: 0.98rem;
+        line-height: 1.45;
+        margin: 0;
+    }
     .recommendation-queue-card,
+    .opportunity-queue-card,
     .recommendation-detail-card,
-    .recommendation-detail-rail,
+    .opportunity-detail-card,
+    .recommendation-detail-hero,
+    .opportunity-detail-hero,
+    .recommendation-why-card,
+    .opportunity-why-card,
+    .opportunity-meaning-card,
     .recommendation-draft-card {
         background: #FFFFFF;
         border: 1px solid #EAEDF4;
@@ -1327,71 +1602,224 @@ st.markdown(
         max-width: 100%;
     }
     .recommendation-queue-card {
-        padding: 18px 18px 16px;
-        margin: 0 0 0.85rem;
+        padding: 22px 24px 18px;
+        margin: 0 0 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .opportunity-queue-card {
+        padding: 22px 24px 18px;
+        margin: 0 0 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .recommendation-queue-card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.25rem;
+    }
+    .opportunity-queue-card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.25rem;
+    }
+    .recommendation-category-badge {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid #D6DAFF;
+        border-radius: 7px;
+        background: #FFFFFF;
+        color: #4D3CEF;
+        font-size: 0.76rem;
+        font-weight: 820;
+        letter-spacing: 0.02em;
+        line-height: 1;
+        padding: 0.34rem 0.52rem;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+    .recommendation-category-badge.is-social {
+        color: #C11574;
+        border-color: #FDA8DA;
+        background: #FFF5FB;
+    }
+    .recommendation-category-badge.is-local {
+        color: #027A48;
+        border-color: #ABEFC6;
+        background: #F6FEF9;
+    }
+    .recommendation-category-badge.is-analytics {
+        color: #175CD3;
+        border-color: #B2CCFF;
+        background: #EFF8FF;
+    }
+    .opportunity-category-badge {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid #D6DAFF;
+        border-radius: 7px;
+        background: #FFFFFF;
+        color: #4D3CEF;
+        font-size: 0.76rem;
+        font-weight: 820;
+        letter-spacing: 0.02em;
+        line-height: 1;
+        padding: 0.34rem 0.52rem;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+    .opportunity-category-badge.is-social {
+        color: #C11574;
+        border-color: #FDA8DA;
+        background: #FFF5FB;
+    }
+    .opportunity-category-badge.is-local {
+        color: #027A48;
+        border-color: #ABEFC6;
+        background: #F6FEF9;
+    }
+    .opportunity-category-badge.is-website {
+        color: #175CD3;
+        border-color: #B2CCFF;
+        background: #EFF8FF;
     }
     .recommendation-featured-card {
-        background: #F5F4FF;
+        background: linear-gradient(180deg, #F3ECFF 0%, #FFFFFF 100%);
         border: 1px solid #E1DEFF;
-        border-radius: 18px;
-        box-shadow: 0 14px 34px rgba(106, 83, 231, 0.10);
-        padding: 20px 22px;
-        margin: 1rem 0 1.15rem;
+        border-radius: 14px;
+        box-shadow: 0 16px 38px rgba(106, 83, 231, 0.09);
+        padding: 0;
+        margin: 1rem 0 1.35rem;
         box-sizing: border-box;
         max-width: 100%;
+        overflow: hidden;
+    }
+    .opportunity-featured-card {
+        background: linear-gradient(180deg, #F3ECFF 0%, #FFFFFF 100%);
+        border: 1px solid #E1DEFF;
+        border-radius: 14px;
+        box-shadow: 0 16px 38px rgba(106, 83, 231, 0.09);
+        padding: 0;
+        margin: 1rem 0 1.35rem;
+        box-sizing: border-box;
+        max-width: 100%;
+        overflow: hidden;
+    }
+    .recommendation-featured-body {
+        padding: 24px 28px 22px;
+    }
+    .opportunity-featured-body {
+        padding: 24px 28px 22px;
+    }
+    .recommendation-featured-footer {
+        border-top: 1px solid #E6E1F5;
+        padding: 18px 28px 20px;
+        background: rgba(255,255,255,0.64);
+    }
+    .opportunity-featured-footer {
+        border-top: 1px solid #E6E1F5;
+        padding: 18px 28px 20px;
+        background: rgba(255,255,255,0.64);
+    }
+    .recommendation-featured-quote {
+        color: #4A5565;
+        font-size: 0.95rem;
+        font-style: italic;
+        line-height: 1.55;
+        margin-bottom: 1rem;
     }
     .recommendation-eyebrow {
         color: #6A53E7;
-        font-size: 0.74rem;
+        font-size: 0.78rem;
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        margin-bottom: 0.55rem;
+        margin-bottom: 1rem;
+    }
+    .opportunity-eyebrow {
+        color: #6A53E7;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
     }
     .recommendation-card-title {
         color: #111721;
-        font-size: 1.08rem;
-        font-weight: 760;
-        line-height: 1.3;
-        margin-bottom: 0.45rem;
+        font-size: 1.18rem;
+        font-weight: 800;
+        line-height: 1.28;
+        margin-bottom: 0.55rem;
+        overflow-wrap: anywhere;
+    }
+    .opportunity-card-title {
+        color: #111721;
+        font-size: 1.18rem;
+        font-weight: 800;
+        line-height: 1.28;
+        margin-bottom: 0.55rem;
         overflow-wrap: anywhere;
     }
     .recommendation-featured-card .recommendation-card-title {
-        font-size: 1.25rem;
+        font-size: 1.46rem;
+        letter-spacing: -0.01em;
+    }
+    .opportunity-featured-card .opportunity-card-title {
+        font-size: 1.46rem;
+        letter-spacing: -0.01em;
     }
     .recommendation-card-copy,
     .recommendation-detail-copy {
         color: #4A5565;
-        font-size: 0.94rem;
+        font-size: 0.98rem;
         line-height: 1.55;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.9rem;
+        overflow-wrap: anywhere;
+    }
+    .opportunity-card-copy,
+    .opportunity-detail-copy {
+        color: #4A5565;
+        font-size: 0.98rem;
+        line-height: 1.55;
+        margin-bottom: 0.9rem;
+        overflow-wrap: anywhere;
+    }
+    .opportunity-evidence-summary {
+        color: #667085;
+        font-size: 0.86rem;
+        line-height: 1.5;
+        margin: 0.75rem 0 0.8rem;
         overflow-wrap: anywhere;
     }
     .recommendation-meta-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.4rem;
-        margin: 0.55rem 0 0.85rem;
+        gap: 0.42rem;
+        margin: 0.7rem 0 1rem;
     }
     .recommendation-chip {
         display: inline-flex;
         align-items: center;
         max-width: 100%;
         min-width: 0;
-        border-radius: 999px;
+        border-radius: 6px;
         border: 1px solid #EAEDF4;
         background: #FCFCFD;
         color: #4A5565;
-        font-size: 0.78rem;
-        font-weight: 680;
+        font-size: 0.74rem;
+        font-weight: 720;
         line-height: 1.25;
-        padding: 0.34rem 0.62rem;
+        padding: 0.28rem 0.5rem;
         overflow-wrap: anywhere;
     }
     .recommendation-chip-primary {
-        background: #F5F4FF;
-        border-color: #E1DEFF;
-        color: #4D3CEF;
+        background: #FFF5F5;
+        border-color: #FDA29B;
+        color: #D92D20;
     }
     .recommendation-actions-row {
         display: flex;
@@ -1401,51 +1829,157 @@ st.markdown(
         margin-top: 0.35rem;
     }
     .recommendation-detail-card,
-    .recommendation-detail-rail,
+    .recommendation-detail-hero,
+    .recommendation-why-card,
+    .opportunity-detail-card,
+    .opportunity-detail-hero,
+    .opportunity-why-card,
+    .opportunity-meaning-card,
     .recommendation-draft-card {
-        padding: 20px;
+        padding: 24px;
         margin-bottom: 1rem;
+    }
+    .recommendation-detail-hero {
+        background: #FFFFFF;
+    }
+    .opportunity-detail-hero {
+        background: #FFFFFF;
+    }
+    .recommendation-why-card {
+        background: #F1EAFE;
+        border-color: #D7C5FF;
+    }
+    .opportunity-why-card {
+        background: #F1EAFE;
+        border-color: #D7C5FF;
+    }
+    .opportunity-meaning-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+        margin-top: 0.5rem;
+    }
+    .opportunity-meaning-item {
+        border: 1px solid #EAEDF4;
+        border-radius: 12px;
+        background: #FCFCFD;
+        padding: 0.85rem 0.95rem;
+        min-width: 0;
+    }
+    .opportunity-meaning-label {
+        color: #6A53E7;
+        font-size: 0.75rem;
+        font-weight: 820;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 0.45rem;
+    }
+    .opportunity-meaning-copy {
+        color: #344054;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
     }
     .recommendation-section-title {
         color: #111721;
-        font-size: 1.02rem;
-        font-weight: 760;
+        font-size: 1.08rem;
+        font-weight: 800;
         line-height: 1.3;
-        margin-bottom: 0.55rem;
+        margin-bottom: 0.75rem;
     }
     .recommendation-breadcrumb {
         color: #667085;
-        font-size: 0.86rem;
+        font-size: 0.82rem;
+        font-weight: 700;
         line-height: 1.45;
-        margin: 0.4rem 0 0.75rem;
+        margin: 0.25rem 0 1rem;
         overflow-wrap: anywhere;
+    }
+    .opportunity-breadcrumb {
+        color: #667085;
+        font-size: 0.82rem;
+        font-weight: 700;
+        line-height: 1.45;
+        margin: 0.25rem 0 1rem;
+        overflow-wrap: anywhere;
+    }
+    .recommendation-evidence-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.85rem;
+    }
+    .recommendation-period {
+        color: #667085;
+        font-size: 0.82rem;
+        font-weight: 700;
+        white-space: nowrap;
     }
     .recommendation-evidence-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 0.7rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
         margin-top: 0.8rem;
     }
     .recommendation-evidence-card {
-        background: #FCFCFD;
+        background: #FFFFFF;
         border: 1px solid #EAEDF4;
         border-radius: 14px;
-        padding: 0.75rem 0.85rem;
+        padding: 1.05rem 1.15rem;
         min-width: 0;
     }
     .recommendation-evidence-label {
         color: #667085;
-        font-size: 0.76rem;
-        font-weight: 650;
+        font-size: 0.78rem;
+        font-weight: 760;
         line-height: 1.25;
-        margin-bottom: 0.32rem;
+        margin-bottom: 0.75rem;
     }
     .recommendation-evidence-value {
         color: #111721;
-        font-size: 1.05rem;
-        font-weight: 760;
+        font-size: 1.55rem;
+        font-weight: 840;
         line-height: 1.2;
         overflow-wrap: anywhere;
+    }
+    .recommendation-comparison-card {
+        border: 1px solid #EAEDF4;
+        border-radius: 14px;
+        background: #FFFFFF;
+        padding: 1rem 1.15rem;
+        margin-top: 1.15rem;
+    }
+    .recommendation-comparison-title {
+        color: #667085;
+        font-size: 0.8rem;
+        font-weight: 800;
+        margin-bottom: 0.8rem;
+    }
+    .recommendation-comparison-row {
+        display: grid;
+        grid-template-columns: 160px minmax(0, 1fr) auto;
+        gap: 0.65rem;
+        align-items: center;
+        margin-bottom: 0.55rem;
+        color: #4A5565;
+        font-size: 0.78rem;
+    }
+    .recommendation-comparison-track {
+        background: #F1F3F8;
+        border-radius: 999px;
+        height: 0.46rem;
+        overflow: hidden;
+    }
+    .recommendation-comparison-fill {
+        height: 100%;
+        border-radius: 999px;
+    }
+    .recommendation-comparison-note {
+        color: #4A5565;
+        font-size: 0.84rem;
+        line-height: 1.5;
+        margin-top: 0.8rem;
     }
     .recommendation-status-line {
         color: #4A5565;
@@ -1453,54 +1987,59 @@ st.markdown(
         font-weight: 650;
         margin: 0.25rem 0 0.75rem;
     }
-    .recommendation-detail-rail {
-        position: sticky;
-        top: 1rem;
+    .recommendation-action-list {
+        display: grid;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
     }
-    .recommendation-detail-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 0.75rem;
-        border-bottom: 1px solid #F0F2F5;
-        padding: 0.46rem 0;
-        color: #4A5565;
-        font-size: 0.88rem;
-        line-height: 1.35;
+    [data-testid="stVerticalBlock"]:has(.recommendation-action-list-marker) [data-testid="stCheckbox"] {
+        background: #FFFFFF;
+        border: 1px solid #EAEDF4;
+        border-radius: 12px;
+        padding: 0.65rem 0.75rem;
+        margin-bottom: 0.45rem;
     }
-    .recommendation-detail-row strong {
-        color: #111721;
-        font-weight: 720;
-    }
-    .recommendation-related-list {
-        margin: 0.2rem 0 0.7rem;
-        padding-left: 1.05rem;
-        color: #4A5565;
-        font-size: 0.9rem;
-        line-height: 1.55;
-    }
-    .recommendation-powered-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.38rem;
+    [data-testid="stVerticalBlock"]:has(.recommendation-action-list-marker) [data-testid="stCheckbox"] label {
+        align-items: flex-start;
+        gap: 0.62rem;
+        color: #344054;
+        font-size: 0.94rem;
+        line-height: 1.45;
     }
     .recommendation-execution-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-        gap: 0.75rem;
+        grid-template-columns: 1fr;
+        gap: 0.65rem;
         margin-top: 0.75rem;
     }
     .recommendation-option-card {
         background: #FFFFFF;
         border: 1px solid #EAEDF4;
-        border-radius: 14px;
-        padding: 0.9rem;
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
         min-width: 0;
-        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.035);
+        box-shadow: none;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.75rem;
+        align-items: start;
+    }
+    .recommendation-option-icon {
+        width: 1.55rem;
+        height: 1.55rem;
+        border-radius: 7px;
+        background: #E6F7FF;
+        color: #0891B2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.82rem;
+        font-weight: 800;
     }
     .recommendation-option-title {
         color: #111721;
         font-size: 0.94rem;
-        font-weight: 740;
+        font-weight: 800;
         margin-bottom: 0.28rem;
         line-height: 1.3;
     }
@@ -1508,7 +2047,7 @@ st.markdown(
         color: #667085;
         font-size: 0.83rem;
         line-height: 1.45;
-        margin-bottom: 0.65rem;
+        margin-bottom: 0;
     }
     .recommendation-draft-label {
         color: #6A53E7;
@@ -1518,9 +2057,140 @@ st.markdown(
         text-transform: uppercase;
         margin-bottom: 0.45rem;
     }
+    .recommendation-draft-section {
+        border-top: 1px solid #EAEDF4;
+        padding-top: 0.9rem;
+        margin-top: 0.9rem;
+    }
+    .recommendation-draft-section-title {
+        color: #111721;
+        font-size: 0.88rem;
+        font-weight: 820;
+        margin-bottom: 0.45rem;
+    }
+    .recommendation-draft-copy {
+        color: #344054;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        margin-bottom: 0.65rem;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) .stRadio [role="radiogroup"] {
+        gap: 0.45rem;
+        border-bottom: 1px solid #EAEDF4;
+        padding: 0.35rem 0 0.65rem;
+        margin-bottom: 1rem;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunities-page-marker) .stRadio [role="radiogroup"] {
+        gap: 0.45rem;
+        border-bottom: 1px solid #EAEDF4;
+        padding: 0.35rem 0 0.65rem;
+        margin-bottom: 1rem;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) .stRadio label {
+        background: transparent;
+        border-radius: 999px;
+        color: #4A5565;
+        font-weight: 760;
+        padding: 0.25rem 0.4rem;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunities-page-marker) .stRadio label {
+        background: transparent;
+        border-radius: 999px;
+        color: #4A5565;
+        font-weight: 760;
+        padding: 0.25rem 0.4rem;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) .stRadio label:has(input:checked) {
+        color: #4D3CEF;
+        background: #F5F4FF;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunities-page-marker) .stRadio label:has(input:checked) {
+        color: #4D3CEF;
+        background: #F5F4FF;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) button[kind="primary"] {
+        background: #05010F;
+        border-color: #05010F;
+        color: #FFFFFF;
+        border-radius: 5px;
+        font-weight: 760;
+    }
+    .recommendation-start-action-marker {
+        display: none !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendation-start-action-marker) button[kind="primary"],
+    [data-testid="stElementContainer"]:has(.recommendation-start-action-marker) + [data-testid="stElementContainer"] button[kind="primary"] {
+        background: #EEE8FF !important;
+        border: 1px solid #D8CFFF !important;
+        color: #111827 !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendation-start-action-marker) button[kind="primary"] *,
+    [data-testid="stElementContainer"]:has(.recommendation-start-action-marker) + [data-testid="stElementContainer"] button[kind="primary"] * {
+        color: #111827 !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendation-start-action-marker) button[kind="primary"]:hover,
+    [data-testid="stElementContainer"]:has(.recommendation-start-action-marker) + [data-testid="stElementContainer"] button[kind="primary"]:hover {
+        background: #E2D8FF !important;
+        border-color: #C8B8FF !important;
+        color: #111827 !important;
+    }
+    .opportunity-action-row-marker {
+        display: none !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunity-action-row-marker) [data-testid="stHorizontalBlock"] {
+        justify-content: flex-start;
+        gap: 0.65rem;
+        margin: -0.25rem 0 1.15rem;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunity-action-row-marker) [data-testid="column"] {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        min-width: 0 !important;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunity-action-row-marker) .stButton > button {
+        min-width: 168px;
+        width: auto;
+        height: 38px;
+        padding-left: 1.05rem;
+        padding-right: 1.05rem;
+        white-space: nowrap;
+        border-radius: 5px;
+        font-weight: 760;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunity-action-row-marker) .stButton > button * {
+        white-space: nowrap;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunity-action-row-marker) .stButton > button:not([kind="primary"]) {
+        background: #FFFFFF;
+        border: 1px solid #D8CFFF;
+        color: #111827;
+    }
+    [data-testid="stVerticalBlock"]:has(.opportunity-action-row-marker) .stButton > button:not([kind="primary"]):hover {
+        background: #F8F6FF;
+        border-color: #C8B8FF;
+        color: #111827;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) details {
+        border: 1px solid #EAEDF4;
+        border-radius: 12px;
+        background: #FFFFFF;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.03);
+        margin-bottom: 0.6rem;
+        overflow: hidden;
+    }
+    [data-testid="stVerticalBlock"]:has(.recommendations-page-marker) details summary {
+        color: #111721;
+        font-weight: 800;
+    }
     @media (max-width: 980px) {
-        .recommendation-detail-rail {
-            position: static;
+        .recommendation-evidence-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .opportunity-meaning-grid {
+            grid-template-columns: 1fr;
+        }
+        [data-testid="stVerticalBlock"]:has(.opportunity-action-row-marker) [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap;
         }
     }
     @media (max-width: 768px) {
@@ -1535,6 +2205,13 @@ st.markdown(
             width: 100% !important;
             max-width: 100% !important;
             min-width: 0 !important;
+        }
+        .recommendation-evidence-grid,
+        .recommendation-comparison-row {
+            grid-template-columns: 1fr;
+        }
+        .recommendation-period {
+            white-space: normal;
         }
     }
     /* Override the general dashboard-card clipping for the Social opportunity copy. */
@@ -5583,37 +6260,257 @@ def sort_social_content(records: list[dict[str, object]], metric: str) -> list[d
     )
 
 
-def render_social_post_cards(records: list[dict[str, object]]) -> None:
+def format_social_percent(value: object) -> str:
+    """Format a source-supported social rate value."""
+    numeric_value = to_comparison_number(value)
+    return f"{numeric_value:.2f}%" if numeric_value is not None else "Not available"
+
+
+def build_social_metric_stat(label: str, value: str) -> str:
+    """Render one compact social summary stat."""
+    return (
+        '<div class="social-stat-card">'
+        f'<div class="social-stat-label">{html.escape(label)}</div>'
+        f'<div class="social-stat-value">{html.escape(value)}</div>'
+        '</div>'
+    )
+
+
+def build_social_horizontal_bars(
+    records: list[dict[str, object]],
+    label_key: str,
+    metric_key: str,
+    *,
+    value_suffix: str = "",
+    count_key: str | None = None,
+    value_formatter=None,
+) -> str:
+    """Build a compact horizontal-bar comparison using existing social group metrics."""
+    valid_records = [
+        item for item in records
+        if to_comparison_number(item.get(metric_key)) is not None
+    ]
+    if not valid_records:
+        return '<p class="dashboard-empty-note">No comparable metric is available for this section.</p>'
+
+    sorted_records = sorted(valid_records, key=lambda item: to_comparison_number(item.get(metric_key)) or 0, reverse=True)
+    max_value = max((to_comparison_number(item.get(metric_key)) or 0 for item in sorted_records), default=0) or 1
+    colors = ["#352D97", "#6357D7", "#9387EA", "#C9C4F8", "#DEDDFC"]
+    rows_html = []
+    for index, item in enumerate(sorted_records):
+        raw_label = item.get(label_key)
+        label = humanize_social_topic(str(raw_label)) if label_key == "theme" else str(raw_label or "Unknown")
+        value = to_comparison_number(item.get(metric_key)) or 0
+        width = max(4, min(100, (value / max_value) * 100))
+        value_text = value_formatter(value) if value_formatter else f"{value:.2f}{value_suffix}"
+        count_text = ""
+        if count_key and item.get(count_key) is not None:
+            count_value = to_comparison_number(item.get(count_key)) or 0
+            count_text = f"{format_social_number(count_value)} {'post' if int(count_value) == 1 else 'posts'}"
+        rows_html.append(
+            '<div class="social-bar-row">'
+            '<div class="social-bar-label">'
+            f'<strong title="{html.escape(label)}">{html.escape(label)}</strong>'
+            f'<span>{html.escape(count_text)}</span>'
+            '</div>'
+            '<div class="social-bar-track">'
+            f'<div class="social-bar-fill" style="width:{width:.1f}%; background:{colors[index % len(colors)]};"></div>'
+            '</div>'
+            f'<div class="social-bar-value">{html.escape(str(value_text))}</div>'
+            '</div>'
+        )
+    return f'<div class="social-bars">{"".join(rows_html)}</div>'
+
+
+def build_social_format_performance_html(format_performance: list[dict[str, object]]) -> str:
+    """Render format performance without manufacturing comparisons for one-format runs."""
+    if not format_performance:
+        return '<p class="dashboard-empty-note">No content-format data is available in this run.</p>'
+    if len(format_performance) == 1:
+        item = format_performance[0]
+        stat_html = "".join(
+            [
+                build_social_metric_stat("Posts analyzed", format_social_number(item.get("posts"))),
+                build_social_metric_stat("Engagement rate", format_social_percent(item.get("engagement_rate"))),
+                build_social_metric_stat("Average reach", format_social_number(item.get("avg_reach"))),
+                build_social_metric_stat("Average views", format_social_number(item.get("avg_views"))),
+                build_social_metric_stat("Save rate", format_social_percent(item.get("save_rate"))),
+            ]
+        )
+        format_name = str(item.get("format") or "Content format")
+        return (
+            f'<p class="dashboard-empty-note"><strong>{html.escape(format_name)}</strong> is the only format present in this run.</p>'
+            f'<div class="social-stat-grid">{stat_html}</div>'
+            '<div class="social-explainer">Only one content format is present in this run, so InsightRx cannot compare format performance yet.</div>'
+        )
+    bars = build_social_horizontal_bars(
+        format_performance,
+        "format",
+        "engagement_rate",
+        value_suffix="%",
+        count_key="posts",
+        value_formatter=lambda value: f"{value:.2f}%",
+    )
+    return (
+        f"{bars}"
+        '<div class="social-explainer">Formats are ranked by engagement rate from the current Meta export. Post counts are shown beside each format so small samples stay visible.</div>'
+    )
+
+
+def build_social_theme_performance_html(theme_performance: list[dict[str, object]]) -> str:
+    """Render theme performance as ranked bars with explicit sample-size context."""
+    if not theme_performance:
+        return '<p class="dashboard-empty-note">No content-theme data is available in this run.</p>'
+    bars = build_social_horizontal_bars(
+        theme_performance,
+        "theme",
+        "engagement_rate",
+        value_suffix="%",
+        count_key="posts",
+        value_formatter=lambda value: f"{value:.2f}%",
+    )
+    top_theme = max(theme_performance, key=lambda item: to_comparison_number(item.get("engagement_rate")) or -1)
+    top_name = humanize_social_topic(str(top_theme.get("theme") or "the leading theme"))
+    top_rate = format_social_percent(top_theme.get("engagement_rate"))
+    top_posts = int(to_comparison_number(top_theme.get("posts")) or 0)
+    if top_posts <= 1:
+        interpretation = (
+            f"{top_name} generated the highest engagement rate in this run ({top_rate}), but the result is based on "
+            "one post, so there is not enough evidence yet to conclude that it consistently outperforms other themes."
+        )
+    else:
+        interpretation = (
+            f"{top_name} generated the highest average engagement rate in this run ({top_rate}) across "
+            f"{top_posts} posts."
+        )
+    objective_cards = build_social_theme_objective_cards(theme_performance)
+    return f"{bars}<div class=\"social-explainer\">{html.escape(interpretation)}</div>{objective_cards}"
+
+
+def build_social_theme_objective_cards(theme_performance: list[dict[str, object]]) -> str:
+    """Show what each theme did best without implying one universal winner."""
+    if not theme_performance:
+        return ""
+
+    def best_by(metric_key: str) -> dict[str, object] | None:
+        candidates = [item for item in theme_performance if to_comparison_number(item.get(metric_key)) is not None]
+        return max(candidates, key=lambda item: to_comparison_number(item.get(metric_key)) or 0) if candidates else None
+
+    cards: list[str] = []
+    engagement = best_by("engagement_rate")
+    if engagement:
+        cards.append(
+            build_social_objective_card(
+                "Highest Engagement",
+                humanize_social_topic(str(engagement.get("theme") or "Theme")),
+                format_social_percent(engagement.get("engagement_rate")),
+            )
+        )
+    visibility = best_by("avg_reach") or best_by("avg_views")
+    if visibility:
+        reach_text = format_social_number(visibility.get("avg_reach")) if visibility.get("avg_reach") is not None else "Not available"
+        views_text = format_social_number(visibility.get("avg_views")) if visibility.get("avg_views") is not None else "Not available"
+        cards.append(
+            build_social_objective_card(
+                "Highest Visibility",
+                humanize_social_topic(str(visibility.get("theme") or "Theme")),
+                f"{reach_text} avg. reach · {views_text} avg. views",
+            )
+        )
+    most_tested = best_by("posts")
+    if most_tested:
+        posts = int(to_comparison_number(most_tested.get("posts")) or 0)
+        cards.append(
+            build_social_objective_card(
+                "Most Tested",
+                humanize_social_topic(str(most_tested.get("theme") or "Theme")),
+                f"{posts} {'post' if posts == 1 else 'posts'}",
+            )
+        )
+    if not cards:
+        return ""
+    return (
+        '<div class="social-explainer" style="background:#FFFFFF;">'
+        '<strong style="color:#111721;">What Each Theme Did Best</strong>'
+        f'<div class="social-objective-grid">{"".join(cards[:3])}</div>'
+        '</div>'
+    )
+
+
+def build_social_objective_card(label: str, title: str, note: str) -> str:
+    """Render one compact theme-objective card."""
+    return (
+        '<div class="social-objective-card">'
+        f'<div class="social-objective-label">{html.escape(label)}</div>'
+        f'<div class="social-objective-value">{html.escape(title)}</div>'
+        f'<div class="social-objective-note">{html.escape(note)}</div>'
+        '</div>'
+    )
+
+
+def explain_social_rank(item: dict[str, object], sort_key: str) -> str:
+    """Explain why a post appears in a selected ranking using only available metrics."""
+    if sort_key == "reach" and item.get("reach") is not None:
+        return f"Ranked here because it reached {format_social_number(item.get('reach'))} people in the current run."
+    if sort_key == "engagement" and item.get("engagement_rate") is not None:
+        return f"Ranked here because its engagement rate was {format_social_percent(item.get('engagement_rate'))}."
+    if sort_key == "saves" and item.get("saves") is not None:
+        return f"Ranked here because it recorded {format_social_number(item.get('saves'))} saves."
+    if sort_key == "shares" and item.get("shares") is not None:
+        return f"Ranked here because it recorded {format_social_number(item.get('shares'))} shares."
+    evidence_parts = []
+    if item.get("engagement_rate") is not None:
+        evidence_parts.append(f"{format_social_percent(item.get('engagement_rate'))} engagement rate")
+    if item.get("reach") is not None:
+        evidence_parts.append(f"{format_social_number(item.get('reach'))} reach")
+    if item.get("views") is not None:
+        evidence_parts.append(f"{format_social_number(item.get('views'))} views")
+    if evidence_parts:
+        return f"Ranked here because it combines available audience-response signals: {', '.join(evidence_parts)}."
+    return "Ranked here because it has the strongest available post-level signals in this tab."
+
+
+def render_social_post_cards(records: list[dict[str, object]], sort_key: str = "overall") -> None:
     """Render compact text-based post cards when no usable media thumbnail is supplied."""
-    for item in records[:3]:
+    for rank, item in enumerate(records[:3], start=1):
         hook = str(item.get("hook") or "Untitled social post").strip()
         if len(hook) > 180:
             hook = f"{hook[:177].rstrip()}..."
         meta_parts = [
-            str(item.get("format") or "Unknown format"),
-            humanize_social_topic(str(item.get("topic") or "general")),
+            f"Theme: {humanize_social_topic(str(item.get('topic') or 'general'))}",
+            f"Format: {str(item.get('format') or 'Unknown format')}",
         ]
         if item.get("publish_time"):
-            meta_parts.append(str(item["publish_time"]))
-        metric_parts = []
+            meta_parts.append(f"Date: {str(item['publish_time'])}")
+        metric_cards = []
         for key, label, is_rate in [
             ("reach", "Reach", False),
             ("views", "Views", False),
-            ("engagements", "Engagements", False),
             ("engagement_rate", "Engagement rate", True),
             ("saves", "Saves", False),
             ("shares", "Shares", False),
+            ("engagements", "Engagements", False),
         ]:
             if item.get(key) is not None:
                 value = item[key]
                 value_text = f"{float(value):.2f}%" if is_rate else format_social_number(value)
-                metric_parts.append(f"{label}: {value_text}")
+                metric_cards.append(
+                    '<div class="social-post-metric">'
+                    f'<span>{html.escape(label)}</span>'
+                    f'<strong>{html.escape(value_text)}</strong>'
+                    '</div>'
+                )
+        why = explain_social_rank(item, sort_key)
         st.markdown(
             f"""
             <div class="social-post-card">
-                <div class="social-post-card-title">{html.escape(hook)}</div>
-                <div class="social-post-card-meta">{html.escape(' • '.join(meta_parts))}</div>
-                <div class="social-post-card-meta" style="margin-top: 0.5rem;">{html.escape(' • '.join(metric_parts))}</div>
+                <div class="social-post-rank">#{rank}</div>
+                <div>
+                    <div class="social-post-card-title">{html.escape(hook)}</div>
+                    <div class="social-post-card-meta">{html.escape(' • '.join(meta_parts))}</div>
+                    <div class="social-post-metrics">{''.join(metric_cards)}</div>
+                    <div class="social-post-why"><strong>Why it ranked:</strong> {html.escape(why)}</div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -5637,6 +6534,198 @@ def render_social_summary_card(summary_statements: list[object], metrics: dict[s
                 f'<div class="social-summary-statement">{format_social_number(metrics.get("posts_published"))} valid posts are available for analysis. More variation in content formats or themes is needed before a comparative pattern can be stated.</div>',
                 unsafe_allow_html=True,
             )
+
+
+def build_social_opportunity_html(workspace: dict[str, object]) -> str:
+    """Build a structured, evidence-grounded explanation of the social opportunity."""
+    metrics = workspace.get("metrics") if isinstance(workspace.get("metrics"), dict) else {}
+    engagement_components = workspace.get("engagement_components") or []
+    total_engagements = to_comparison_number(metrics.get("total_engagements"))
+    follows = next(
+        (to_comparison_number(item.get("value")) for item in engagement_components if item.get("label") == "Follows"),
+        None,
+    )
+    engagement_rate = metrics.get("engagement_rate")
+    posts = metrics.get("posts_published")
+    evidence_lines = []
+    if posts is not None:
+        evidence_lines.append(f"{format_social_number(posts)} posts analyzed")
+    if total_engagements is not None:
+        evidence_lines.append(f"{format_social_number(total_engagements)} total recorded engagements")
+    if engagement_rate is not None:
+        evidence_lines.append(f"{format_social_percent(engagement_rate)} engagement rate")
+    if follows is not None:
+        evidence_lines.append(f"{format_social_number(follows)} follows")
+    evidence_html = "".join(f"<li>{html.escape(line)}</li>" for line in evidence_lines)
+    if not evidence_html:
+        evidence_html = "<li>Current Meta post metrics are available for review.</li>"
+    return (
+        '<div class="social-opportunity-structured">'
+        '<div class="social-opportunity-block"><strong>What InsightRx found</strong>'
+        '<span>Several posts generated measurable audience interaction while stronger next-step actions remained limited in the available data.</span></div>'
+        '<div class="social-opportunity-block"><strong>Why it matters</strong>'
+        '<span>The content appears capable of earning attention, but that attention is not consistently progressing into a stronger next action.</span></div>'
+        '<div class="social-opportunity-block"><strong>Opportunity</strong>'
+        '<span>Test clearer next-step CTAs on high-engagement content.</span></div>'
+        f'<div class="social-opportunity-block"><strong>Evidence</strong><ul>{evidence_html}</ul></div>'
+        '<div class="dashboard-action-footer">View Supporting Posts → Top Content below.</div>'
+        '</div>'
+    )
+
+
+def build_social_engagement_quality_html(engagement_components: list[dict[str, object]], metrics: dict[str, object]) -> str:
+    """Render engagement components as sorted horizontal bars instead of a donut chart."""
+    if not engagement_components:
+        return '<p class="dashboard-empty-note">No engagement-action breakdown is available in this Meta export.</p>'
+    sorted_components = sorted(
+        engagement_components,
+        key=lambda item: to_comparison_number(item.get("value")) or 0,
+        reverse=True,
+    )
+    bars = build_social_horizontal_bars(
+        sorted_components,
+        "label",
+        "value",
+        value_formatter=lambda value: format_social_number(value),
+    )
+    total_engagements = to_comparison_number(metrics.get("total_engagements"))
+    total_text = format_social_number(total_engagements) if total_engagements is not None else format_social_number(
+        sum(to_comparison_number(item.get("value")) or 0 for item in engagement_components)
+    )
+    lightweight_labels = {"Reactions / likes"}
+    deeper_labels = {"Saves", "Shares", "Comments", "Follows"}
+    lightweight_total = sum(
+        to_comparison_number(item.get("value")) or 0
+        for item in engagement_components
+        if item.get("label") in lightweight_labels
+    )
+    deeper_total = sum(
+        to_comparison_number(item.get("value")) or 0
+        for item in engagement_components
+        if item.get("label") in deeper_labels
+    )
+    if lightweight_total >= deeper_total and lightweight_total > 0:
+        interpretation = (
+            "Most engagement in this run came from lightweight interactions such as reactions and likes. "
+            "Deeper actions such as saving, sharing, commenting, or following represented a much smaller share of audience response."
+        )
+    else:
+        interpretation = (
+            "The engagement mix shows how recorded audience actions are distributed across reactions, saves, shares, comments, and follows."
+        )
+    return (
+        f'<div class="social-stat-grid" style="grid-template-columns:minmax(0,1fr); max-width:220px;">'
+        f'{build_social_metric_stat("Total Engagements", total_text)}</div>'
+        f"{bars}"
+        f'<div class="social-explainer">{html.escape(interpretation)}</div>'
+    )
+
+
+def build_social_learned_html(workspace: dict[str, object]) -> str:
+    """Summarize social analysis into grounded takeaways from the current run."""
+    theme_performance = workspace.get("theme_performance") or []
+    format_performance = workspace.get("format_performance") or []
+    engagement_components = workspace.get("engagement_components") or []
+    takeaways: list[str] = []
+
+    if theme_performance:
+        top_engagement = max(theme_performance, key=lambda item: to_comparison_number(item.get("engagement_rate")) or -1)
+        theme_name = humanize_social_topic(str(top_engagement.get("theme") or "A content theme"))
+        posts = int(to_comparison_number(top_engagement.get("posts")) or 0)
+        if top_engagement.get("engagement_rate") is not None:
+            qualifier = "although the sample is small" if posts <= 1 else f"across {posts} posts"
+            takeaways.append(
+                f"{theme_name} earned the strongest engagement rate in this run ({format_social_percent(top_engagement.get('engagement_rate'))}), {qualifier}."
+            )
+        visibility_candidates = [
+            item for item in theme_performance
+            if to_comparison_number(item.get("avg_reach")) is not None or to_comparison_number(item.get("avg_views")) is not None
+        ]
+        if visibility_candidates:
+            top_visibility = max(
+                visibility_candidates,
+                key=lambda item: (
+                    to_comparison_number(item.get("avg_reach")) or 0,
+                    to_comparison_number(item.get("avg_views")) or 0,
+                ),
+            )
+            visibility_name = humanize_social_topic(str(top_visibility.get("theme") or "A content theme"))
+            visibility_bits = []
+            if top_visibility.get("avg_reach") is not None:
+                visibility_bits.append(f"{format_social_number(top_visibility.get('avg_reach'))} avg. reach")
+            if top_visibility.get("avg_views") is not None:
+                visibility_bits.append(f"{format_social_number(top_visibility.get('avg_views'))} avg. views")
+            takeaways.append(f"{visibility_name} generated the strongest visibility signal ({' · '.join(visibility_bits)}).")
+
+    if len(format_performance) == 1:
+        takeaways.append("Only one content format is present, so format-level conclusions should wait for more variety.")
+
+    if engagement_components:
+        top_component = max(engagement_components, key=lambda item: to_comparison_number(item.get("value")) or 0)
+        takeaways.append(
+            f"Most recorded engagement was concentrated in {str(top_component.get('label', 'the leading action')).lower()}."
+        )
+
+    if not takeaways:
+        takeaways.append("The current Meta export is available, but more complete post metrics are needed for stronger social takeaways.")
+
+    cards = "".join(f'<div class="social-learned-card">{html.escape(takeaway)}</div>' for takeaway in takeaways[:3])
+    return f'<div class="social-learned-grid">{cards}</div>'
+
+
+def get_top_social_recommendation(results: dict) -> dict[str, object] | None:
+    """Return the highest-priority existing Social recommendation from the curated queue."""
+    recommendation_items = build_curated_recommendation_workspace_items(
+        build_all_recommendation_workspace_items(results)
+    )
+    for item in recommendation_items:
+        if get_recommendation_category(item) == "Social":
+            return item
+    return None
+
+
+def render_social_recommended_next_step(results: dict) -> None:
+    """Render one existing Social recommendation when the curated system provides it."""
+    social_item = get_top_social_recommendation(results)
+    if not social_item:
+        return
+
+    title = get_recommendation_display_title(social_item)
+    summary = get_recommendation_summary(social_item)
+    confidence = get_recommendation_confidence(social_item)
+    evidence_lines = get_recommendation_evidence_lines(social_item, limit=4)
+    evidence_html = "".join(f"<li>{html.escape(line)}</li>" for line in evidence_lines)
+    if not evidence_html:
+        evidence_html = "<li>Supported by the current curated recommendation evidence.</li>"
+    st.markdown(
+        (
+            '<div class="dashboard-panel">'
+            '<div class="dashboard-panel-title">Recommended Next Step</div>'
+            f'<div class="recommendation-card-title">{html.escape(title)}</div>'
+            f'<div class="recommendation-card-copy">{html.escape(summary)}</div>'
+            f'<div class="social-opportunity-block" style="margin-top:0.8rem;"><strong>Supporting evidence</strong><ul>{evidence_html}</ul></div>'
+            + (f'<div class="dashboard-action-footer">Confidence: {html.escape(confidence)}</div>' if confidence else "")
+            + '</div>'
+        ),
+        unsafe_allow_html=True,
+    )
+    action_cols = st.columns([1, 1, 6])
+    recommendation_id = str(social_item.get("recommendation_id") or social_item.get("title") or "social")
+    with action_cols[0]:
+        st.button(
+            "View Evidence →",
+            key=f"social_next_step_evidence_{slugify_recommendation_key(recommendation_id)}",
+            on_click=open_recommendation_action_plan,
+            args=(social_item,),
+        )
+    with action_cols[1]:
+        st.button(
+            "View Recommendation →",
+            key=f"social_next_step_recommendation_{slugify_recommendation_key(recommendation_id)}",
+            type="primary",
+            on_click=open_recommendation_action_plan,
+            args=(social_item,),
+        )
 
 
 def render_social_analysis_page(results: dict) -> None:
@@ -5681,97 +6770,18 @@ def render_social_analysis_page(results: dict) -> None:
                 render_dashboard_kpi_card(label, value, helper)
         st.markdown('<div class="dashboard-section-divider"></div>', unsafe_allow_html=True)
 
-    summary_statements = workspace.get("summary_statements") or []
-    top_opportunity = workspace.get("top_opportunity")
-    if top_opportunity:
-        summary_col, opportunity_col = st.columns([1.8, 1], gap="large")
-        with summary_col:
-            render_social_summary_card(summary_statements, metrics)
-        with opportunity_col:
-            opportunity_card = st.container()
-            with opportunity_card:
-                st.markdown('<div class="social-opportunity-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="panel-title">🚀 Top Opportunity</div>', unsafe_allow_html=True)
-                st.markdown(
-                    f'<div class="social-opportunity-title">{html.escape(str(top_opportunity.get("title", "Social opportunity")))}</div>',
-                    unsafe_allow_html=True,
-                )
-                st.write(str(top_opportunity.get("explanation", "")))
-                if top_opportunity.get("evidence"):
-                    st.caption(str(top_opportunity["evidence"]))
-                st.markdown("View Opportunities →")
-    else:
-        render_social_summary_card(summary_statements, metrics)
+    render_dashboard_panel("Key Insights & Opportunities", build_social_opportunity_html(workspace))
 
     format_performance = workspace.get("format_performance") or []
     if format_performance:
-        format_card = st.container()
-        with format_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Content Format Performance</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="dashboard-card-helper">Performance is grouped by the actual post formats included in the Meta export.</div>',
-                unsafe_allow_html=True,
-            )
-            format_table = format_social_workspace_table(format_performance, "format")
-            st.dataframe(format_table, use_container_width=True, hide_index=True)
-            if len(format_performance) >= 2 and "engagement_rate" in format_performance[0]:
-                chart_df = pd.DataFrame(format_performance).sort_values("engagement_rate", ascending=True)
-                format_fig = px.bar(
-                    chart_df,
-                    x="engagement_rate",
-                    y="format",
-                    orientation="h",
-                    color_discrete_sequence=["#8C52FF"],
-                    labels={"engagement_rate": "Average Engagement Rate", "format": ""},
-                )
-                format_fig.update_layout(
-                    plot_bgcolor="#FFFFFF",
-                    paper_bgcolor="#FFFFFF",
-                    font={"color": "#374151"},
-                    height=280,
-                    margin={"l": 8, "r": 12, "t": 12, "b": 28},
-                    showlegend=False,
-                    hoverlabel={
-                        "bgcolor": "#FFFFFF",
-                        "bordercolor": "#E5E7EB",
-                        "font": {"color": "#111827"},
-                    },
-                )
-                format_fig.update_xaxes(
-                    ticksuffix="%",
-                    gridcolor="#EEF2F7",
-                    zeroline=False,
-                    tickfont={"color": "#374151"},
-                    title_font={"color": "#111827"},
-                )
-                format_fig.update_yaxes(
-                    automargin=True,
-                    tickfont={"color": "#374151"},
-                    title_font={"color": "#111827"},
-                )
-                st.plotly_chart(format_fig, use_container_width=True)
-            elif len(format_performance) == 1:
-                st.caption("One content format is present in this run, so no best-versus-worst format comparison is shown.")
+        render_dashboard_panel(
+            "Content Format Performance",
+            build_social_format_performance_html(format_performance),
+        )
 
     theme_performance = workspace.get("theme_performance") or []
     if theme_performance:
-        theme_card = st.container()
-        with theme_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Content Themes</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="dashboard-card-helper">Themes use the existing InsightRx topic classification and are ranked by available audience-response signals.</div>',
-                unsafe_allow_html=True,
-            )
-            theme_records = [
-                {**item, "theme": humanize_social_topic(str(item.get("theme") or "general"))}
-                for item in theme_performance
-            ]
-            st.dataframe(format_social_workspace_table(theme_records, "theme"), use_container_width=True, hide_index=True)
-            if len(theme_records) >= 2:
-                st.caption("The first row is best performing by the available response metric; post count is shown separately from performance.")
+        render_dashboard_panel("Content Themes", build_social_theme_performance_html(theme_performance))
 
     content_records = workspace.get("content_records") or []
     if content_records:
@@ -5790,127 +6800,17 @@ def render_social_analysis_page(results: dict) -> None:
             content_tabs = st.tabs([label for label, _ in tab_specs])
             for tab, (_, sort_key) in zip(content_tabs, tab_specs):
                 with tab:
-                    render_social_post_cards(sort_social_content(content_records, sort_key))
+                    render_social_post_cards(sort_social_content(content_records, sort_key), sort_key)
 
     engagement_components = workspace.get("engagement_components") or []
     if engagement_components:
-        engagement_card = st.container()
-        with engagement_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Engagement Quality</div>', unsafe_allow_html=True)
-            engagement_col, interpretation_col = st.columns([1.1, 0.9], gap="large")
-            with engagement_col:
-                component_df = pd.DataFrame(engagement_components)
-                component_fig = px.pie(
-                    component_df,
-                    names="label",
-                    values="value",
-                    hole=0.62,
-                    color_discrete_sequence=["#7C3AED", "#A78BFA", "#C4B5FD", "#DDD6FE", "#6D28D9"],
-                )
-                component_fig.update_layout(
-                    plot_bgcolor="#FFFFFF",
-                    paper_bgcolor="#FFFFFF",
-                    font={"color": "#374151"},
-                    height=300,
-                    margin={"l": 4, "r": 4, "t": 8, "b": 8},
-                    legend={
-                        "orientation": "h",
-                        "y": -0.15,
-                        "font": {"color": "#374151", "size": 12},
-                    },
-                    hoverlabel={
-                        "bgcolor": "#FFFFFF",
-                        "bordercolor": "#E5E7EB",
-                        "font": {"color": "#111827"},
-                    },
-                )
-                # Outside labels remain readable across both dark and light lavender slices.
-                component_fig.update_traces(
-                    textinfo="percent",
-                    textposition="outside",
-                    textfont={"color": "#374151", "size": 11},
-                    marker={"line": {"color": "#FFFFFF", "width": 2}},
-                )
-                st.plotly_chart(component_fig, use_container_width=True)
-            with interpretation_col:
-                total_engagements = metrics.get("total_engagements")
-                if total_engagements is not None:
-                    st.metric("Total Engagements", format_social_number(total_engagements))
-                total_component_actions = sum(float(item.get("value") or 0) for item in engagement_components)
-                saves_and_shares = sum(
-                    float(item.get("value") or 0)
-                    for item in engagement_components
-                    if item.get("label") in {"Saves", "Shares"}
-                )
-                if total_component_actions > 0 and saves_and_shares > 0:
-                    st.write(
-                        f"Saves and shares account for {saves_and_shares / total_component_actions * 100:.0f}% of the recorded engagement actions in this run."
-                    )
-                else:
-                    st.write("The chart shows the mix of recorded engagement actions available in this Meta export.")
+        render_dashboard_panel(
+            "Engagement Quality",
+            build_social_engagement_quality_html(engagement_components, metrics),
+        )
 
-    posting_patterns = workspace.get("posting_patterns")
-    if posting_patterns and posting_patterns.get("rows"):
-        pattern_card = st.container()
-        with pattern_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Posting Patterns</div>', unsafe_allow_html=True)
-            st.markdown(
-                f'<div class="dashboard-card-helper">Heatmap shows {html.escape(str(posting_patterns.get("metric_label", "average performance")))} by day and hour for posts with valid timestamps.</div>',
-                unsafe_allow_html=True,
-            )
-            pattern_df = pd.DataFrame(posting_patterns["rows"])
-            day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-            heatmap_df = pattern_df.pivot(index="day", columns="hour", values="value").reindex(day_order).dropna(how="all")
-            if not heatmap_df.empty:
-                heatmap_fig = px.imshow(
-                    heatmap_df,
-                    aspect="auto",
-                    color_continuous_scale=["#F3EDFF", "#7C3AED"],
-                    labels={"x": "Hour of day", "y": "Day", "color": str(posting_patterns.get("metric_label", "Performance"))},
-                )
-                heatmap_fig.update_layout(
-                    plot_bgcolor="#FFFFFF",
-                    paper_bgcolor="#FFFFFF",
-                    font={"color": "#374151"},
-                    height=310,
-                    margin={"l": 8, "r": 8, "t": 8, "b": 28},
-                    hoverlabel={
-                        "bgcolor": "#FFFFFF",
-                        "bordercolor": "#E5E7EB",
-                        "font": {"color": "#111827"},
-                    },
-                )
-                heatmap_fig.update_xaxes(tickfont={"color": "#374151"}, title_font={"color": "#111827"})
-                heatmap_fig.update_yaxes(tickfont={"color": "#374151"}, title_font={"color": "#111827"})
-                heatmap_fig.update_coloraxes(
-                    colorbar={
-                        "tickfont": {"color": "#374151"},
-                        "title": {"font": {"color": "#111827"}},
-                    }
-                )
-                st.plotly_chart(heatmap_fig, use_container_width=True)
-
-    key_insights = workspace.get("key_insights") or []
-    if key_insights:
-        insights_card = st.container()
-        with insights_card:
-            st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-title">Key Insights & Opportunities</div>', unsafe_allow_html=True)
-            insight_columns = st.columns(min(2, len(key_insights)))
-            for index, insight_item in enumerate(key_insights):
-                with insight_columns[index % len(insight_columns)]:
-                    st.markdown(
-                        f"""
-                        <div class="social-insight-item">
-                            <strong>{html.escape(str(insight_item.get('title', 'Insight')))}</strong><br>
-                            {html.escape(str(insight_item.get('conclusion', '')))}<br><br>
-                            <span>{html.escape(str(insight_item.get('evidence', '')))}</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+    render_dashboard_panel("What InsightRx Learned", build_social_learned_html(workspace))
+    render_social_recommended_next_step(results)
 
 
 def render_suggested_changes_section(results: dict) -> None:
@@ -8078,6 +8978,142 @@ def build_opportunity_metadata(entry: dict[str, object]) -> str:
     return " · ".join(metadata)
 
 
+def build_opportunity_metadata_values(entry: dict[str, object]) -> list[str]:
+    """Build opportunity chips from existing payload fields only."""
+    values: list[str] = []
+    priority = str(entry.get("priority", "")).strip().title()
+    if priority in {"High", "Medium", "Low"}:
+        values.append(f"{priority} Priority")
+
+    score = get_existing_opportunity_score(entry)
+    if score is not None:
+        label = str(entry.get("score_label") or get_existing_opportunity_score_label(entry) or "Impact").replace(" Score", "")
+        if label.lower() == "opportunity":
+            label = "Impact"
+        values.append(f"{label}: {round(score, 2)}")
+
+    confidence = get_opportunity_metadata_score(entry, "confidence_score")
+    if confidence is None:
+        confidence = get_opportunity_metadata_score(entry, "confidence")
+    if confidence is not None:
+        values.append(f"Confidence: {round(confidence)}%")
+
+    source = str(entry.get("source", "")).strip()
+    if source:
+        values.append(source)
+    return values
+
+
+def opportunity_chips_html(entry: dict[str, object]) -> str:
+    """Render opportunity metadata using the Recommendations chip style."""
+    return recommendation_chips_html(build_opportunity_metadata_values(entry))
+
+
+def get_opportunity_display_category(entry: dict[str, object]) -> str:
+    """Translate existing opportunity groups into user-facing filter categories."""
+    group = str(entry.get("group", "")).strip()
+    if group == "SEO":
+        return "Search"
+    if group == "Pages":
+        return "Website"
+    return group or "Opportunity"
+
+
+def opportunity_category_badge_html(entry: dict[str, object]) -> str:
+    """Render a compact opportunity category badge."""
+    category = get_opportunity_display_category(entry)
+    class_suffix = ""
+    if category == "Social":
+        class_suffix = " is-social"
+    elif category == "Local SEO":
+        class_suffix = " is-local"
+    elif category == "Website":
+        class_suffix = " is-website"
+    return f'<span class="opportunity-category-badge{class_suffix}">{html.escape(category)}</span>'
+
+
+def get_opportunity_summary(entry: dict[str, object], limit: int = 220) -> str:
+    """Return the shortest useful evidence-led observation for an opportunity."""
+    for key in ["diagnosis", "why_it_matters", "why_recommendation_works", "recommended_action"]:
+        text = truncate_recommendation_text(entry.get(key), limit)
+        if text:
+            return text
+    return "InsightRx found a measurable pattern in this run that may deserve closer review."
+
+
+def get_opportunity_evidence_summary(entry: dict[str, object], limit: int = 2) -> str:
+    """Format the most useful opportunity evidence as a compact line."""
+    lines = get_opportunity_evidence_lines(entry, limit=limit)
+    if lines:
+        return " · ".join(lines)
+    key_metrics = normalize_recommendation_plain_text(str(entry.get("key_metrics", ""))).strip()
+    return key_metrics
+
+
+def extract_opportunity_evidence_metrics(entry: dict[str, object]) -> list[tuple[str, str]]:
+    """Extract explicit opportunity metrics without deriving new analytics."""
+    raw = entry.get("raw") if isinstance(entry.get("raw"), dict) else {}
+    candidates = [
+        ("position", "Position"),
+        ("volume", "Volume"),
+        ("sessions", "Sessions"),
+        ("active_users", "Active Users"),
+        ("users", "Users"),
+        ("engagement_rate", "Engagement Rate"),
+        ("impressions", "Impressions"),
+        ("clicks", "Clicks"),
+        ("ctr", "CTR"),
+        ("reach", "Reach"),
+        ("views", "Views"),
+        ("saves", "Saves"),
+    ]
+    metrics: list[tuple[str, str]] = []
+    seen_labels: set[str] = set()
+    for key, label in candidates:
+        value = raw.get(key)
+        if value in (None, "", "Not available") or label in seen_labels:
+            continue
+        if key in {"ctr", "engagement_rate"}:
+            numeric = normalize_gsc_ctr_percent(value) if key == "ctr" else to_comparison_number(value)
+            if numeric is None:
+                value_text = str(value)
+            else:
+                value_text = f"{numeric:.2f}%"
+        elif isinstance(value, (int, float)):
+            value_text = f"{value:,.0f}" if float(value).is_integer() else f"{value:,.2f}"
+        else:
+            value_text = normalize_recommendation_plain_text(str(value)).strip()
+        if value_text:
+            metrics.append((label, value_text))
+            seen_labels.add(label)
+
+    if not metrics:
+        for line in get_opportunity_evidence_lines(entry, limit=4):
+            if ":" not in line:
+                continue
+            label, value = [part.strip() for part in line.split(":", 1)]
+            if label and value and label not in seen_labels:
+                metrics.append((label, value))
+                seen_labels.add(label)
+    return metrics[:4]
+
+
+def opportunity_evidence_metric_html(metrics: list[tuple[str, str]]) -> str:
+    """Render explicit opportunity metrics in the same card system as recommendations."""
+    if not metrics:
+        return ""
+    metric_html = "".join(
+        (
+            '<div class="recommendation-evidence-card">'
+            f'<div class="recommendation-evidence-label">{html.escape(label)}</div>'
+            f'<div class="recommendation-evidence-value">{html.escape(value)}</div>'
+            "</div>"
+        )
+        for label, value in metrics[:4]
+    )
+    return f'<div class="recommendation-evidence-grid">{metric_html}</div>'
+
+
 def get_opportunity_improvement_guidance(entry: dict[str, object], limit: int = 4) -> list[str]:
     """Use existing structured guidance first, then a conservative next-step fallback."""
     raw_guidance = entry.get("improvement_guidance")
@@ -8233,6 +9269,18 @@ def open_opportunity_action_plan(entry: dict[str, object], results: dict) -> Non
     st.session_state["app_navigation"] = "🎯 Recommendations"
 
 
+def open_opportunity_detail(entry: dict[str, object]) -> None:
+    """Open a focused opportunity detail view on the Opportunities page."""
+    st.session_state["selected_opportunity_detail_id"] = str(entry.get("opportunity_id", "")).strip()
+    st.session_state["app_navigation"] = "🚀 Opportunities"
+
+
+def return_to_opportunity_list() -> None:
+    """Return from Opportunity detail to the Opportunity queue."""
+    st.session_state.pop("selected_opportunity_detail_id", None)
+    st.session_state["app_navigation"] = "🚀 Opportunities"
+
+
 def open_recommendation_action_plan(item: dict[str, object]) -> None:
     """Focus the current Recommendations page on an existing recommendation card."""
     st.session_state["selected_opportunity_id"] = ""
@@ -8247,6 +9295,7 @@ def open_recommendation_action_plan(item: dict[str, object]) -> None:
 def return_to_opportunities() -> None:
     """Return to the existing Opportunities page without rerunning the workflow."""
     clear_recommendation_focus()
+    st.session_state.pop("selected_opportunity_detail_id", None)
     st.session_state["app_navigation"] = "🚀 Opportunities"
 
 
@@ -8267,125 +9316,203 @@ def handle_sidebar_navigation_change() -> None:
 
 
 def render_biggest_opportunity(entry: dict[str, object], results: dict) -> None:
-    """Present the strongest existing opportunity as a diagnosis-first summary."""
+    """Present the strongest existing opportunity as a polished featured card."""
     title = get_opportunity_display_title(entry)
-    diagnosis = normalize_recommendation_plain_text(str(entry.get("diagnosis", ""))).strip()
-    why_it_matters = normalize_recommendation_plain_text(str(entry.get("why_it_matters", ""))).strip()
-    business_meaning = normalize_recommendation_plain_text(
-        str(entry.get("why_recommendation_works", ""))
-    ).strip()
-    evidence_lines = get_opportunity_evidence_lines(entry)
-    metadata = build_opportunity_metadata(entry)
-    improvement_guidance = get_opportunity_improvement_guidance(entry)
-
-    hero = st.container()
-    with hero:
-        st.markdown('<div class="opportunity-hero-marker"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">🎯 Biggest Opportunity</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="opportunity-hero-title">{html.escape(title)}</div>',
-            unsafe_allow_html=True,
-        )
-        if diagnosis:
-            st.caption(diagnosis)
-        if why_it_matters:
-            st.markdown("**Why this matters**")
-            st.write(why_it_matters)
-        if business_meaning:
-            st.caption(business_meaning)
-        if improvement_guidance:
-            st.markdown("**How to improve**")
-            for action in improvement_guidance:
-                st.markdown(f"- {action}")
-        if evidence_lines:
-            st.markdown("**Evidence**")
-            st.markdown(
-                f'<div class="opportunity-evidence-row">{" · ".join(html.escape(item) for item in evidence_lines)}</div>',
-                unsafe_allow_html=True,
-            )
-        if metadata:
-            st.caption(metadata)
+    summary = get_opportunity_summary(entry)
+    category = get_opportunity_display_category(entry)
+    evidence_summary = get_opportunity_evidence_summary(entry, limit=3)
+    recommendation, _match_type = find_related_recommendation(entry, build_all_recommendation_workspace_items(results))
+    st.markdown(
+        f"""
+        <div class="opportunity-featured-card">
+            <div class="opportunity-featured-body">
+                <div class="opportunity-eyebrow">Top Opportunity</div>
+                <div class="opportunity-card-title">{html.escape(title)}</div>
+                <div class="opportunity-card-copy">{html.escape(summary)}</div>
+                {opportunity_category_badge_html(entry)}
+                {opportunity_chips_html(entry)}
+            </div>
+            <div class="opportunity-featured-footer">
+                <div class="opportunity-evidence-summary"><strong>Evidence:</strong> {html.escape(evidence_summary or 'Existing opportunity evidence is available in the detail view.')}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown('<span class="opportunity-action-row-marker"></span>', unsafe_allow_html=True)
+    button_cols = st.columns([0.18, 0.22, 0.6])
+    with button_cols[0]:
+        st.markdown('<span class="recommendation-start-action-marker"></span>', unsafe_allow_html=True)
         st.button(
-            "See Action Plan →",
-            key="biggest_opportunity_action_plan",
+            "View Opportunity →",
+            key="top_opportunity_detail",
             type="primary",
-            on_click=open_opportunity_action_plan,
-            args=(entry, results),
+            on_click=open_opportunity_detail,
+            args=(entry,),
         )
+    if recommendation:
+        with button_cols[1]:
+            st.button(
+                "View Recommendation →",
+                key="top_opportunity_recommendation",
+                on_click=open_opportunity_action_plan,
+                args=(entry, results),
+            )
 
 
 def render_executive_opportunity_card(entry: dict[str, object], results: dict, unique_key: str) -> None:
-    """Render a diagnosis-first opportunity card with secondary evidence collapsed."""
-    priority = str(entry.get("priority", "Medium")).strip().title()
-    pill_class = get_report_priority_pill_class(priority)
-    score_value = get_existing_opportunity_score(entry)
-    score_label = str(entry.get("score_label") or get_existing_opportunity_score_label(entry) or "Opportunity Score")
+    """Render a compact opportunity queue card."""
     title = get_opportunity_display_title(entry)
-    diagnosis = normalize_recommendation_plain_text(str(entry.get("diagnosis", ""))).strip()
-    why_text = normalize_recommendation_plain_text(str(entry.get("why_it_matters", ""))).strip()
-    evidence_lines = get_opportunity_evidence_lines(entry, limit=2)
-    source = str(entry.get("source", "")).strip()
-    improvement_guidance = get_opportunity_improvement_guidance(entry, limit=2)
-
-    card = st.container()
-    with card:
-        st.markdown('<div class="dashboard-card-marker"></div>', unsafe_allow_html=True)
-        heading_col, priority_col = st.columns([0.76, 0.24])
-        with heading_col:
-            st.markdown(
-                f'<div class="recommendation-category">{html.escape(title)}</div>',
-                unsafe_allow_html=True,
-            )
-            if diagnosis:
-                st.caption(diagnosis)
-        with priority_col:
-            st.markdown(
-                f'<div class="{pill_class}">{"🔴" if priority == "High" else "🟠" if priority == "Medium" else "🟢"} {priority} Priority</div>',
-                unsafe_allow_html=True,
-            )
-
-        if why_text:
-            st.markdown("**Why this matters**")
-            st.write(why_text)
-        if improvement_guidance:
-            st.markdown("**How to improve**")
-            for action in improvement_guidance:
-                st.markdown(f"- {action}")
-        if evidence_lines:
-            st.markdown("**Evidence**")
-            st.caption(" · ".join(evidence_lines))
-        if source:
-            st.caption(f"Source: {source}")
-        if score_value is not None:
-            st.caption(f"{score_label}: {round(score_value, 2)}")
+    summary = get_opportunity_summary(entry)
+    evidence_summary = get_opportunity_evidence_summary(entry, limit=2)
+    recommendation, _match_type = find_related_recommendation(entry, build_all_recommendation_workspace_items(results))
+    st.markdown(
+        f"""
+        <div class="opportunity-queue-card">
+            <div class="opportunity-queue-card-top">
+                <div class="opportunity-card-title">{html.escape(title)}</div>
+                {opportunity_category_badge_html(entry)}
+            </div>
+            <div class="opportunity-card-copy">{html.escape(summary)}</div>
+            <div class="opportunity-evidence-summary"><strong>Evidence:</strong> {html.escape(evidence_summary or 'Evidence available in detail view.')}</div>
+            {opportunity_chips_html(entry)}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown('<span class="opportunity-action-row-marker"></span>', unsafe_allow_html=True)
+    button_cols = st.columns([0.18, 0.22, 0.6])
+    with button_cols[0]:
+        st.markdown('<span class="recommendation-start-action-marker"></span>', unsafe_allow_html=True)
         st.button(
-            "View Action Plan →",
-            key=f"opportunity_action_plan_{unique_key}",
+            "View Opportunity →",
+            key=f"opportunity_detail_{unique_key}",
+            type="primary",
+            on_click=open_opportunity_detail,
+            args=(entry,),
+        )
+    if recommendation:
+        with button_cols[1]:
+            st.button(
+                "View Recommendation →",
+                key=f"opportunity_recommendation_{unique_key}",
+                on_click=open_opportunity_action_plan,
+                args=(entry, results),
+            )
+
+
+def render_opportunity_detail(entry: dict[str, object], results: dict) -> None:
+    """Render a focused opportunity detail page without changing opportunity logic."""
+    title = get_opportunity_display_title(entry)
+    category = get_opportunity_display_category(entry)
+    summary = get_opportunity_summary(entry, limit=260)
+    why = normalize_recommendation_plain_text(str(entry.get("why_it_matters", ""))).strip() or summary
+    evidence_lines = get_opportunity_evidence_lines(entry, limit=6)
+    evidence_metrics = extract_opportunity_evidence_metrics(entry)
+    observed = get_opportunity_evidence_summary(entry, limit=3) or "InsightRx found a measurable opportunity pattern in the current run."
+    interpretation = why or "This pattern may indicate a useful area for investigation before choosing the next action."
+    limitation = "This opportunity reflects the data available in this run. It does not prove causation or missing values, and sample size should be considered before acting."
+    recommendation, _match_type = find_related_recommendation(entry, build_all_recommendation_workspace_items(results))
+
+    st.markdown(
+        f'<div class="opportunity-breadcrumb">Opportunities / {html.escape(category)} / {html.escape(title)}</div>',
+        unsafe_allow_html=True,
+    )
+    st.button(
+        "← Back to Opportunities",
+        key=f"opportunity_detail_back_{slugify_recommendation_key(str(entry.get('opportunity_id', title)))}",
+        on_click=return_to_opportunity_list,
+    )
+    st.markdown(
+        f"""
+        <div class="opportunity-detail-hero">
+            <div class="opportunity-card-title">{html.escape(title)}</div>
+            <div class="opportunity-detail-copy">{html.escape(summary)}</div>
+            {opportunity_chips_html(entry)}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"""
+        <div class="opportunity-why-card">
+            <div class="recommendation-section-title">💡 Why InsightRx Flagged This</div>
+            <div class="opportunity-detail-copy">{html.escape(why)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    evidence_html = opportunity_evidence_metric_html(evidence_metrics)
+    supporting_html = "".join(f"<li>{html.escape(line)}</li>" for line in evidence_lines)
+    supporting_block = f"<ul>{supporting_html}</ul>" if supporting_html else "<p>No additional evidence lines are available for this opportunity.</p>"
+    st.markdown(
+        f"""
+        <div class="opportunity-detail-card">
+            <div class="recommendation-evidence-header">
+                <div class="recommendation-section-title">Evidence</div>
+                <div class="recommendation-period">{html.escape(str(entry.get('source', '')).strip())}</div>
+            </div>
+            {evidence_html}
+            <div class="opportunity-evidence-summary">{supporting_block}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"""
+        <div class="opportunity-meaning-card">
+            <div class="recommendation-section-title">What This Opportunity Means</div>
+            <div class="opportunity-meaning-grid">
+                <div class="opportunity-meaning-item">
+                    <div class="opportunity-meaning-label">Observed</div>
+                    <div class="opportunity-meaning-copy">{html.escape(observed)}</div>
+                </div>
+                <div class="opportunity-meaning-item">
+                    <div class="opportunity-meaning-label">Interpretation</div>
+                    <div class="opportunity-meaning-copy">{html.escape(interpretation)}</div>
+                </div>
+                <div class="opportunity-meaning-item">
+                    <div class="opportunity-meaning-label">Limitation</div>
+                    <div class="opportunity-meaning-copy">{html.escape(limitation)}</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if recommendation:
+        rec_title = get_recommendation_display_title(recommendation)
+        rec_summary = get_recommendation_summary(recommendation)
+        st.markdown(
+            f"""
+            <div class="opportunity-detail-card">
+                <div class="recommendation-section-title">Recommended Next Step</div>
+                <div class="opportunity-card-title">{html.escape(rec_title)}</div>
+                <div class="opportunity-card-copy">{html.escape(rec_summary)}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.button(
+            "View Recommendation →",
+            key=f"opportunity_detail_recommendation_{slugify_recommendation_key(str(entry.get('opportunity_id', title)))}",
             on_click=open_opportunity_action_plan,
             args=(entry, results),
         )
-
-    detail_label = f"View supporting details for {title[:48] or unique_key}"
-    with st.expander(detail_label, expanded=False):
-        target = normalize_recommendation_plain_text(str(entry.get("target", ""))).strip()
-        if is_meaningful_supporting_value(target):
-            st.markdown(f"**Focus:** {target}")
-        supporting_data = normalize_recommendation_plain_text(str(entry.get("supporting_data", ""))).strip()
-        if supporting_data:
-            st.markdown(f"**Supporting Data:** {supporting_data}")
-        why_work_text = normalize_recommendation_plain_text(str(entry.get("why_recommendation_works", ""))).strip()
-        if why_work_text:
-            st.markdown(f"**Why it matters:** {why_work_text}")
-        recommended_action = normalize_recommendation_plain_text(str(entry.get("recommended_action", ""))).strip()
-        if recommended_action:
-            st.markdown(f"**What to investigate:** {recommended_action}")
 
 
 def render_opportunities_page(results: dict) -> None:
     """Render the Opportunities page as an executive opportunity management dashboard."""
     st.markdown('<div class="opportunities-page-marker"></div>', unsafe_allow_html=True)
-    st.title("🚀 Opportunities")
-    st.caption("Where your marketing has the greatest room to improve.")
+    st.markdown(
+        """
+        <div class="recommendation-workspace-header">
+            <div class="recommendation-workspace-title">🚀 Opportunities</div>
+            <p class="recommendation-workspace-subtitle">Evidence-backed areas where InsightRx detected meaningful room for improvement.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if not results:
         st.info("Run the workflow first on the Data Sources page.")
@@ -8420,51 +9547,67 @@ def render_opportunities_page(results: dict) -> None:
     }
 
     all_entries = [item for group in grouped_opportunities.values() for item in group]
-    high_count = sum(str(item.get("priority", "")).strip().lower() == "high" for item in all_entries)
     if not all_entries:
         st.info("No opportunities are available for this run yet. Add a supported marketing data source and rerun the workflow.")
         return
 
-    area_counts = {area: len(entries) for area, entries in grouped_opportunities.items() if entries}
-    largest_area_count = max(area_counts.values())
-    largest_areas = [area for area, count in area_counts.items() if count == largest_area_count]
-    highest_area_priority = max(
-        max((entry.get("priority_rank", 0) for entry in grouped_opportunities[area]), default=0)
-        for area in largest_areas
-    )
-    top_areas = [
-        area
-        for area in largest_areas
-        if max((entry.get("priority_rank", 0) for entry in grouped_opportunities[area]), default=0)
-        == highest_area_priority
-    ]
-    top_area = " + ".join(top_areas) if len(top_areas) <= 2 else "Multiple areas"
+    selected_opportunity_id = str(st.session_state.get("selected_opportunity_detail_id", "")).strip()
+    if selected_opportunity_id:
+        selected_entry = next(
+            (entry for entry in all_entries if str(entry.get("opportunity_id", "")).strip() == selected_opportunity_id),
+            None,
+        )
+        if selected_entry:
+            render_opportunity_detail(selected_entry, results)
+            return
+        st.session_state.pop("selected_opportunity_detail_id", None)
 
-    summary_columns = st.columns(3)
-    summary_values = [
-        ("Opportunities Found", str(len(all_entries)), "Across the marketing areas analyzed in this run"),
-        ("High Priority", str(high_count), "Require the most attention based on current evidence"),
-        ("Top Opportunity Area", top_area, "Largest concentration of detected opportunities"),
-    ]
-    for index, (label, value, caption) in enumerate(summary_values):
-        with summary_columns[index]:
-            render_dashboard_kpi_card(label, value, caption)
-
-    biggest_opportunity = sort_executive_opportunities(all_entries)[0]
+    sorted_entries = sort_executive_opportunities(all_entries)
+    biggest_opportunity = sorted_entries[0]
     render_biggest_opportunity(biggest_opportunity, results)
 
-    tab_labels = [label for label in ["SEO", "Pages", "Local SEO", "Social"] if grouped_opportunities.get(label)]
-    tab_objects = st.tabs(tab_labels)
+    display_groups = {
+        "Search": grouped_opportunities.get("SEO", []),
+        "Website": grouped_opportunities.get("Pages", []),
+        "Local SEO": grouped_opportunities.get("Local SEO", []),
+        "Social": grouped_opportunities.get("Social", []),
+    }
+    filter_labels = ["All"] + [label for label in ["Search", "Website", "Local SEO", "Social"] if display_groups.get(label)]
+    saved_filter = st.session_state.get("opportunity_filter", "All")
+    filter_index = filter_labels.index(saved_filter) if saved_filter in filter_labels else 0
+    selected_filter = st.radio(
+        "Opportunity category",
+        filter_labels,
+        index=filter_index,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="opportunity_filter",
+    )
 
-    for tab_label, tab_object in zip(tab_labels, tab_objects):
-        with tab_object:
-            entries = grouped_opportunities.get(tab_label, [])
-            for index, entry in enumerate(entries):
-                render_executive_opportunity_card(
-                    entry,
-                    results,
-                    f"{tab_label.lower().replace(' ', '_')}_{index}",
-                )
+    if selected_filter == "All":
+        queue_entries = [
+            entry for entry in sorted_entries
+            if str(entry.get("opportunity_id", "")).strip() != str(biggest_opportunity.get("opportunity_id", "")).strip()
+        ]
+    else:
+        queue_entries = display_groups.get(selected_filter, [])
+        queue_entries = [
+            entry for entry in queue_entries
+            if str(entry.get("opportunity_id", "")).strip() != str(biggest_opportunity.get("opportunity_id", "")).strip()
+        ]
+
+    if not queue_entries:
+        st.info(f"No additional {selected_filter.lower()} opportunities are available for this run.")
+        return
+
+    st.markdown('<div class="panel-title">Opportunity Queue</div>', unsafe_allow_html=True)
+    for index, entry in enumerate(queue_entries):
+        stable_slug = slugify_recommendation_key(str(entry.get("opportunity_id", entry.get("title", ""))))
+        render_executive_opportunity_card(
+            entry,
+            results,
+            f"{slugify_recommendation_key(selected_filter)}_{index}_{stable_slug}",
+        )
 
 
 def build_take_action_payload(card: dict, results: dict) -> dict | None:
@@ -9673,11 +10816,30 @@ def render_recommendation_chips(values: list[str], primary_first: bool = True) -
     """Render responsive chips for recommendation metadata."""
     if not values:
         return
+    st.markdown(recommendation_chips_html(values, primary_first=primary_first), unsafe_allow_html=True)
+
+
+def recommendation_chips_html(values: list[str], primary_first: bool = True) -> str:
+    """Build responsive chip HTML for recommendation metadata."""
     chips = []
     for index, value in enumerate(values):
         chip_class = "recommendation-chip recommendation-chip-primary" if primary_first and index == 0 else "recommendation-chip"
         chips.append(f'<span class="{chip_class}">{html.escape(value)}</span>')
-    st.markdown(f'<div class="recommendation-meta-row">{"".join(chips)}</div>', unsafe_allow_html=True)
+    return f'<div class="recommendation-meta-row">{"".join(chips)}</div>'
+
+
+def recommendation_category_badge_html(item: dict[str, object]) -> str:
+    """Render a compact recommendation category badge."""
+    category = get_recommendation_category(item)
+    class_suffix = ""
+    if category == "Social":
+        class_suffix = " is-social"
+    elif category == "Local SEO":
+        class_suffix = " is-local"
+    elif category == "Analytics":
+        class_suffix = " is-analytics"
+    display_category = category
+    return f'<span class="recommendation-category-badge{class_suffix}">{html.escape(display_category)}</span>'
 
 
 def build_recommendation_detail_rows(item: dict[str, object]) -> list[tuple[str, str]]:
@@ -9805,6 +10967,64 @@ def extract_recommendation_evidence_metrics(item: dict[str, object]) -> list[tup
         if value_text:
             metrics.append((label, value_text))
     return metrics
+
+
+def get_recommendation_analysis_period(item: dict[str, object]) -> str:
+    """Return the evidence analysis period if the recommendation carries one."""
+    evidence = item.get("evidence") if isinstance(item.get("evidence"), dict) else {}
+    for key in ["date_range", "analysis_period", "period"]:
+        value = normalize_recommendation_plain_text(str(evidence.get(key, ""))).strip()
+        if value:
+            return value
+    return ""
+
+
+def recommendation_evidence_metric_html(evidence_metrics: list[tuple[str, str]]) -> str:
+    """Render the priority evidence metrics in a predictable visual order."""
+    order = ["Average Position", "CTR", "Impressions", "Clicks"]
+    metric_map = {label: value for label, value in evidence_metrics}
+    ordered_items = [(label, metric_map[label]) for label in order if label in metric_map]
+    ordered_items.extend((label, value) for label, value in evidence_metrics if label not in order and label != "Analysis Period")
+    metric_html = "".join(
+        (
+            '<div class="recommendation-evidence-card">'
+            f'<div class="recommendation-evidence-label">{html.escape(label)}</div>'
+            f'<div class="recommendation-evidence-value">{html.escape(value)}</div>'
+            "</div>"
+        )
+        for label, value in ordered_items[:4]
+    )
+    return f'<div class="recommendation-evidence-grid">{metric_html}</div>' if metric_html else ""
+
+
+def build_visibility_click_response_html(recommendation: dict[str, object]) -> str:
+    """Build a visual qualitative visibility/click response comparison."""
+    comparison = build_visibility_click_response(recommendation)
+    if not comparison:
+        return ""
+    visibility, click_response, comparison_note = comparison
+    visibility_width = {"Strong": 82, "Established": 68, "Promising": 52, "Limited Data": 28}.get(visibility, 40)
+    click_width = {"Established": 76, "Opportunity": 45, "Needs Attention": 22, "Limited Data": 28}.get(click_response, 40)
+    return (
+        '<div class="recommendation-comparison-card">'
+        '<div class="recommendation-comparison-title">Visibility vs. Click Response</div>'
+        '<div class="recommendation-comparison-row">'
+        '<div>Search Visibility</div>'
+        '<div class="recommendation-comparison-track">'
+        f'<div class="recommendation-comparison-fill" style="width:{visibility_width}%; background:#6A53E7;"></div>'
+        '</div>'
+        f'<div>{html.escape(visibility)}</div>'
+        '</div>'
+        '<div class="recommendation-comparison-row">'
+        '<div>Click Response</div>'
+        '<div class="recommendation-comparison-track">'
+        f'<div class="recommendation-comparison-fill" style="width:{click_width}%; background:#D92D20;"></div>'
+        '</div>'
+        f'<div>{html.escape(click_response)}</div>'
+        '</div>'
+        f'<div class="recommendation-comparison-note">{html.escape(comparison_note)}</div>'
+        '</div>'
+    )
 
 
 def get_recommendation_evidence_lines(item: dict[str, object], context: dict[str, object] | None = None, limit: int = 5) -> list[str]:
@@ -9984,34 +11204,557 @@ def build_generated_recommendation_draft(option_key: str, item: dict[str, object
     return [(f"Draft {index}", str(value)) for index, value in enumerate(values[:5], start=1)]
 
 
-def render_generated_recommendation_draft(option: dict[str, str], item: dict[str, object], payload: dict | None, key_prefix: str) -> None:
-    """Show generated recommendation content inline as review-ready draft work."""
-    draft_rows = [
-        (label, normalize_recommendation_plain_text(str(value)).strip())
-        for label, value in build_generated_recommendation_draft(option["key"], item, payload)
-        if normalize_recommendation_plain_text(str(value)).strip()
+def get_recommendation_context_label(item: dict[str, object]) -> str:
+    """Return the most specific available recommendation subject without inventing a page."""
+    for key in ["subject", "target", "label", "query", "search_intent"]:
+        value = normalize_recommendation_plain_text(str(item.get(key, ""))).strip()
+        if value:
+            return value
+    evidence = item.get("evidence") if isinstance(item.get("evidence"), dict) else {}
+    for key in ["query", "page_title", "page", "source_medium"]:
+        value = normalize_recommendation_plain_text(str(evidence.get(key, ""))).strip()
+        if value:
+            return value
+    return get_recommendation_display_title(item)
+
+
+def get_recommendation_target_page_label(item: dict[str, object]) -> str:
+    """Return a real page label only when the recommendation payload provides one."""
+    evidence = item.get("evidence") if isinstance(item.get("evidence"), dict) else {}
+    sample_data = item.get("sample_data") if isinstance(item.get("sample_data"), dict) else {}
+    for source in [item, evidence, sample_data]:
+        if not isinstance(source, dict):
+            continue
+        for key in ["page_title", "page", "page_url", "url", "landing_page"]:
+            value = normalize_recommendation_plain_text(str(source.get(key, ""))).strip()
+            if value:
+                return value
+    if get_recommendation_category(item) == "SEO":
+        return "Not available in this GSC export"
+    return ""
+
+
+def get_recommendation_supporting_query_context(item: dict[str, object]) -> list[dict[str, object]]:
+    """Read preserved query evidence rows for consolidated search recommendations."""
+    rows = item.get("_supporting_queries") if isinstance(item.get("_supporting_queries"), list) else []
+    if not rows:
+        evidence = item.get("evidence") if isinstance(item.get("evidence"), dict) else {}
+        subject = get_recommendation_context_label(item)
+        if subject and any(key in evidence for key in ["impressions", "clicks", "ctr", "position"]):
+            rows = [
+                {
+                    "query": subject,
+                    "impressions": evidence.get("impressions"),
+                    "clicks": evidence.get("clicks"),
+                    "ctr": evidence.get("ctr"),
+                    "position": evidence.get("position"),
+                }
+            ]
+    unique_rows: list[dict[str, object]] = []
+    seen_queries: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        query = normalize_recommendation_plain_text(str(row.get("query", ""))).strip()
+        if not query or query.lower() in seen_queries:
+            continue
+        seen_queries.add(query.lower())
+        unique_rows.append(row)
+    return unique_rows[:6]
+
+
+def format_recommendation_query_evidence(row: dict[str, object]) -> str:
+    """Format one query evidence row without aggregating rates."""
+    parts = [f'query "{normalize_recommendation_plain_text(str(row.get("query", ""))).strip()}"']
+    impressions = to_comparison_number(row.get("impressions"))
+    clicks = to_comparison_number(row.get("clicks"))
+    ctr = normalize_gsc_ctr_percent(row.get("ctr"))
+    position = to_comparison_number(row.get("position"))
+    if impressions is not None:
+        parts.append(f"{impressions:,.0f} impressions")
+    if clicks is not None:
+        parts.append(f"{clicks:,.0f} clicks")
+    if ctr is not None:
+        parts.append(f"{ctr:.2f}% CTR")
+    if position is not None:
+        parts.append(f"avg. position {position:.2f}")
+    return " · ".join(parts)
+
+
+def build_recommendation_draft_context(item: dict[str, object], payload: dict | None) -> dict[str, object]:
+    """Collect the focused recommendation context used by execution draft generation."""
+    query_rows = get_recommendation_supporting_query_context(item)
+    subject = get_recommendation_context_label(item)
+    target_page = get_recommendation_target_page_label(item)
+    evidence_lines = get_recommendation_evidence_lines(item, limit=6)
+    if query_rows:
+        evidence_lines = [format_recommendation_query_evidence(row) for row in query_rows] + evidence_lines
+    return {
+        "subject": subject,
+        "target_page": target_page,
+        "title": get_recommendation_display_title(item),
+        "summary": get_recommendation_summary(item),
+        "why": build_recommendation_why_text(item),
+        "category": get_recommendation_category(item),
+        "source": get_recommendation_source(item),
+        "evidence_lines": list(dict.fromkeys(line for line in evidence_lines if line))[:8],
+        "payload": payload or {},
+    }
+
+
+def best_practice_principles_for_asset(option_key: str) -> list[str]:
+    """Return detailed best-practice principles relevant to an execution asset."""
+    rules = load_best_practice_rules()
+    categories = ["seo_keyword_strategy"]
+    if option_key in {"seo_faq", "aeo_faq", "local_faq"}:
+        categories.append("aeo_geo_ai_search")
+    principles: list[str] = []
+    for category in categories:
+        rule_set = rules.get(category) if isinstance(rules, dict) else {}
+        if not isinstance(rule_set, dict):
+            continue
+        for value in rule_set.get("core_principles", []):
+            text = normalize_recommendation_plain_text(str(value)).strip()
+            if text and text not in principles:
+                principles.append(text)
+    return principles
+
+
+def filtered_best_practice_principles(option_key: str) -> list[str]:
+    """Keep the rules surfaced to the user specific to the generated asset."""
+    principles = best_practice_principles_for_asset(option_key)
+    if option_key == "seo_title_meta":
+        tokens = ["intent", "title", "meta", "keyword stuffing", "natural language"]
+    elif option_key == "seo_h1_opening":
+        tokens = ["intent", "h1", "early body", "natural language", "clear"]
+    elif option_key in {"seo_faq", "aeo_faq", "local_faq"}:
+        tokens = ["question", "answer", "concise", "featured snippets", "ai overviews", "structure"]
+    else:
+        tokens = []
+    selected = [
+        principle for principle in principles
+        if not tokens or any(token in principle.lower() for token in tokens)
     ]
+    return (selected or principles)[:5]
+
+
+def primary_query_from_context(context: dict[str, object]) -> str:
+    """Choose the primary query/intent without inventing one."""
+    evidence_rows = context.get("query_rows") if isinstance(context.get("query_rows"), list) else []
+    for row in evidence_rows:
+        if isinstance(row, dict):
+            query = normalize_recommendation_plain_text(str(row.get("query", ""))).strip()
+            if query:
+                return query
+    return normalize_recommendation_plain_text(str(context.get("subject", ""))).strip()
+
+
+def concise_title_case(value: str) -> str:
+    """Title-case a query while preserving simple connector words."""
+    text = normalize_recommendation_plain_text(value)
+    if not text:
+        return ""
+    lower_words = {"and", "or", "for", "of", "in", "with", "to", "the", "a", "an"}
+    words = []
+    for index, word in enumerate(text.split()):
+        words.append(word.lower() if index and word.lower() in lower_words else word[:1].upper() + word[1:])
+    return " ".join(words)
+
+
+def safe_meta_topic_phrase(query: str) -> str:
+    """Create a customer-facing phrase from a real query without adding claims."""
+    cleaned = normalize_recommendation_plain_text(query)
+    return cleaned or "this topic"
+
+
+def extract_current_page_copy(item: dict[str, object], payload: dict | None) -> dict[str, str]:
+    """Return current page copy only when explicitly available in the run payload."""
+    evidence = item.get("evidence") if isinstance(item.get("evidence"), dict) else {}
+    sample_data = item.get("sample_data") if isinstance(item.get("sample_data"), dict) else {}
+    payload = payload if isinstance(payload, dict) else {}
+    current_payload = payload.get("current_page_copy") if isinstance(payload.get("current_page_copy"), dict) else {}
+    sources = [current_payload, payload, item, evidence, sample_data]
+    field_map = {
+        "title_tag": ["current_title_tag", "existing_title_tag", "title_tag_current", "page_title_tag"],
+        "meta_description": ["current_meta_description", "existing_meta_description", "meta_description_current"],
+        "h1": ["current_h1", "existing_h1", "h1_current", "page_h1"],
+        "opening_copy": ["current_opening_copy", "existing_opening_copy", "opening_copy_current", "intro_copy"],
+    }
+    current: dict[str, str] = {}
+    for target_key, aliases in field_map.items():
+        for source in sources:
+            if not isinstance(source, dict):
+                continue
+            for alias in aliases:
+                value = normalize_recommendation_plain_text(str(source.get(alias, ""))).strip()
+                if value:
+                    current[target_key] = value
+                    break
+            if target_key in current:
+                break
+    return current
+
+
+def build_public_evidence_used(context: dict[str, object]) -> list[str]:
+    """Prepare evidence lines for rationale display, never for public copy insertion."""
+    evidence_rows = context.get("query_rows") if isinstance(context.get("query_rows"), list) else []
+    evidence_lines: list[str] = []
+    for row in evidence_rows[:4]:
+        if isinstance(row, dict):
+            evidence_lines.append(format_recommendation_query_evidence(row))
+    if not evidence_lines:
+        raw_lines = context.get("evidence_lines") if isinstance(context.get("evidence_lines"), list) else []
+        evidence_lines.extend(str(line) for line in raw_lines[:4])
+    source = str(context.get("source") or "").strip()
+    if source and not any(source.lower() in line.lower() for line in evidence_lines):
+        evidence_lines.append(f"Source: {source}")
+    target_page = str(context.get("target_page") or "").strip()
+    if target_page:
+        evidence_lines.append(f"Target page: {target_page}")
+    return list(dict.fromkeys(line for line in evidence_lines if line))[:6]
+
+
+def build_draft_rationale(option_key: str, context: dict[str, object], principles: list[str]) -> list[str]:
+    """Explain why the draft was created without blending evidence into the copy."""
+    query = primary_query_from_context(context)
+    has_current_copy = bool(context.get("current_page_copy"))
+    reasons: list[str] = []
+    if query:
+        reasons.append(f"Aligned the draft to the observed search intent around “{query}”.")
+    if not has_current_copy:
+        reasons.append("Created a suggested draft because current page copy was not available for comparison.")
+    if option_key == "seo_title_meta":
+        reasons.append("Kept analytics evidence out of the customer-facing title and meta description.")
+        reasons.append("Used concise search-result copy so the snippet can communicate relevance quickly.")
+    elif option_key == "seo_h1_opening":
+        reasons.append("Placed the core topic early so the page introduction answers intent quickly.")
+    elif option_key in {"seo_faq", "aeo_faq", "local_faq"}:
+        reasons.append("Derived FAQ angles from the available query/intent evidence and kept answers concise.")
+    for principle in principles[:2]:
+        reasons.append(f"Best-practice rule applied: {principle}")
+    return list(dict.fromkeys(reasons))[:4]
+
+
+def contains_metric_language(value: str) -> bool:
+    """Detect analytics evidence leaking into customer-facing draft copy."""
+    text = normalize_recommendation_plain_text(value).lower()
+    metric_patterns = [
+        r"\b\d[\d,]*(?:\.\d+)?\s+impressions\b",
+        r"\b\d[\d,]*(?:\.\d+)?\s+clicks\b",
+        r"\b\d+(?:\.\d+)?%\s*ctr\b",
+        r"\bavg\.?\s*position\b",
+        r"\baverage position\b",
+        r"\bbased on query\b",
+        r"\bsource:\s",
+        r"\bgsc\b",
+        r"\bgoogle search console\b",
+    ]
+    return any(re.search(pattern, text) for pattern in metric_patterns)
+
+
+def validate_generated_seo_draft(option_key: str, rows: list[tuple[str, str]], context: dict[str, object]) -> list[str]:
+    """Validate SEO draft quality before display."""
+    errors: list[str] = []
+    query = primary_query_from_context(context).lower()
+    public_text = "\n".join(value for _, value in rows)
+    if contains_metric_language(public_text):
+        errors.append("Analytics evidence appeared in customer-facing copy.")
+    if query:
+        query_tokens = [token for token in re.findall(r"[a-z0-9]+", query) if len(token) > 2]
+        public_lower = public_text.lower()
+        if query_tokens and not any(token in public_lower for token in query_tokens[:4]):
+            errors.append("Draft did not align clearly to the recommendation query or intent.")
+    if option_key == "seo_title_meta":
+        row_map = {label.lower(): value for label, value in rows}
+        title = row_map.get("suggested title tag", "")
+        meta = row_map.get("suggested meta description", "")
+        if title and len(title) > 70:
+            errors.append("Title tag is too long for a review-ready search result draft.")
+        if meta and len(meta) > 170:
+            errors.append("Meta description is too long for a review-ready search result draft.")
+        if title and meta and normalize_recommendation_plain_text(title).lower() == normalize_recommendation_plain_text(meta).lower():
+            errors.append("Meta description simply restates the title.")
+    unsupported_patterns = [
+        r"\bguarantee[sd]?\b",
+        r"\bcure[sd]?\b",
+        r"\bproven outcome\b",
+        r"\bfree\b",
+        r"\binsurance covers\b",
+        r"\bboard certified\b",
+        r"\b#1\b",
+    ]
+    if any(re.search(pattern, public_text, re.IGNORECASE) for pattern in unsupported_patterns):
+        errors.append("Draft contains unsupported claim language.")
+    return errors
+
+
+def build_contextual_seo_draft(option_key: str, item: dict[str, object], payload: dict | None) -> dict[str, object]:
+    """Create recommendation-specific SEO assets using detailed best-practice rules."""
+    context = build_recommendation_draft_context(item, payload)
+    query_rows = get_recommendation_supporting_query_context(item)
+    context["query_rows"] = query_rows
+    current_copy = extract_current_page_copy(item, payload)
+    context["current_page_copy"] = current_copy
+    subject = primary_query_from_context(context) or "the priority search intent"
+    target_page = str(context.get("target_page") or "").strip()
+    page_phrase = "" if not target_page or target_page == "Not available in this GSC export" else f" on {target_page}"
+    topic_phrase = safe_meta_topic_phrase(subject)
+    title_topic = concise_title_case(topic_phrase)
+    principles = filtered_best_practice_principles(option_key)
+    mode = "comparison" if current_copy else "suggested"
+    transparency_note = ""
+    if mode == "suggested":
+        transparency_note = "Suggested draft based on available search data and best-practice guidance. Current page copy was not available for comparison."
+
+    if option_key == "seo_title_meta":
+        title = f"{title_topic}: Clear Next Steps"
+        if target_page and target_page != "Not available in this GSC export":
+            clean_page = target_page.split("|")[0].strip()
+            page_anchor = clean_page[:28].strip()
+            title = f"{title_topic} | {page_anchor}" if page_anchor else title
+        meta = (
+            f"Understand {topic_phrase}, what to review, and how to choose a clear next step from the relevant page."
+        )
+        rows = [("Suggested Title Tag", title[:62]), ("Suggested Meta Description", meta[:160])]
+        current_rows = []
+        if current_copy:
+            if current_copy.get("title_tag"):
+                current_rows.append(("Current Title Tag", current_copy["title_tag"]))
+            if current_copy.get("meta_description"):
+                current_rows.append(("Current Meta Description", current_copy["meta_description"]))
+
+    elif option_key == "seo_h1_opening":
+        h1 = f"{title_topic}: What to Know Before Your Next Step"
+        opening = (
+            f"If you are researching {topic_phrase}, this page should make the topic easy to understand and help you decide what to review next{page_phrase}. "
+            "Use the sections below to compare the available information, clarify your questions, and choose the next step that fits your situation."
+        )
+        rows = [("Suggested H1", h1), ("Suggested Opening Copy", opening)]
+        current_rows = []
+        if current_copy:
+            if current_copy.get("h1"):
+                current_rows.append(("Current H1", current_copy["h1"]))
+            if current_copy.get("opening_copy"):
+                current_rows.append(("Current Opening Copy", current_copy["opening_copy"]))
+
+    elif option_key in {"seo_faq", "aeo_faq", "local_faq"}:
+        supporting_queries = [
+            normalize_recommendation_plain_text(str(row.get("query", ""))).strip()
+            for row in query_rows
+            if isinstance(row, dict) and normalize_recommendation_plain_text(str(row.get("query", ""))).strip()
+        ]
+        follow_up_topics = supporting_queries[:3] or [topic_phrase]
+        questions = [
+            (
+                f"What should I know about {follow_up_topics[0]}?",
+                f"Start with a plain-language explanation of {follow_up_topics[0]} and point readers to the next section that can help them evaluate fit."
+            ),
+            (
+                f"What questions should I ask before deciding on {topic_phrase}?",
+                "Focus on practical decision factors and avoid promising a specific medical, pricing, or outcome result."
+            ),
+            (
+                f"Where can I learn more about {topic_phrase}?",
+                "Direct readers to the most relevant page or section when one is known; if it is not known, review the page currently earning search visibility."
+            ),
+        ]
+        if len(follow_up_topics) > 1:
+            questions.insert(
+                1,
+                (
+                    f"How is {follow_up_topics[1]} different from {topic_phrase}?",
+                    "Use this answer to clarify related search intent in concise, reader-friendly language without adding unsupported claims."
+                ),
+            )
+        rows = [(question, answer) for question, answer in questions[:5]]
+        current_rows = []
+
+    else:
+        fallback_rows = build_generated_recommendation_draft(option_key, item, payload)
+        return {
+            "rows": fallback_rows,
+            "rationale": build_draft_rationale(option_key, context, principles),
+            "evidence_used": build_public_evidence_used(context),
+            "principles_applied": principles,
+        }
+
+    validation_errors = validate_generated_seo_draft(option_key, rows, context)
+    if validation_errors:
+        raise ValueError("; ".join(validation_errors))
+    return {
+        "rows": rows,
+        "current_rows": current_rows,
+        "mode": mode,
+        "transparency_note": transparency_note,
+        "rationale": build_draft_rationale(option_key, context, principles),
+        "evidence_used": build_public_evidence_used(context),
+        "principles_applied": principles,
+    }
+
+
+def create_recommendation_draft(option: dict[str, str], item: dict[str, object], payload: dict | None) -> dict[str, object]:
+    """Generate a draft payload for one recommendation asset card."""
+    option_key = option["key"]
+    try:
+        if option_key in {"seo_title_meta", "seo_h1_opening", "seo_faq", "aeo_faq", "local_faq"}:
+            generated_payload = build_contextual_seo_draft(option_key, item, payload)
+            generation_path = "Recommendation Detail → contextual SEO draft helper using focused recommendation evidence"
+            draft_rows = generated_payload.get("rows", []) if isinstance(generated_payload, dict) else []
+        else:
+            generated_payload = {}
+            draft_rows = build_generated_recommendation_draft(option_key, item, payload)
+            generation_path = "Recommendation Detail → existing Take Action execution payload"
+        cleaned_rows = [
+            (normalize_recommendation_plain_text(label), normalize_recommendation_plain_text(value))
+            for label, value in draft_rows
+            if normalize_recommendation_plain_text(label) and normalize_recommendation_plain_text(value)
+        ]
+        if not cleaned_rows:
+            raise ValueError("No supported draft fields were available for this asset type.")
+        copy_text = "\n\n".join(f"{label}\n{value}" for label, value in cleaned_rows)
+        return {
+            "status": "success",
+            "rows": cleaned_rows,
+            "current_rows": generated_payload.get("current_rows", []) if isinstance(generated_payload, dict) else [],
+            "mode": generated_payload.get("mode", "suggested") if isinstance(generated_payload, dict) else "suggested",
+            "transparency_note": generated_payload.get("transparency_note", "") if isinstance(generated_payload, dict) else "",
+            "copy_text": copy_text,
+            "generation_path": generation_path,
+            "option_title": option["title"],
+            "rationale": generated_payload.get("rationale", []) if isinstance(generated_payload, dict) else [],
+            "evidence_used": generated_payload.get("evidence_used", []) if isinstance(generated_payload, dict) else [],
+            "principles_applied": generated_payload.get("principles_applied", []) if isinstance(generated_payload, dict) else [],
+        }
+    except Exception as exc:
+        return {
+            "status": "error",
+            "error": normalize_recommendation_plain_text(str(exc)) or "The draft generator returned no content.",
+            "option_title": option["title"],
+        }
+
+
+def render_generated_recommendation_draft(
+    option: dict[str, str],
+    item: dict[str, object],
+    payload: dict | None,
+    key_prefix: str,
+    draft_state_key: str,
+) -> None:
+    """Show persisted generated recommendation content inline as review-ready draft work."""
+    draft_payload = st.session_state.get(draft_state_key)
+    if not isinstance(draft_payload, dict):
+        return
+    if draft_payload.get("status") == "error":
+        st.markdown(
+            (
+                '<div class="recommendation-draft-card">'
+                '<div class="recommendation-draft-label">Draft could not be created</div>'
+                f'<div class="recommendation-card-copy">{html.escape(str(draft_payload.get("error", "Unknown error")))}</div>'
+                '</div>'
+            ),
+            unsafe_allow_html=True,
+        )
+        return
+
+    draft_rows = draft_payload.get("rows") if isinstance(draft_payload.get("rows"), list) else []
+    current_rows = draft_payload.get("current_rows") if isinstance(draft_payload.get("current_rows"), list) else []
+    mode = str(draft_payload.get("mode") or "suggested")
     if not draft_rows:
         return
     st.markdown(
         f"""
         <div class="recommendation-draft-card">
             <div class="recommendation-draft-label">Draft Ready for Review</div>
-            <div class="recommendation-card-title">{html.escape(option["title"])}</div>
+            <div class="recommendation-card-title">{html.escape(str(draft_payload.get("option_title") or option["title"]))}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+    if mode == "comparison" and current_rows:
+        st.markdown('<div class="recommendation-draft-section"><div class="recommendation-draft-section-title">Current</div>', unsafe_allow_html=True)
+        for label, value in current_rows:
+            st.markdown(
+                f'<div class="recommendation-draft-section-title">{html.escape(str(label))}</div><div class="recommendation-draft-copy">{html.escape(str(value))}</div>',
+                unsafe_allow_html=True,
+            )
+        st.markdown('</div><div class="recommendation-draft-section"><div class="recommendation-draft-section-title">Suggested</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="recommendation-draft-section"><div class="recommendation-draft-section-title">Generated Draft</div>', unsafe_allow_html=True)
+        transparency_note = normalize_recommendation_plain_text(str(draft_payload.get("transparency_note", ""))).strip()
+        if transparency_note:
+            st.caption(transparency_note)
     for label, value in draft_rows:
-        st.markdown(f"**{label}**")
-        st.write(value)
-    action_cols = st.columns([1, 1, 1, 5])
+        st.markdown(
+            f'<div class="recommendation-draft-section-title">{html.escape(str(label))}</div><div class="recommendation-draft-copy">{html.escape(str(value))}</div>',
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+    rationale = draft_payload.get("rationale") if isinstance(draft_payload.get("rationale"), list) else []
+    evidence_used = draft_payload.get("evidence_used") if isinstance(draft_payload.get("evidence_used"), list) else []
+    principles_applied = draft_payload.get("principles_applied") if isinstance(draft_payload.get("principles_applied"), list) else []
+    if rationale:
+        st.markdown('<div class="recommendation-draft-section"><div class="recommendation-draft-section-title">Why InsightRx drafted this</div>', unsafe_allow_html=True)
+        for reason in rationale[:4]:
+            st.caption(str(reason))
+        st.markdown("</div>", unsafe_allow_html=True)
+    if evidence_used:
+        st.markdown('<div class="recommendation-draft-section"><div class="recommendation-draft-section-title">Evidence used</div>', unsafe_allow_html=True)
+        for line in evidence_used[:6]:
+            st.caption(str(line))
+        st.markdown("</div>", unsafe_allow_html=True)
+    if principles_applied:
+        st.markdown('<div class="recommendation-draft-section"><div class="recommendation-draft-section-title">Best-practice principles applied</div>', unsafe_allow_html=True)
+        for principle in principles_applied[:5]:
+            st.caption(str(principle))
+        st.markdown("</div>", unsafe_allow_html=True)
+    edit_key = f"{draft_state_key}_edit_mode"
+    copy_key = f"{draft_state_key}_show_copy"
+    if st.session_state.get(edit_key):
+        revised_text = st.text_area(
+            "Revise draft",
+            value=str(draft_payload.get("copy_text", "")),
+            key=f"{key_prefix}_revision_text",
+            height=180,
+        )
+        if st.button("Save Revision", key=f"{key_prefix}_save_revision"):
+            st.session_state[draft_state_key] = {
+                **draft_payload,
+                "rows": [("Revised Draft", revised_text)],
+                "copy_text": revised_text,
+                "status": "success",
+            }
+            st.session_state[edit_key] = False
+            st.rerun()
+
+    if st.session_state.get(copy_key):
+        st.text_area(
+            "Copy draft",
+            value=str(draft_payload.get("copy_text", "")),
+            key=f"{key_prefix}_copy_text",
+            height=160,
+        )
+
+    st.markdown('<div class="recommendation-draft-section-title" style="margin-top:0.9rem;">Review actions</div>', unsafe_allow_html=True)
+    action_cols = st.columns([1, 1, 1, 1, 4])
     with action_cols[0]:
-        st.button("Use Draft", key=f"{key_prefix}_use_draft")
+        if st.button("Regenerate", key=f"{key_prefix}_regenerate"):
+            with st.spinner("Creating draft…"):
+                st.session_state[draft_state_key] = create_recommendation_draft(option, item, payload)
+            st.rerun()
     with action_cols[1]:
-        st.button("Regenerate", key=f"{key_prefix}_regenerate")
+        if st.button("Copy", key=f"{key_prefix}_copy"):
+            st.session_state[copy_key] = not st.session_state.get(copy_key, False)
+            st.rerun()
     with action_cols[2]:
-        st.button("Edit", key=f"{key_prefix}_edit")
+        if st.button("Edit", key=f"{key_prefix}_edit"):
+            st.session_state[edit_key] = not st.session_state.get(edit_key, False)
+            st.rerun()
+    with action_cols[3]:
+        if st.button("Clear", key=f"{key_prefix}_clear"):
+            st.session_state.pop(draft_state_key, None)
+            st.session_state.pop(copy_key, None)
+            st.session_state.pop(edit_key, None)
+            st.rerun()
 
 
 def render_recommendation_workspace_card(
@@ -10023,18 +11766,23 @@ def render_recommendation_workspace_card(
     """Render one compact recommendation workspace card."""
     title = get_recommendation_display_title(item)
     summary = get_recommendation_summary(item)
+    chips_html = recommendation_chips_html(build_recommendation_metadata(item))
     st.markdown(
         f"""
         <div class="recommendation-queue-card">
-            <div class="recommendation-card-title">{html.escape(title)}</div>
+            <div class="recommendation-queue-card-top">
+                <div class="recommendation-card-title">{html.escape(title)}</div>
+                {recommendation_category_badge_html(item)}
+            </div>
             <div class="recommendation-card-copy">{html.escape(summary)}</div>
+            {chips_html}
         </div>
         """,
         unsafe_allow_html=True,
     )
-    render_recommendation_chips(build_recommendation_metadata(item))
     button_cols = st.columns([1, 1, 6])
     with button_cols[0]:
+        st.markdown('<span class="recommendation-start-action-marker"></span>', unsafe_allow_html=True)
         st.button(
             "Start This Action →",
             key=f"recommendation_start_{render_context_key}",
@@ -10055,19 +11803,27 @@ def render_recommended_next_action(item: dict[str, object]) -> None:
     """Present the highest existing recommendation as an action-first summary."""
     title = get_recommendation_display_title(item)
     summary = get_recommendation_summary(item)
+    quote = build_recommendation_why_text(item)
+    chips_html = recommendation_chips_html(build_recommendation_metadata(item))
     st.markdown(
         f"""
         <div class="recommendation-featured-card">
-            <div class="recommendation-eyebrow">✨ Recommended Next Action</div>
-            <div class="recommendation-card-title">{html.escape(title)}</div>
-            <div class="recommendation-card-copy">{html.escape(summary)}</div>
+            <div class="recommendation-featured-body">
+                <div class="recommendation-eyebrow">☆ Recommended Next Action</div>
+                <div class="recommendation-card-title">{html.escape(title)}</div>
+                <div class="recommendation-card-copy">{html.escape(summary)}</div>
+                {chips_html}
+            </div>
+            <div class="recommendation-featured-footer">
+                <div class="recommendation-featured-quote">“{html.escape(quote)}”</div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    render_recommendation_chips(build_recommendation_metadata(item))
     button_cols = st.columns([1, 1, 6])
     with button_cols[0]:
+        st.markdown('<span class="recommendation-start-action-marker"></span>', unsafe_allow_html=True)
         st.button(
             "Start This Action →",
             key="recommended_next_action_start",
@@ -10115,7 +11871,7 @@ def get_focused_action_steps(
     recommendation: dict[str, object] | None,
     opportunity_context: dict[str, object] | None,
 ) -> list[str]:
-    """Reuse structured actions from the selected opportunity or recommendation without inventing a plan."""
+    """Build concrete execution steps for the selected recommendation."""
     steps: list[str] = []
     for source in [
         (opportunity_context or {}).get("improvement_guidance", []),
@@ -10128,15 +11884,96 @@ def get_focused_action_steps(
             if text and text not in steps:
                 steps.append(text)
 
-    if not steps and recommendation:
-        text = normalize_recommendation_plain_text(str(recommendation.get("recommendation", ""))).strip()
-        if text:
-            steps.append(text)
-    if not steps and opportunity_context:
-        text = normalize_recommendation_plain_text(str(opportunity_context.get("recommended_action", ""))).strip()
-        if text:
-            steps.append(text)
-    return steps[:8]
+    if len(steps) >= 2:
+        return steps[:6]
+
+    derived_steps = derive_recommendation_execution_steps(recommendation, opportunity_context)
+    if len(derived_steps) >= 2:
+        return derived_steps[:6]
+
+    if steps:
+        return steps[:1]
+    fallback = normalize_recommendation_plain_text(
+        str((recommendation or {}).get("recommendation", "") or (opportunity_context or {}).get("recommended_action", ""))
+    ).strip()
+    return [fallback] if fallback else []
+
+
+def derive_recommendation_execution_steps(
+    recommendation: dict[str, object] | None,
+    opportunity_context: dict[str, object] | None,
+) -> list[str]:
+    """Derive a practical checklist from recommendation type and evidence without changing scoring."""
+    if not recommendation:
+        return []
+    category = get_recommendation_category(recommendation)
+    action_type = str(recommendation.get("action_type", "")).strip().lower()
+    evidence = recommendation.get("evidence") if isinstance(recommendation.get("evidence"), dict) else {}
+    text = " ".join(
+        normalize_recommendation_plain_text(str(value)).lower()
+        for value in [
+            recommendation.get("title"),
+            recommendation.get("recommendation"),
+            recommendation.get("why_it_matters"),
+            recommendation.get("issue"),
+        ]
+    )
+    has_search_evidence = any(key in evidence for key in ["impressions", "clicks", "ctr", "position"]) or category == "SEO"
+
+    if has_search_evidence:
+        steps = [
+            "Review the primary query and confirm the search intent.",
+            "Draft a stronger title tag and meta description for the search result.",
+            "Align the H1 and opening copy with the primary intent.",
+        ]
+        if any(token in text for token in ["faq", "question", "answer", "aeo"]):
+            steps.append("Add or refine concise FAQ content for the most relevant follow-up questions.")
+        else:
+            steps.append("Strengthen relevant FAQ or supporting content if the query needs more context.")
+        steps.extend(
+            [
+                "Add 2-3 contextual internal links from closely related pages.",
+                "Review the updated page and metadata before publishing.",
+            ]
+        )
+        return steps
+
+    if category == "UX/CRO" or "ux" in action_type or "conversion" in action_type:
+        return [
+            "Review the page or section tied to this recommendation.",
+            "Identify the primary action the visitor should take next.",
+            "Draft clearer CTA copy and supporting section text.",
+            "Check the page on mobile for readability, spacing, and action visibility.",
+            "Prepare the update for human review before publishing.",
+        ]
+
+    if category == "Social":
+        return [
+            "Identify the post or content theme behind this recommendation.",
+            "Review the strongest available engagement signals and sample size.",
+            "Draft 2-3 caption or hook variations tied to the same audience intent.",
+            "Add a clearer next-step CTA without implying unsupported conversion results.",
+            "Schedule the next test and compare response against the current posts.",
+        ]
+
+    if category == "Analytics":
+        return [
+            "Confirm the source, campaign, or measurement issue behind this recommendation.",
+            "Identify the metric that needs validation or closer monitoring.",
+            "Create a short measurement checklist for the next review cycle.",
+            "Compare the relevant traffic path or report segment before making a broader decision.",
+        ]
+
+    if category == "Local SEO":
+        return [
+            "Confirm the local search intent or location signal behind this recommendation.",
+            "Review the relevant local page or business profile content if available.",
+            "Draft clearer local search copy without inventing unavailable location details.",
+            "Add supporting FAQs or proof points only where the current data supports them.",
+            "Review the update before publishing.",
+        ]
+
+    return []
 
 
 def get_focused_evidence_lines(
@@ -10204,7 +12041,12 @@ def render_focused_recommendation_plan(
     evidence_metrics = extract_recommendation_evidence_metrics(recommendation)
     evidence_lines = get_recommendation_evidence_lines(recommendation, context)
     status = get_recommendation_status(recommendation)
-    recommendation_id = str(recommendation.get("recommendation_id", "recommendation")).strip()
+    recommendation_id = str(
+        recommendation.get("recommendation_id")
+        or recommendation.get("unique_key")
+        or recommendation.get("title")
+        or "recommendation"
+    ).strip()
     action_key = slugify_recommendation_key(recommendation_id)
     completed_key = f"recommendation_completed_steps_{action_key}"
     completed_steps = st.session_state.setdefault(completed_key, [])
@@ -10212,150 +12054,150 @@ def render_focused_recommendation_plan(
     payload = get_execution_payload_for_recommendation(recommendation, results)
     execution_options = get_execution_options(payload)
 
-    breadcrumb_cols = st.columns([1, 1, 5])
-    with breadcrumb_cols[0]:
-        st.button(
-            "Recommendations",
-            key=f"breadcrumb_recommendations_{action_key}",
-            on_click=return_to_recommendation_list,
-        )
-    with breadcrumb_cols[1]:
-        st.button(
-            category,
-            key=f"breadcrumb_category_{action_key}",
-            on_click=return_to_recommendation_list,
-            args=(category,),
-        )
     st.markdown(
-        f'<div class="recommendation-breadcrumb">Recommendations › {html.escape(category)} › {html.escape(title)}</div>',
+        f'<div class="recommendation-breadcrumb">Recommendations / {html.escape(category)} / {html.escape(title)}</div>',
         unsafe_allow_html=True,
     )
+    st.button(
+        "← Back to Recommendations",
+        key=f"focused_recommendation_back_to_list_{action_key}",
+        on_click=return_to_recommendation_list,
+    )
 
-    main_col, rail_col = st.columns([0.7, 0.3])
-    with main_col:
+    hero_chips = recommendation_chips_html(build_recommendation_metadata(recommendation, include_status=True))
+    st.markdown(
+        f"""
+        <div class="recommendation-detail-hero">
+            <div class="recommendation-card-title">{html.escape(title)}</div>
+            <div class="recommendation-detail-copy">{html.escape(summary)}</div>
+            {hero_chips}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    hero_action_cols = st.columns([1, 5])
+    with hero_action_cols[0]:
+        st.button(
+            "Mark In Progress",
+            key=f"hero_progress_{action_key}",
+            on_click=set_recommendation_status,
+            args=(recommendation, "In Progress"),
+        )
+    with st.expander("More recommendation actions", expanded=False):
+        st.button(
+            "Dismiss Recommendation",
+            key=f"hero_dismiss_{action_key}",
+            on_click=set_recommendation_status,
+            args=(recommendation, "Dismissed"),
+        )
+
+    st.markdown('<div class="recommendation-why-card">', unsafe_allow_html=True)
+    st.markdown('<div class="recommendation-section-title">💡 Why InsightRx Recommends This</div>', unsafe_allow_html=True)
+    st.write(why)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="recommendation-detail-card">', unsafe_allow_html=True)
+    analysis_period = get_recommendation_analysis_period(recommendation)
+    period_html = f'<div class="recommendation-period">Analysis Period: {html.escape(analysis_period)}</div>' if analysis_period else ""
+    st.markdown(
+        f'<div class="recommendation-evidence-header"><div class="recommendation-section-title">Evidence</div>{period_html}</div>',
+        unsafe_allow_html=True,
+    )
+    if evidence_metrics:
+        st.markdown(recommendation_evidence_metric_html(evidence_metrics), unsafe_allow_html=True)
+    visible_evidence_lines = evidence_lines
+    if evidence_metrics:
+        metric_line_values = {f"{label}: {value}" for label, value in evidence_metrics}
+        visible_evidence_lines = [line for line in evidence_lines if line not in metric_line_values]
+    if visible_evidence_lines:
+        for line in visible_evidence_lines:
+            st.caption(line)
+    if not evidence_metrics and not visible_evidence_lines:
+        st.caption("Supporting metrics are not available for this recommendation in the current run.")
+    comparison_html = build_visibility_click_response_html(recommendation)
+    if comparison_html:
+        st.markdown(comparison_html, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="recommendation-detail-card">', unsafe_allow_html=True)
+    st.markdown('<div class="recommendation-section-title">Recommended Action Plan</div>', unsafe_allow_html=True)
+    if len(action_steps) >= 2:
+        st.markdown('<div class="recommendation-action-list-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="recommendation-action-list">', unsafe_allow_html=True)
+        for index, step in enumerate(action_steps):
+            checkbox_key = f"{completed_key}_{index}"
+            was_completed = step in completed_steps
+            is_completed = st.checkbox(
+                step,
+                value=was_completed,
+                key=checkbox_key,
+            )
+            if is_completed and step not in completed_steps:
+                completed_steps.append(step)
+            elif not is_completed and step in completed_steps:
+                completed_steps.remove(step)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.session_state[completed_key] = completed_steps
+        if completed_steps and status == "Ready":
+            set_recommendation_status(recommendation, "In Progress")
+            status = "In Progress"
+        status_label = "Action Plan Complete" if len(completed_steps) == len(action_steps) else status
         st.markdown(
-            f"""
-            <div class="recommendation-detail-card">
-                <div class="recommendation-card-title">{html.escape(title)}</div>
-                <div class="recommendation-detail-copy">{html.escape(summary)}</div>
-            </div>
-            """,
+            f'<div class="recommendation-status-line">{len(completed_steps)} of {len(action_steps)} steps completed · {html.escape(status_label)}</div>',
             unsafe_allow_html=True,
         )
-        render_recommendation_chips(build_recommendation_metadata(recommendation, include_status=True))
+    elif len(action_steps) == 1:
+        st.markdown('<div class="recommendation-section-title" style="font-size:0.92rem;">Recommended Action</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="recommendation-comparison-card"><div class="recommendation-comparison-note">{html.escape(action_steps[0])}</div></div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.caption("No structured action steps are available for this recommendation.")
+    st.markdown("</div>", unsafe_allow_html=True)
 
+    if execution_options:
         st.markdown('<div class="recommendation-detail-card">', unsafe_allow_html=True)
-        st.markdown('<div class="recommendation-section-title">💡 Why InsightRx Recommends This</div>', unsafe_allow_html=True)
-        st.write(why)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown('<div class="recommendation-detail-card">', unsafe_allow_html=True)
-        st.markdown('<div class="recommendation-section-title">Evidence</div>', unsafe_allow_html=True)
-        if evidence_metrics:
-            metric_html = "".join(
-                (
-                    '<div class="recommendation-evidence-card">'
-                    f'<div class="recommendation-evidence-label">{html.escape(label)}</div>'
-                    f'<div class="recommendation-evidence-value">{html.escape(value)}</div>'
-                    "</div>"
-                )
-                for label, value in evidence_metrics
-            )
-            st.markdown(f'<div class="recommendation-evidence-grid">{metric_html}</div>', unsafe_allow_html=True)
-        visible_evidence_lines = evidence_lines
-        if evidence_metrics:
-            metric_line_values = {f"{label}: {value}" for label, value in evidence_metrics}
-            visible_evidence_lines = [line for line in evidence_lines if line not in metric_line_values]
-        if visible_evidence_lines:
-            for line in visible_evidence_lines:
-                st.caption(line)
-        if not evidence_metrics and not visible_evidence_lines:
-            st.caption("Supporting metrics are not available for this recommendation in the current run.")
-        comparison = build_visibility_click_response(recommendation)
-        if comparison:
-            visibility, click_response, comparison_note = comparison
-            st.markdown("**Visibility vs. Click Response**")
-            render_recommendation_chips([f"Search Visibility: {visibility}", f"Click Response: {click_response}"], primary_first=False)
-            st.caption(comparison_note)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown('<div class="recommendation-detail-card">', unsafe_allow_html=True)
-        st.markdown('<div class="recommendation-section-title">Recommended Action Plan</div>', unsafe_allow_html=True)
-        if action_steps:
-            for index, step in enumerate(action_steps):
-                checkbox_key = f"{completed_key}_{index}"
-                was_completed = step in completed_steps
-                is_completed = st.checkbox(step, value=was_completed, key=checkbox_key)
-                if is_completed and step not in completed_steps:
-                    completed_steps.append(step)
-                elif not is_completed and step in completed_steps:
-                    completed_steps.remove(step)
-            st.session_state[completed_key] = completed_steps
-            if completed_steps and status == "Ready":
-                set_recommendation_status(recommendation, "In Progress")
-                status = "In Progress"
-            st.markdown(
-                f'<div class="recommendation-status-line">{len(completed_steps)} of {len(action_steps)} steps completed · {html.escape(status)}</div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.caption("No structured action steps are available for this recommendation.")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        if execution_options:
-            st.markdown('<div class="recommendation-detail-card">', unsafe_allow_html=True)
-            st.markdown('<div class="recommendation-section-title">✨ Create With InsightRx</div>', unsafe_allow_html=True)
-            st.caption("Use AI to turn this recommendation into ready-to-review marketing assets.")
-            st.markdown('<div class="recommendation-execution-grid">', unsafe_allow_html=True)
-            for option in execution_options:
+        st.markdown('<div class="recommendation-section-title">✨ Create With InsightRx</div>', unsafe_allow_html=True)
+        st.caption("Use AI to turn this recommendation into ready-to-review marketing assets.")
+        st.markdown('<div class="recommendation-execution-grid">', unsafe_allow_html=True)
+        for option in execution_options:
+            draft_state_key = f"draft_{action_key}_{option['key']}"
+            draft_payload = st.session_state.get(draft_state_key)
+            has_draft = isinstance(draft_payload, dict) and draft_payload.get("status") == "success"
+            expander_label = f"▧ {option['title']} — {option['description']}"
+            with st.expander(expander_label, expanded=has_draft):
                 st.markdown(
                     f"""
                     <div class="recommendation-option-card">
-                        <div class="recommendation-option-title">{html.escape(option["title"])}</div>
-                        <div class="recommendation-option-copy">{html.escape(option["description"])}</div>
+                        <div class="recommendation-option-icon">▧</div>
+                        <div>
+                            <div class="recommendation-option-title">{html.escape(option["title"])}</div>
+                            <div class="recommendation-option-copy">{html.escape(option["description"])}</div>
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
-                if st.button("Create Draft", key=f"create_draft_{action_key}_{option['key']}"):
-                    st.session_state[f"recommendation_draft_option_{action_key}"] = option["key"]
-            st.markdown("</div>", unsafe_allow_html=True)
-            selected_option_key = st.session_state.get(f"recommendation_draft_option_{action_key}")
-            selected_option = next((option for option in execution_options if option["key"] == selected_option_key), None)
-            if selected_option:
-                render_generated_recommendation_draft(selected_option, recommendation, payload, f"{action_key}_{selected_option['key']}")
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    with rail_col:
-        st.markdown('<div class="recommendation-detail-rail">', unsafe_allow_html=True)
-        st.markdown('<div class="recommendation-section-title">Recommendation Details</div>', unsafe_allow_html=True)
-        for label, value in build_recommendation_detail_rows(recommendation):
-            st.markdown(
-                f'<div class="recommendation-detail-row"><strong>{html.escape(label)}</strong><span>{html.escape(value)}</span></div>',
-                unsafe_allow_html=True,
-            )
-        if execution_options:
-            first_option = execution_options[0]
-            if st.button("✨ Create with InsightRx", key=f"rail_create_{action_key}", type="primary"):
-                st.session_state[f"recommendation_draft_option_{action_key}"] = first_option["key"]
-        st.button("Mark In Progress", key=f"rail_progress_{action_key}", on_click=set_recommendation_status, args=(recommendation, "In Progress"))
-        st.button("Dismiss Recommendation", key=f"rail_dismiss_{action_key}", on_click=set_recommendation_status, args=(recommendation, "Dismissed"))
+                if has_draft:
+                    st.button(
+                        "Draft created",
+                        key=f"draft_created_{action_key}_{option['key']}",
+                        disabled=True,
+                    )
+                else:
+                    if st.button("Create Draft", key=f"create_draft_{action_key}_{option['key']}"):
+                        with st.spinner("Creating draft…"):
+                            st.session_state[draft_state_key] = create_recommendation_draft(option, recommendation, payload)
+                        st.rerun()
+                render_generated_recommendation_draft(
+                    option,
+                    recommendation,
+                    payload,
+                    f"{action_key}_{option['key']}",
+                    draft_state_key,
+                )
         st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown('<div class="recommendation-detail-rail">', unsafe_allow_html=True)
-        st.markdown('<div class="recommendation-section-title">Related Evidence</div>', unsafe_allow_html=True)
-        related_lines = evidence_lines[:3]
-        if related_lines:
-            items_html = "".join(f"<li>{html.escape(line)}</li>" for line in related_lines)
-            st.markdown(f'<ul class="recommendation-related-list">{items_html}</ul>', unsafe_allow_html=True)
-        powered_by = []
-        source = get_recommendation_source(recommendation)
-        if source:
-            powered_by.append("GSC" if "search" in source.lower() or "google" in source.lower() else source)
-        powered_by.append(category)
-        if recommendation.get("type"):
-            powered_by.append("Recommendation Engine")
-        render_recommendation_chips(list(dict.fromkeys(powered_by)), primary_first=False)
         st.markdown("</div>", unsafe_allow_html=True)
 
     if context:
@@ -10382,8 +12224,15 @@ def render_recommendation_empty_state(tab_label: str) -> None:
 def render_recommendations_page(results: dict) -> None:
     """Render the Recommendations page as a tabbed executive action workspace."""
     st.markdown('<div class="recommendations-page-marker"></div>', unsafe_allow_html=True)
-    st.title("🎯 Recommendations")
-    st.caption("Prioritized actions based on what InsightRx found in your marketing data.")
+    st.markdown(
+        """
+        <div class="recommendation-workspace-header">
+            <div class="recommendation-workspace-title">🎯 Recommendations</div>
+            <p class="recommendation-workspace-subtitle">Executive action workspace across strategy, recommendations, and execution assets.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if not results:
         st.info("Run the workflow first on the Data Sources page.")
@@ -10425,9 +12274,12 @@ def render_recommendations_page(results: dict) -> None:
         return
 
     filter_labels = ["All"]
-    for tab_label in ["SEO", "UX/CRO", "Local SEO", "Social", "Analytics"]:
-        if any(get_recommendation_category(item) == tab_label for item in display_workspace_items):
-            filter_labels.append(tab_label)
+    if any(get_recommendation_category(item) in {"SEO", "UX/CRO", "Analytics"} for item in display_workspace_items):
+        filter_labels.append("Website")
+    if any(get_recommendation_category(item) == "Local SEO" for item in display_workspace_items):
+        filter_labels.append("Local SEO")
+    if any(get_recommendation_category(item) == "Social" for item in display_workspace_items):
+        filter_labels.append("Social")
 
     saved_filter = st.session_state.get("recommendation_filter", "All")
     filter_index = filter_labels.index(saved_filter) if saved_filter in filter_labels else 0
@@ -10444,7 +12296,9 @@ def render_recommendations_page(results: dict) -> None:
         item for item in sorted_recommendations
         if str(item.get("recommendation_id", "")).strip() != str(featured_item.get("recommendation_id", "")).strip()
     ]
-    if selected_filter != "All":
+    if selected_filter == "Website":
+        queue_items = [item for item in queue_items if get_recommendation_category(item) in {"SEO", "UX/CRO", "Analytics"}]
+    elif selected_filter != "All":
         queue_items = [item for item in queue_items if get_recommendation_category(item) == selected_filter]
 
     if not queue_items:
@@ -11349,8 +13203,15 @@ def report_metric_values(results: dict) -> dict[str, dict[str, object]]:
 def render_executive_reports_page(results: dict) -> None:
     """Present the current run as a concise executive report using existing intelligence outputs."""
     st.markdown('<div class="reports-page-marker"></div>', unsafe_allow_html=True)
-    st.title("📄 Marketing Performance Report")
-    st.caption("Your marketing performance, key findings, and recommended next steps from this analysis run.")
+    st.markdown(
+        """
+        <div class="recommendation-workspace-header">
+            <div class="recommendation-workspace-title">📄 Marketing Performance Report</div>
+            <p class="recommendation-workspace-subtitle">Your marketing performance, key findings, and recommended next steps from this analysis run.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     if not results:
         st.info("Run the workflow first on the Data Sources page.")
         return
@@ -11426,10 +13287,18 @@ def render_executive_reports_page(results: dict) -> None:
             for column, channel in zip(snapshot_columns, channel_row):
                 with column:
                     st.markdown('<div class="report-snapshot-card-marker"></div>', unsafe_allow_html=True)
-                    st.markdown(f"**{channel['title']}**")
+                    st.markdown(
+                        f"<div class='report-snapshot-title'>{html.escape(str(channel['title']))}</div>",
+                        unsafe_allow_html=True,
+                    )
+                    metric_lines = []
                     for label, value in channel.get("metrics", []):
+                        metric_lines.append(
+                            f"<div class='report-metric-line'><strong>{html.escape(str(label))}</strong><span>{html.escape(str(value))}</span></div>"
+                        )
+                    if metric_lines:
                         st.markdown(
-                            f"<div class='report-metric-line'><strong>{html.escape(label)}</strong><span>{html.escape(value)}</span></div>",
+                            f"<div class='report-metric-grid'>{''.join(metric_lines)}</div>",
                             unsafe_allow_html=True,
                         )
                     interpretation = ""
